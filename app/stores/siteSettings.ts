@@ -1,0 +1,54 @@
+// * Singleton site-wide settings store. Public read via RLS, admin writes
+// * through the admin-settings edge function.
+import { defineStore } from 'pinia'
+import { invokeEdge } from '~/composables/useEdgeFunction'
+
+export interface SiteSettings {
+  id: string
+  clearance_active: boolean
+  updated_at: string
+}
+
+export const useSiteSettingsStore = defineStore('siteSettings', () => {
+  const settings = ref<SiteSettings | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  const clearanceActive = computed(() => !!settings.value?.clearance_active)
+
+  async function fetchAll() {
+    loading.value = true
+    error.value = null
+    try {
+      const client = useSupabaseClient()
+      const { data, error: err } = await client
+        .from('site_settings')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (err) throw err
+      settings.value = (data ?? null) as SiteSettings | null
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Failed to load settings'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function update(patch: Partial<Pick<SiteSettings, 'clearance_active'>>) {
+    const { data, error: err } = await invokeEdge<{ settings: SiteSettings }>(
+      'admin-settings',
+      { method: 'PUT', body: patch },
+    )
+    if (err) throw new Error(err.message)
+    if (data?.settings) settings.value = data.settings
+    return data?.settings
+  }
+
+  async function toggleClearance() {
+    return update({ clearance_active: !clearanceActive.value })
+  }
+
+  return { settings, loading, error, clearanceActive, fetchAll, update, toggleClearance }
+})

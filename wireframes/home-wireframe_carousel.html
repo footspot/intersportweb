@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intersport Club IDF — Accueil (Wireframe)</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #0331f9;
+    --primary-dark: #0225c4;
+    --primary-light: #3a5fff;
+    --primary-glow: rgba(3, 49, 249, 0.15);
+    --secondary: #e30b0c;
+    --bg: #f8f9fc;
+    --bg-card: #ffffff;
+    --bg-dark: #0a0e27;
+    --text: #1a1a2e;
+    --text-muted: #6b7280;
+    --text-light: #9ca3af;
+    --border: #e5e7eb;
+    --radius: 16px;
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+    --shadow-glow: 0 0 30px rgba(3, 49, 249, 0.2);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Sora', sans-serif; background: var(--bg);
+    color: var(--text); overflow-x: hidden; -webkit-font-smoothing: antialiased;
+  }
+
+  .wireframe-badge {
+    position: fixed; top: 20px; right: 20px; background: var(--secondary); color: white;
+    padding: 8px 18px; border-radius: 100px; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; z-index: 1000;
+    box-shadow: 0 4px 15px rgba(227, 11, 12, 0.4); animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.85); backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(0,0,0,0.06); padding: 0 40px; height: 72px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 32px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .logo-icon {
+    width: 40px; height: 40px; background: var(--primary); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 900; font-size: 18px; font-family: 'Outfit', sans-serif;
+    box-shadow: 0 2px 10px rgba(3,49,249,0.3);
+  }
+  .logo-text { font-family:'Outfit'; font-weight:800; font-size:20px; color:var(--text); }
+  .logo-text span { color: var(--primary); }
+  nav { display: flex; gap: 4px; }
+  nav a {
+    text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500;
+    padding: 8px 16px; border-radius: 8px; transition: all 0.2s;
+  }
+  nav a:hover { color: var(--primary); background: var(--primary-glow); }
+  nav a.active { color: var(--primary); background: var(--primary-glow); font-weight: 600; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-icon {
+    width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; background: white; position: relative; transition: all 0.2s;
+  }
+  .header-icon:hover { border-color: var(--primary); box-shadow: var(--shadow-glow); }
+  .cart-count {
+    position: absolute; top: -4px; right: -4px; background: var(--secondary); color: white;
+    font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lang-switch {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: white;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative; background: var(--bg-dark); padding: 80px 40px 60px;
+    overflow: hidden; min-height: 400px; display: flex; align-items: center;
+  }
+  .hero::before {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(ellipse 600px 400px at 20% 50%, rgba(3,49,249,0.25), transparent),
+                radial-gradient(ellipse 400px 300px at 80% 30%, rgba(227,11,12,0.15), transparent);
+  }
+  .hero-grid {
+    position:absolute; inset:0;
+    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                       linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .hero-content { position:relative; z-index:2; max-width:600px; }
+  .hero-eyebrow {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(3,49,249,0.2); border:1px solid rgba(3,49,249,0.3);
+    padding:6px 16px; border-radius:100px; color:#7b9fff;
+    font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase;
+    margin-bottom:24px; animation: fadeUp .6s ease-out;
+  }
+  .hero h1 {
+    font-family:'Outfit'; font-size:52px; font-weight:900; color:white;
+    line-height:1.1; letter-spacing:-1.5px; margin-bottom:16px; animation: fadeUp .6s ease-out .1s both;
+  }
+  .hero h1 span { background:linear-gradient(135deg,var(--primary-light),#7b9fff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero p { color:rgba(255,255,255,.6); font-size:16px; line-height:1.7; margin-bottom:32px; animation: fadeUp .6s ease-out .2s both; }
+  .hero-stats { display:flex; gap:40px; animation: fadeUp .6s ease-out .3s both; }
+  .stat-item { text-align:left; }
+  .stat-value { font-family:'Outfit'; font-size:28px; font-weight:800; color:white; }
+  .stat-value span { color:var(--primary-light); }
+  .stat-label { font-size:12px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:1px; margin-top:4px; }
+  .hero-visual {
+    position:absolute; right:40px; top:50%; transform:translateY(-50%);
+    width:500px; height:360px; display:flex; gap:16px; animation: fadeRight .8s ease-out .3s both;
+  }
+  .hero-card {
+    flex:1; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
+    border-radius:var(--radius); backdrop-filter:blur(10px); padding:20px;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    position:relative; overflow:hidden; transition: transform .3s, border-color .3s;
+  }
+  .hero-card:hover { transform:translateY(-4px); border-color:rgba(3,49,249,.3); }
+  .hero-card-img { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:80px; opacity:.15; }
+  .hero-card-label { font-weight:700; color:white; font-size:15px; position:relative; z-index:1; }
+  .hero-card-sub { font-size:12px; color:rgba(255,255,255,.4); margin-top:4px; position:relative; z-index:1; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeRight { from{opacity:0;transform:translate(30px,-50%)} to{opacity:1;transform:translate(0,-50%)} }
+
+  /* CAROUSEL CONTAINER */
+  .carousel-container { padding: 48px 40px 20px; }
+  .section-label { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+  .section-label .step {
+    width:32px; height:32px; border-radius:8px; background:var(--primary); color:white;
+    font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .section-label h2 { font-family:'Outfit'; font-size:22px; font-weight:700; letter-spacing:-.3px; }
+  .section-label .hint { font-size:13px; color:var(--text-muted); margin-left:auto; transition:opacity .3s; }
+
+  .carousel-viewport {
+    position:relative; overflow:hidden; border-radius:20px;
+    background:white; border:1px solid var(--border); box-shadow:var(--shadow-md);
+    transition: height .7s cubic-bezier(.16,1,.3,1);
+  }
+  .carousel-track { transition: transform .7s cubic-bezier(.16,1,.3,1); }
+  .carousel-slide { padding: 32px; }
+
+  /* Sport cards */
+  .sport-row { display:flex; gap:16px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; }
+  .sport-row::-webkit-scrollbar { display:none; }
+  .sport-card {
+    flex:0 0 180px; height:110px; border-radius:14px; border:2px solid var(--border);
+    background:var(--bg); display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:8px; cursor:pointer; position:relative; overflow:hidden;
+    transition: all .3s cubic-bezier(.4,0,.2,1); user-select:none;
+  }
+  .sport-card::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(135deg,var(--primary-glow),transparent);
+    opacity:0; transition:opacity .3s;
+  }
+  .sport-card:hover::before { opacity:1; }
+  .sport-card:hover { border-color:var(--primary); transform:translateY(-4px); box-shadow:var(--shadow-glow); }
+  .sport-card.active { border-color:var(--primary); background:var(--primary); box-shadow:var(--shadow-glow); }
+  .sport-card.active .sport-name { color:white; }
+  .sport-emoji { font-size:34px; position:relative; z-index:1; }
+  .sport-name { font-weight:600; font-size:13px; color:var(--text); position:relative; z-index:1; transition:color .3s; }
+
+  /* Club cards */
+  .club-row { display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; }
+  .club-row::-webkit-scrollbar { display:none; }
+  .club-card {
+    flex:0 0 220px; padding:18px; border-radius:14px; border:2px solid var(--border);
+    background:var(--bg); display:flex; align-items:center; gap:14px;
+    cursor:pointer; transition: all .3s cubic-bezier(.4,0,.2,1); user-select:none;
+  }
+  .club-card:hover { border-color:var(--primary); transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .club-card.active { border-color:var(--primary); background:linear-gradient(135deg,#eef0ff,#f8f9ff); box-shadow:var(--shadow-md); }
+  .club-logo {
+    width:46px; height:46px; border-radius:12px; background:linear-gradient(135deg,#f0f0f0,#e0e0e0);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; transition:all .3s;
+  }
+  .club-card.active .club-logo { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; }
+  .club-info { display:flex; flex-direction:column; gap:2px; }
+  .club-name { font-weight:600; font-size:14px; color:var(--text); }
+  .club-count { font-size:12px; color:var(--text-muted); }
+  .club-lock { margin-left:auto; font-size:14px; opacity:.4; }
+
+  .back-btn {
+    display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600;
+    color:var(--primary); cursor:pointer; margin-bottom:18px; padding:6px 14px;
+    border-radius:8px; background:var(--primary-glow); border:none; font-family:'Sora';
+    transition:all .2s;
+  }
+  .back-btn:hover { background:rgba(3,49,249,.2); }
+
+  /* PRODUCTS */
+  .products-section { padding:0 40px 60px; overflow:hidden; }
+  .products-inner { transition: all .7s cubic-bezier(.22,1,.36,1); }
+  .products-inner.hidden { opacity:0; transform:translateY(-60px); clip-path:inset(0 0 100% 0); max-height:0; pointer-events:none; }
+  .products-inner.visible { opacity:1; transform:translateY(0); clip-path:inset(0 0 0 0); max-height:4000px; }
+
+  .products-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .products-title-row { display:flex; align-items:center; gap:12px; }
+  .products-title-row .step {
+    width:32px; height:32px; border-radius:8px; background:var(--primary); color:white;
+    font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+  .products-title-row h2 { font-family:'Outfit'; font-size:22px; font-weight:700; }
+  .filter-bar { display:flex; gap:8px; }
+  .filter-chip {
+    padding:7px 16px; border-radius:100px; border:1px solid var(--border);
+    font-size:13px; font-weight:500; color:var(--text-muted); background:white;
+    cursor:pointer; transition:all .2s; font-family:'Sora';
+  }
+  .filter-chip:hover { border-color:var(--primary); color:var(--primary); }
+  .filter-chip.active { background:var(--primary); color:white; border-color:var(--primary); }
+
+  .product-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+  .product-card {
+    background:var(--bg-card); border-radius:var(--radius); overflow:hidden;
+    border:1px solid var(--border); transition: all .3s cubic-bezier(.4,0,.2,1);
+    cursor:pointer; position:relative; animation: cardIn .5s ease-out both;
+  }
+  .product-card:nth-child(1){animation-delay:.05s} .product-card:nth-child(2){animation-delay:.1s}
+  .product-card:nth-child(3){animation-delay:.15s} .product-card:nth-child(4){animation-delay:.2s}
+  .product-card:nth-child(5){animation-delay:.25s} .product-card:nth-child(6){animation-delay:.3s}
+  .product-card:nth-child(7){animation-delay:.35s} .product-card:nth-child(8){animation-delay:.4s}
+  @keyframes cardIn { from{opacity:0;transform:translateY(20px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .product-card:hover { transform:translateY(-6px); box-shadow:var(--shadow-lg); border-color:transparent; }
+  .product-img {
+    width:100%; aspect-ratio:1; background:linear-gradient(145deg,#f3f4f6,#e8eaef);
+    display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;
+  }
+  .product-img .placeholder { font-size:60px; opacity:.3; }
+  .product-badge {
+    position:absolute; top:12px; left:12px; padding:4px 10px; border-radius:6px;
+    font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+  }
+  .badge-new { background:var(--primary); color:white; }
+  .badge-sale { background:var(--secondary); color:white; }
+  .badge-flocking { background:#10b981; color:white; }
+  .product-quick-add {
+    position:absolute; bottom:12px; right:12px; width:40px; height:40px; border-radius:50%;
+    background:var(--primary); color:white; display:flex; align-items:center; justify-content:center;
+    font-size:20px; opacity:0; transform:translateY(8px); transition:all .3s;
+    box-shadow:0 4px 15px rgba(3,49,249,.4);
+  }
+  .product-card:hover .product-quick-add { opacity:1; transform:translateY(0); }
+  .product-body { padding:16px; }
+  .product-ref { font-size:11px; color:var(--text-light); letter-spacing:.5px; text-transform:uppercase; margin-bottom:6px; }
+  .product-name { font-weight:600; font-size:15px; color:var(--text); margin-bottom:4px; line-height:1.3; }
+  .product-detail { font-size:12px; color:var(--text-muted); margin-bottom:12px; }
+  .product-footer { display:flex; align-items:center; justify-content:space-between; }
+  .product-price { font-family:'Outfit'; font-weight:800; font-size:20px; color:var(--text); }
+  .product-old-price { text-decoration:line-through; color:var(--text-light); font-size:14px; font-weight:400; margin-left:6px; }
+  .product-sizes { display:flex; gap:4px; }
+  .size-dot {
+    width:24px; height:24px; border-radius:6px; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:var(--text-muted);
+  }
+  .flocking-tag {
+    display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#10b981;
+    font-weight:600; margin-top:8px; padding:3px 8px; background:rgba(16,185,129,.08); border-radius:6px;
+  }
+
+  /* PASSWORD MODAL */
+  .password-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(8px);
+    display:flex; align-items:center; justify-content:center; z-index:200;
+    opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .password-overlay.show { opacity:1; pointer-events:all; }
+  .password-modal {
+    background:white; border-radius:20px; padding:40px; width:420px; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);
+    transform:translateY(20px) scale(.95); transition:transform .3s cubic-bezier(.16,1,.3,1);
+  }
+  .password-overlay.show .password-modal { transform:translateY(0) scale(1); }
+  .password-modal-icon {
+    width:64px; height:64px; border-radius:16px; background:var(--primary-glow);
+    display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 20px;
+  }
+  .password-modal h3 { font-family:'Outfit'; font-size:20px; font-weight:700; margin-bottom:8px; }
+  .password-modal p { font-size:14px; color:var(--text-muted); margin-bottom:24px; }
+  .password-input {
+    width:100%; padding:14px 20px; border-radius:12px; border:2px solid var(--border);
+    font-size:15px; font-family:'Sora'; outline:none; transition:border-color .2s;
+    margin-bottom:12px; text-align:center; letter-spacing:4px;
+  }
+  .password-input:focus { border-color:var(--primary); }
+  .password-error { font-size:12px; color:var(--secondary); margin-bottom:12px; opacity:0; transition:opacity .2s; }
+  .password-error.show { opacity:1; }
+  .password-hint { font-size:11px; color:var(--text-light); margin-bottom:16px; font-style:italic; }
+  .password-btn {
+    width:100%; padding:14px; border-radius:12px; background:var(--primary);
+    color:white; font-weight:600; font-size:15px; border:none; cursor:pointer;
+    font-family:'Sora'; transition:background .2s;
+  }
+  .password-btn:hover { background:var(--primary-dark); }
+  .password-cancel {
+    margin-top:12px; font-size:13px; color:var(--text-muted); cursor:pointer;
+    border:none; background:none; font-family:'Sora';
+  }
+  .password-cancel:hover { color:var(--text); }
+
+  /* ENTRY CHOICE CARDS */
+  .entry-row { display:flex; gap:24px; justify-content:center; }
+  .entry-card {
+    flex:0 0 340px; height:200px; border-radius:20px; border:2px solid var(--border);
+    background:var(--bg-card); display:flex; align-items:center; gap:24px;
+    padding:32px 36px; cursor:pointer; position:relative; overflow:hidden;
+    transition: all .4s cubic-bezier(.4,0,.2,1); user-select:none;
+  }
+  .entry-card::before {
+    content:''; position:absolute; inset:0; border-radius:20px; opacity:0;
+    transition:opacity .4s;
+  }
+  .entry-card:first-child::before {
+    background:linear-gradient(135deg, rgba(3,49,249,.06), rgba(3,49,249,.02));
+  }
+  .entry-card:last-child::before {
+    background:linear-gradient(135deg, rgba(227,11,12,.06), rgba(227,11,12,.02));
+  }
+  .entry-card:hover::before { opacity:1; }
+  .entry-card:hover {
+    transform:translateY(-6px);
+    box-shadow:0 16px 48px rgba(0,0,0,.1);
+    border-color:transparent;
+  }
+  .entry-card:first-child:hover { border-color:var(--primary); box-shadow:0 16px 48px rgba(3,49,249,.15); }
+  .entry-card:last-child:hover { border-color:var(--secondary); box-shadow:0 16px 48px rgba(227,11,12,.12); }
+
+  .entry-icon {
+    width:80px; height:80px; border-radius:20px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:36px; flex-shrink:0; position:relative; z-index:1;
+    transition:transform .3s;
+  }
+  .entry-card:hover .entry-icon { transform:scale(1.08); }
+  .entry-card:first-child .entry-icon { background:var(--primary-glow); }
+  .entry-card:last-child .entry-icon { background:rgba(227,11,12,.08); }
+
+  .entry-text { position:relative; z-index:1; }
+  .entry-title {
+    font-family:'Outfit'; font-size:22px; font-weight:800; letter-spacing:-.3px;
+    margin-bottom:6px;
+  }
+  .entry-card:first-child .entry-title { color:var(--primary); }
+  .entry-card:last-child .entry-title { color:var(--secondary); }
+  .entry-desc { font-size:13px; color:var(--text-muted); line-height:1.5; }
+  .entry-arrow {
+    position:absolute; right:28px; top:50%; transform:translateY(-50%);
+    font-size:24px; color:var(--text-light); transition:all .3s; z-index:1;
+  }
+  .entry-card:hover .entry-arrow { transform:translateY(-50%) translateX(4px); }
+  .entry-card:first-child:hover .entry-arrow { color:var(--primary); }
+  .entry-card:last-child:hover .entry-arrow { color:var(--secondary); }
+
+  /* CATALOG SECTION */
+  .catalog-section {
+    padding:0 40px 60px; overflow:hidden;
+  }
+  .catalog-inner { transition: all .7s cubic-bezier(.22,1,.36,1); }
+  .catalog-inner.hidden { opacity:0; transform:translateY(-40px); clip-path:inset(0 0 100% 0); max-height:0; pointer-events:none; }
+  .catalog-inner.visible { opacity:1; transform:translateY(0); clip-path:inset(0 0 0 0); max-height:2000px; }
+
+  .catalog-header {
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;
+  }
+  .catalog-title-row { display:flex; align-items:center; gap:12px; }
+  .catalog-title-row .cat-icon {
+    width:32px; height:32px; border-radius:8px; background:var(--secondary);
+    color:white; font-size:14px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .catalog-title-row h2 { font-family:'Outfit'; font-size:22px; font-weight:700; }
+  .catalog-back {
+    display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600;
+    color:var(--secondary); cursor:pointer; padding:6px 14px; border-radius:8px;
+    background:rgba(227,11,12,.08); border:none; font-family:'Sora'; transition:all .2s;
+  }
+  .catalog-back:hover { background:rgba(227,11,12,.15); }
+
+  .catalog-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:20px;
+  }
+  .catalog-link-card {
+    background:white; border:1px solid var(--border); border-radius:var(--radius);
+    padding:28px; display:flex; align-items:center; gap:18px;
+    cursor:pointer; transition:all .3s cubic-bezier(.4,0,.2,1);
+    text-decoration:none; color:var(--text);
+    animation: cardIn .5s ease-out both;
+  }
+  .catalog-link-card:nth-child(1){animation-delay:.05s}
+  .catalog-link-card:nth-child(2){animation-delay:.1s}
+  .catalog-link-card:nth-child(3){animation-delay:.15s}
+  .catalog-link-card:nth-child(4){animation-delay:.2s}
+  .catalog-link-card:nth-child(5){animation-delay:.25s}
+  .catalog-link-card:nth-child(6){animation-delay:.3s}
+  .catalog-link-card:hover {
+    transform:translateY(-4px); box-shadow:var(--shadow-lg); border-color:transparent;
+  }
+  .catalog-link-logo {
+    width:56px; height:56px; border-radius:14px;
+    background:linear-gradient(135deg,#f0f0f5,#e8e8ef);
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; flex-shrink:0;
+  }
+  .catalog-link-info { flex:1; }
+  .catalog-link-name { font-weight:700; font-size:16px; margin-bottom:4px; font-family:'Outfit'; }
+  .catalog-link-url { font-size:12px; color:var(--text-light); word-break:break-all; }
+  .catalog-link-arrow {
+    font-size:20px; color:var(--text-light); transition:all .3s; flex-shrink:0;
+  }
+  .catalog-link-card:hover .catalog-link-arrow { color:var(--secondary); transform:translateX(3px); }
+
+  /* FOOTER */
+  .footer {
+    background:var(--bg-dark); padding:48px 40px 24px; color:rgba(255,255,255,.5); font-size:13px;
+  }
+  .footer-top {
+    display:flex; justify-content:space-between; margin-bottom:32px; padding-bottom:32px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .footer-brand .logo-text { color:white; }
+  .footer-links { display:flex; gap:60px; }
+  .footer-col h4 { color:white; font-size:13px; font-weight:600; margin-bottom:16px; text-transform:uppercase; letter-spacing:1px; }
+  .footer-col a { display:block; color:rgba(255,255,255,.4); text-decoration:none; font-size:13px; margin-bottom:10px; transition:color .2s; }
+  .footer-col a:hover { color:white; }
+  .footer-bottom { display:flex; justify-content:space-between; align-items:center; }
+  .social-icons { display:flex; gap:12px; }
+  .social-icon {
+    width:36px; height:36px; border-radius:8px; border:1px solid rgba(255,255,255,.1);
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+    transition:all .2s; cursor:pointer;
+  }
+  .social-icon:hover { border-color:var(--primary); background:rgba(3,49,249,.2); }
+
+  @media(max-width:1024px) {
+    .hero h1{font-size:36px} .hero-visual{display:none}
+    .product-grid{grid-template-columns:repeat(3,1fr)}
+  }
+  @media(max-width:768px) {
+    .header{padding:0 20px} .hero{padding:50px 20px 40px}
+    .carousel-container,.products-section{padding-left:20px;padding-right:20px}
+    .product-grid{grid-template-columns:repeat(2,1fr)}
+    .sport-card{flex:0 0 140px;height:95px} .club-card{flex:0 0 190px}
+  }
+</style>
+</head>
+<body>
+
+<!-- <div class="wireframe-badge">&#9670; Wireframe Interactif</div> -->
+
+<header class="header">
+  <div class="header-left">
+    <a href="#" class="logo"><div class="logo-icon">IS</div><div class="logo-text">Intersport<span>Club</span></div></a>
+    <nav><a href="#" class="active">Accueil</a><a href="#">Contact</a></nav>
+  </div>
+  <div class="header-right">
+    <span class="lang-switch">FR ▾</span>
+    <div class="header-icon">🌙</div>
+    <div class="header-icon">👤</div>
+    <div class="header-icon">🛒<div class="cart-count">2</div></div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">⚡ Nouveau site 2026</div>
+    <h1>Équipez <span>votre club</span> avec style.</h1>
+    <p>Trouvez les tenues officielles de votre club sportif. Sélectionnez votre sport, choisissez votre club, et commandez en quelques clics.</p>
+    <div class="hero-stats">
+      <div class="stat-item"><div class="stat-value">15<span>+</span></div><div class="stat-label">Clubs partenaires</div></div>
+      <div class="stat-item"><div class="stat-value">200<span>+</span></div><div class="stat-label">Produits</div></div>
+      <div class="stat-item"><div class="stat-value">5</div><div class="stat-label">Sports</div></div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-card"><div class="hero-card-img">⚽</div><div class="hero-card-label">Football</div><div class="hero-card-sub">8 clubs</div></div>
+    <div class="hero-card"><div class="hero-card-img">🤾</div><div class="hero-card-label">Handball</div><div class="hero-card-sub">4 clubs</div></div>
+    <div class="hero-card"><div class="hero-card-img">🎾</div><div class="hero-card-label">Tennis</div><div class="hero-card-sub">3 clubs</div></div>
+  </div>
+</section>
+
+<div class="carousel-container">
+  <div class="section-label">
+    <div class="step" id="step-number">✦</div>
+    <h2 id="step-title">Comment souhaitez-vous commander ?</h2>
+    <span class="hint" id="step-hint">Choisissez une option</span>
+  </div>
+  <div class="carousel-viewport" id="carousel-viewport">
+    <div class="carousel-track" id="carousel-track">
+      <div class="carousel-slide" id="slide-entry">
+        <div class="entry-row">
+          <div class="entry-card" onclick="pickEntry('catalog')">
+            <div class="entry-icon">📑</div>
+            <div class="entry-text">
+              <div class="entry-title">Catalogues</div>
+              <div class="entry-desc">Consultez les catalogues de nos fournisseurs et partenaires</div>
+            </div>
+            <span class="entry-arrow">→</span>
+          </div>
+          <div class="entry-card" onclick="pickEntry('shop')">
+            <div class="entry-icon">🛍️</div>
+            <div class="entry-text">
+              <div class="entry-title">Boutique Club</div>
+              <div class="entry-desc">Commandez l'équipement officiel de votre club sportif</div>
+            </div>
+            <span class="entry-arrow">→</span>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-slide" id="slide-sports"><div class="sport-row" id="sport-row"></div></div>
+      <div class="carousel-slide" id="slide-clubs">
+        <div id="club-row"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="catalog-section">
+  <div class="catalog-inner hidden" id="catalog-inner">
+    <div class="catalog-header">
+      <div class="catalog-title-row"><div class="cat-icon">📑</div><h2>Catalogues partenaires</h2></div>
+      <button class="catalog-back" onclick="goHome()">← Retour à l'accueil</button>
+    </div>
+    <div class="catalog-grid" id="catalog-grid"></div>
+  </div>
+</section>
+
+<section class="products-section">
+  <div class="products-inner hidden" id="products-inner">
+    <div class="products-header">
+      <div class="products-title-row"><div class="step">3</div><h2 id="products-title">Produits</h2></div>
+      <div class="filter-bar">
+        <span class="filter-chip active">Tout</span><span class="filter-chip">Maillots</span>
+        <span class="filter-chip">Training</span><span class="filter-chip">Accessoires</span>
+      </div>
+    </div>
+    <div class="product-grid" id="product-grid"></div>
+  </div>
+</section>
+
+<div class="password-overlay" id="pw-overlay">
+  <div class="password-modal">
+    <div class="password-modal-icon">🔒</div>
+    <h3 id="pw-club">Club protégé</h3>
+    <p>Ce club requiert un mot de passe pour accéder aux produits.</p>
+    <input type="password" class="password-input" id="pw-input" placeholder="••••••">
+    <div class="password-error" id="pw-error">Mot de passe incorrect, réessayez.</div>
+    <div class="password-hint" id="pw-hint"></div>
+    <button class="password-btn" onclick="submitPw()">Accéder aux produits</button>
+    <button class="password-cancel" onclick="closePw()">Annuler</button>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <div class="logo" style="margin-bottom:12px"><div class="logo-icon">IS</div><div class="logo-text">Intersport<span>Club</span></div></div>
+      <p style="max-width:280px;line-height:1.6">Votre partenaire pour l'équipement sportif de club en Île-de-France.</p>
+    </div>
+    <div class="footer-links">
+      <div class="footer-col"><h4>Navigation</h4><a href="#">Accueil</a><a href="#">Catalogues</a><a href="#">Contact</a></div>
+      <div class="footer-col"><h4>Informations</h4><a href="#">Guides de taille</a><a href="#">Conditions générales</a><a href="#">Politique de retour</a><a href="#">Délais de livraison</a></div>
+      <div class="footer-col"><h4>Contact</h4><a href="#">📞 01 30 49 14 99</a><a href="#">📧 <span class="__cf_email__" data-cfemail="cfaca0a1bbaeacbb8fa6a1bbaabdbcbfa0bdbbaca3baade1a9bd">[email&#160;protected]</span></a><a href="#">📍 Île-de-France</a></div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Intersport Club IDF. Tous droits réservés.</span>
+    <div class="social-icons"><div class="social-icon">📷</div><div class="social-icon">📘</div><div class="social-icon">✉️</div></div>
+  </div>
+</footer>
+
+<script>
+const SPORTS=[
+  {id:'football',emoji:'⚽',name:'Football'},{id:'handball',emoji:'🤾',name:'Handball'},
+  {id:'tennis',emoji:'🎾',name:'Tennis'},{id:'basketball',emoji:'🏀',name:'Basketball'},
+  {id:'athletics',emoji:'🏃',name:'Athlétisme'},{id:'volleyball',emoji:'🏐',name:'Volleyball'},
+  {id:'judo',emoji:'🥋',name:'Judo'}
+];
+const CLUBS={
+  football:[
+    {id:'fc93',logo:'FC',name:'FC 93',count:24,locked:false},
+    {id:'ivry',logo:'🟢',name:'Ivry Football',count:18,locked:false},
+    {id:'neauphle',logo:'🔵',name:'Racing Club Neauphle',count:12,locked:false},
+    {id:'rueil',logo:'⚫',name:'Rueil Football',count:15,locked:false},
+    {id:'fontenay',logo:'🔴',name:'Fontenay-aux-Roses',count:9,locked:true,password:'fontenay2026'},
+    {id:'villiers',logo:'🟡',name:'Villiers-le-Mahieu',count:11,locked:false}
+  ],
+  handball:[
+    {id:'bchb',logo:'🟣',name:'Bois-Colombes HB',count:16,locked:false},
+    {id:'hvchb',logo:'🟠',name:'HVC Handball',count:10,locked:false},
+    {id:'pshb',logo:'🔵',name:'Paris Sud HB',count:8,locked:true,password:'paris2026'}
+  ],
+  tennis:[{id:'tcm',logo:'🟢',name:'TC Meudon',count:7,locked:false},{id:'tcv',logo:'🟡',name:'TC Versailles',count:9,locked:false}],
+  basketball:[{id:'bbc93',logo:'🟠',name:'BBC 93',count:14,locked:false},{id:'abcr',logo:'🔴',name:'ABC Rueil',count:6,locked:false}],
+  athletics:[{id:'eca',logo:'🏃',name:'EC Aulnay',count:5,locked:false}],
+  volleyball:[{id:'vbc',logo:'🏐',name:'VBC Charenton',count:8,locked:false}],
+  judo:[{id:'jcm',logo:'🥋',name:'Judo Club Meudon',count:4,locked:false}]
+};
+const PRODUCTS={
+  fc93:[
+    {ref:'NK-MJ-001',name:'Maillot Match Ext. Nike Adulte',detail:'Dri-FIT • Saison 2025-2026',price:45,icon:'👕',badge:'new',flocking:'Nom + Numéro',sizes:['S','M','L','XL']},
+    {ref:'NK-PK-002',name:'Parka Nike Park20 Enfant',detail:'Imperméable • Doublée polaire',price:87,oldPrice:120,icon:'🧥',badge:'sale',sizes:['XS','S','M']},
+    {ref:'NK-SAC-003',name:'Sac à Dos Nike FC93',detail:'30L • Compartiment chaussures',price:32,icon:'🎒',sizes:['U']},
+    {ref:'NK-MJ-004',name:'Maillot Tiempo MC Adulte',detail:'Match domicile • Bleu marine',price:42,icon:'👕',badge:'flocking',flocking:'Nom + Numéro',sizes:['S','M','L','XL','2XL']},
+    {ref:'NK-PT-005',name:'Pantalon Nike AC23 Enfant',detail:'Training • Polyester recyclé',price:28,icon:'👖',sizes:['XS','S','M']},
+    {ref:'NK-CH-006',name:'Chaussettes Football Nike',detail:'Montantes • Blanc',price:9,icon:'🧦',sizes:['35','39','43']},
+    {ref:'HM-SW-007',name:'Sweat Capuche hmlCORE Enfant',detail:'Hummel • Coton Bio',price:36,icon:'🦺',badge:'new',sizes:['8A','10A','12A','14A']},
+    {ref:'HM-VT-008',name:'Veste Sirius Hummel Enfant',detail:'Coupe-vent • Capuche',price:31.5,icon:'🧥',sizes:['S','M','L']}
+  ],
+  ivry:[
+    {ref:'NK-MJ-I01',name:'Maillot Domicile Nike Ivry',detail:'Vert • Saison 2025-2026',price:40,icon:'👕',badge:'new',flocking:'Nom + Initial',sizes:['S','M','L','XL']},
+    {ref:'NK-SH-I02',name:'Short Match Nike Ivry',detail:'Vert/Blanc',price:22,icon:'🩳',sizes:['S','M','L','XL']},
+    {ref:'NK-SW-I03',name:'Sweat Training Nike Ivry',detail:'Dri-FIT Academy',price:48,icon:'🦺',sizes:['XS','S','M','L']},
+    {ref:'NK-BG-I04',name:'Sac de Sport Nike Ivry',detail:'60L • Grand format',price:35,icon:'👜',sizes:['U']}
+  ],
+  neauphle:[
+    {ref:'ER-MJ-N01',name:'Maillot Errea Racing Club',detail:'Bleu Royal',price:38,icon:'👕',flocking:'Nom + Numéro',sizes:['S','M','L']},
+    {ref:'ER-PT-N02',name:'Pantalon Errea Training',detail:'Noir',price:25,icon:'👖',sizes:['S','M','L']},
+    {ref:'ER-VT-N03',name:'Veste Errea Coupe-vent',detail:'Bleu/Blanc',price:55,icon:'🧥',badge:'new',sizes:['M','L','XL']}
+  ],
+  rueil:[
+    {ref:'NK-MJ-R01',name:'Maillot Nike Rueil Dom.',detail:'Noir/Or',price:44,icon:'👕',badge:'new',flocking:'Nom + Numéro',sizes:['S','M','L','XL']},
+    {ref:'NK-PT-R02',name:'Pantalon Nike Rueil',detail:'Training noir',price:30,icon:'👖',sizes:['S','M','L']}
+  ],
+  fontenay:[
+    {ref:'HM-MJ-F01',name:'Maillot Hummel Fontenay',detail:'Rouge • Domicile',price:42,icon:'👕',flocking:'Nom + Numéro',sizes:['S','M','L','XL']},
+    {ref:'HM-SH-F02',name:'Short Hummel Fontenay',detail:'Rouge/Blanc',price:20,icon:'🩳',sizes:['S','M','L']},
+    {ref:'HM-SW-F03',name:'Sweat Hummel Fontenay',detail:'Capuche • Coton',price:38,icon:'🦺',sizes:['XS','S','M','L','XL']}
+  ],
+  villiers:[
+    {ref:'ER-MJ-V01',name:'Maillot Errea Villiers',detail:'Jaune/Noir',price:36,icon:'👕',badge:'new',sizes:['S','M','L','XL']},
+    {ref:'ER-PT-V02',name:'Pantalon Errea Villiers',detail:'Noir',price:24,icon:'👖',sizes:['S','M','L']}
+  ],
+  bchb:[
+    {ref:'HM-MJ-B01',name:'Maillot Hummel BCHB',detail:'Violet • Domicile',price:40,icon:'👕',badge:'new',flocking:'Nom + Numéro',sizes:['S','M','L','XL']},
+    {ref:'HM-SW-B02',name:'Sweat hmlCORE BCHB Enfant',detail:'Capuche • Violet',price:36,icon:'🦺',sizes:['8A','10A','12A','14A']},
+    {ref:'HM-SH-B03',name:'Short Hummel BCHB',detail:'Blanc',price:18,icon:'🩳',sizes:['S','M','L']}
+  ],
+  hvchb:[
+    {ref:'HM-MJ-H01',name:'Maillot Hummel HVC-HB',detail:'Orange',price:38,icon:'👕',sizes:['S','M','L']},
+    {ref:'HM-VT-H02',name:'Veste Sirius Hummel HVC',detail:'Coupe-vent',price:31.5,icon:'🧥',sizes:['S','M','L']}
+  ],
+  pshb:[
+    {ref:'HM-MJ-P01',name:'Maillot Hummel Paris Sud',detail:'Bleu',price:42,icon:'👕',badge:'new',sizes:['S','M','L','XL']},
+    {ref:'HM-PT-P02',name:'Pantalon Hummel Paris Sud',detail:'Training',price:28,icon:'👖',sizes:['S','M','L']}
+  ],
+  tcm:[
+    {ref:'NK-PL-T01',name:'Polo Nike TC Meudon',detail:'Blanc • Dri-FIT',price:35,icon:'👕',sizes:['S','M','L','XL']},
+    {ref:'NK-SK-T02',name:'Jupe Nike TC Meudon',detail:'Blanc',price:28,icon:'👗',sizes:['XS','S','M','L']}
+  ],
+  tcv:[{ref:'NK-PL-V01',name:'Polo Nike TC Versailles',detail:'Jaune',price:36,icon:'👕',badge:'new',sizes:['S','M','L']}],
+  bbc93:[
+    {ref:'NK-MJ-BB1',name:'Maillot Nike BBC 93',detail:'Orange • Basket',price:44,icon:'🏀',flocking:'Nom + Numéro',badge:'new',sizes:['S','M','L','XL']},
+    {ref:'NK-SH-BB2',name:'Short Nike BBC 93',detail:'Orange/Noir',price:24,icon:'🩳',sizes:['S','M','L','XL']}
+  ],
+  abcr:[{ref:'NK-MJ-AB1',name:'Maillot Nike ABC Rueil',detail:'Rouge',price:40,icon:'🏀',sizes:['S','M','L']}],
+  eca:[{ref:'NK-TS-E01',name:'T-shirt Nike EC Aulnay',detail:'Running • Dri-FIT',price:28,icon:'👕',sizes:['S','M','L','XL']}],
+  vbc:[
+    {ref:'ER-MJ-VB1',name:'Maillot Errea VBC',detail:'Bleu/Jaune',price:36,icon:'👕',badge:'new',sizes:['S','M','L']},
+    {ref:'ER-SH-VB2',name:'Short Errea VBC',detail:'Bleu',price:20,icon:'🩳',sizes:['S','M','L']}
+  ],
+  jcm:[{ref:'AD-KM-J01',name:'Kimono Adidas JC Meudon',detail:'Blanc • 450g',price:55,icon:'🥋',sizes:['140','150','160','170','180']}]
+};
+
+const CATALOGS=[
+  {name:'Nike Team 2025-2026',logo:'✓',brand:'Nike',url:'https://www.nike.com/teamsports'},
+  {name:'Hummel Teamwear',logo:'🐝',brand:'Hummel',url:'https://www.hummel.net/teamwear'},
+  {name:'Errea Sport',logo:'🔷',brand:'Errea',url:'https://www.errea.com/teamwear'},
+  {name:'Adidas Team',logo:'▲',brand:'Adidas',url:'https://www.adidas.fr/teamsport'},
+  {name:'Puma Teamsport',logo:'🐆',brand:'Puma',url:'https://www.puma.com/teamsport'},
+  {name:'Joma Catalogue',logo:'◆',brand:'Joma',url:'https://www.joma-sport.com/catalogue'}
+];
+
+let selSport=null, selClub=null, pendingClub=null;
+let currentSlide=0; // 0=entry, 1=sports, 2=clubs
+
+function getSlideOffsets(){
+  const e=document.getElementById('slide-entry').offsetHeight;
+  const s=document.getElementById('slide-sports').offsetHeight;
+  return {entry:0, sports:e, clubs:e+s};
+}
+
+function slideTo(idx){
+  currentSlide=idx;
+  const off=getSlideOffsets();
+  const tk=document.getElementById('carousel-track');
+  const vp=document.getElementById('carousel-viewport');
+  let y=0, h=0;
+  if(idx===0){ y=off.entry; h=document.getElementById('slide-entry').offsetHeight; }
+  else if(idx===1){ y=off.sports; h=document.getElementById('slide-sports').offsetHeight; }
+  else{ y=off.clubs; h=document.getElementById('slide-clubs').offsetHeight; }
+  tk.style.transform='translateY(-'+y+'px)';
+  requestAnimationFrame(()=>{
+    if(idx===2) h=document.getElementById('slide-clubs').offsetHeight;
+    vp.style.height=h+'px';
+  });
+}
+
+function setHeader(num,title,hint){
+  document.getElementById('step-number').textContent=num;
+  document.getElementById('step-title').textContent=title;
+  document.getElementById('step-hint').textContent=hint;
+}
+
+function init(){
+  renderSports();
+  requestAnimationFrame(()=>{
+    const vp=document.getElementById('carousel-viewport');
+    vp.style.height=document.getElementById('slide-entry').offsetHeight+'px';
+  });
+}
+
+// ── Entry ──
+function pickEntry(mode){
+  hideCatalog(); hideProducts();
+  if(mode==='catalog'){
+    setHeader('📑','Catalogues partenaires','Liens externes');
+    // Stay on entry slide but show catalog section
+    renderCatalog();
+    showCatalog();
+    setTimeout(()=>document.querySelector('.catalog-section').scrollIntoView({behavior:'smooth',block:'start'}),300);
+  } else {
+    setHeader('1','Choisissez votre sport','Cliquez sur un sport →');
+    slideTo(1);
+  }
+}
+
+function goHome(){
+  selSport=null; selClub=null;
+  setHeader('✦','Comment souhaitez-vous commander ?','Choisissez une option');
+  hideProducts(); hideCatalog();
+  slideTo(0);
+}
+
+// ── Sports ──
+function renderSports(){
+  document.getElementById('sport-row').innerHTML=SPORTS.map(s=>
+    '<div class="sport-card'+(selSport===s.id?' active':'')+'" onclick="pickSport(\''+s.id+'\')">'+
+    '<span class="sport-emoji">'+s.emoji+'</span><span class="sport-name">'+s.name+'</span></div>'
+  ).join('');
+}
+
+function pickSport(sid){
+  selSport=sid; selClub=null;
+  const s=SPORTS.find(x=>x.id===sid);
+  setHeader('2','Sélectionnez votre club',s.name+' — '+(CLUBS[sid]||[]).length+' clubs');
+  renderSports(); renderClubs(sid); hideProducts();
+  requestAnimationFrame(()=>slideTo(2));
+}
+
+function goBackToSports(){
+  selSport=null; selClub=null;
+  setHeader('1','Choisissez votre sport','Cliquez sur un sport →');
+  renderSports(); hideProducts();
+  slideTo(1);
+}
+
+// ── Clubs ──
+function renderClubs(sid){
+  const clubs=CLUBS[sid]||[];
+  document.getElementById('club-row').innerHTML=
+    '<button class="back-btn" onclick="goBackToSports()">← Retour aux sports</button>' +
+    '<button class="back-btn" onclick="goHome()" style="background:rgba(227,11,12,.08);color:var(--secondary);margin-left:6px">← Accueil</button>' +
+    '<div style="display:flex;gap:14px;overflow-x:auto;padding:12px 0 8px;scrollbar-width:none">' +
+    clubs.map(c=>
+      '<div class="club-card'+(selClub===c.id?' active':'')+'" onclick="pickClub(\''+c.id+'\','+c.locked+',\''+c.name.replace(/'/g,"\\'")+'\')">'+
+      '<div class="club-logo">'+c.logo+'</div><div class="club-info"><span class="club-name">'+c.name+
+      '</span><span class="club-count">'+c.count+' produits</span></div>'+
+      (c.locked?'<span class="club-lock">🔒</span>':'')+'</div>'
+    ).join('') + '</div>';
+}
+
+function pickClub(cid,locked,cname){
+  if(locked){ pendingClub={id:cid,name:cname}; openPw(cname); return; }
+  activateClub(cid,cname);
+}
+
+function activateClub(cid,cname){
+  selClub=cid;
+  renderClubs(selSport);
+  document.getElementById('products-title').textContent='Produits — '+cname;
+  renderProducts(cid); showProducts();
+}
+
+// ── Products ──
+function renderProducts(cid){
+  const prods=PRODUCTS[cid]||[];
+  const g=document.getElementById('product-grid');
+  if(!prods.length){g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:16px;opacity:.5">📦</div><h3 style="font-family:Outfit;font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Aucun produit</h3><p style="font-size:14px">Ce club n\'a pas encore de produits.</p></div>';return;}
+  g.innerHTML=prods.map(p=>{
+    let b='';
+    if(p.badge==='new')b='<span class="product-badge badge-new">Nouveau</span>';
+    else if(p.badge==='sale')b='<span class="product-badge badge-sale">-'+Math.round((1-p.price/p.oldPrice)*100)+'%</span>';
+    else if(p.badge==='flocking')b='<span class="product-badge badge-flocking">Flocage</span>';
+    const op=p.oldPrice?'<span class="product-old-price">€'+p.oldPrice.toFixed(2)+'</span>':'';
+    const fl=p.flocking?'<div class="flocking-tag">✨ '+p.flocking+'</div>':'';
+    const sz=p.sizes.map(s=>'<span class="size-dot">'+s+'</span>').join('');
+    return '<div class="product-card"><div class="product-img"><span class="placeholder">'+p.icon+'</span>'+b+
+    '<div class="product-quick-add">+</div></div><div class="product-body"><div class="product-ref">REF: '+p.ref+
+    '</div><div class="product-name">'+p.name+'</div><div class="product-detail">'+p.detail+'</div>'+fl+
+    '<div class="product-footer"><span class="product-price">€'+p.price.toFixed(2)+' '+op+'</span>'+
+    '<div class="product-sizes">'+sz+'</div></div></div></div>';
+  }).join('');
+}
+
+function showProducts(){
+  const el=document.getElementById('products-inner');
+  el.classList.remove('hidden'); void el.offsetHeight; el.classList.add('visible');
+  setTimeout(()=>document.querySelector('.products-section').scrollIntoView({behavior:'smooth',block:'start'}),300);
+}
+function hideProducts(){
+  const el=document.getElementById('products-inner');
+  el.classList.remove('visible'); el.classList.add('hidden');
+}
+
+// ── Catalog ──
+function renderCatalog(){
+  document.getElementById('catalog-grid').innerHTML=CATALOGS.map(c=>
+    '<a class="catalog-link-card" href="'+c.url+'" target="_blank" rel="noopener">'+
+    '<div class="catalog-link-logo">'+c.logo+'</div>'+
+    '<div class="catalog-link-info"><div class="catalog-link-name">'+c.name+'</div>'+
+    '<div class="catalog-link-url">'+c.url+'</div></div>'+
+    '<span class="catalog-link-arrow">↗</span></a>'
+  ).join('');
+}
+
+function showCatalog(){
+  const el=document.getElementById('catalog-inner');
+  el.classList.remove('hidden'); void el.offsetHeight; el.classList.add('visible');
+}
+function hideCatalog(){
+  const el=document.getElementById('catalog-inner');
+  el.classList.remove('visible'); el.classList.add('hidden');
+}
+
+// ── Password ──
+function openPw(cname){
+  document.getElementById('pw-club').textContent=cname;
+  document.getElementById('pw-input').value='';
+  document.getElementById('pw-error').classList.remove('show');
+  const club=(CLUBS[selSport]||[]).find(c=>c.id===pendingClub.id);
+  document.getElementById('pw-hint').textContent='Indice demo: '+club.password;
+  document.getElementById('pw-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('pw-input').focus(),300);
+}
+function closePw(){ document.getElementById('pw-overlay').classList.remove('show'); pendingClub=null; }
+function submitPw(){
+  const v=document.getElementById('pw-input').value;
+  const club=(CLUBS[selSport]||[]).find(c=>c.id===pendingClub.id);
+  if(club&&v===club.password){ closePw(); activateClub(pendingClub.id,pendingClub.name); }
+  else{ document.getElementById('pw-error').classList.add('show'); document.getElementById('pw-input').value=''; document.getElementById('pw-input').focus(); }
+}
+document.getElementById('pw-input').addEventListener('keydown',e=>{ if(e.key==='Enter')submitPw(); if(e.key==='Escape')closePw(); });
+document.getElementById('pw-overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget)closePw(); });
+
+window.addEventListener('DOMContentLoaded',init);
+</script>

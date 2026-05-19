@@ -1,0 +1,21 @@
+# * Supabase local project config — project_id matches the remote project ref.
+# * Run `supabase link --project-ref hznvltijxkeadqpwctop` once, then `supabase db push`.
+project_id = "hznvltijxkeadqpwctop"
+
+# * systempay-ipn is a server-to-server webhook. It is authenticated by the
+# * HMAC-SHA256 signature on the request body, not by a Supabase JWT — so
+# * disable the gateway's JWT check or every IPN gets rejected with 401.
+[functions.systempay-ipn]
+verify_jwt = false
+
+# * generate-colissimo-label is invoked internally (systempay-ipn, future
+# * orders trigger, admin retry). It already auth-gates itself via
+# * X-Internal-Call. The Supabase secret service-role key format
+# * (`sb_secret_…`) is not a JWT, so the gateway's verify_jwt rejects it
+# * with UNAUTHORIZED_INVALID_JWT_FORMAT — turn the gateway check off here.
+[functions.generate-colissimo-label]
+verify_jwt = false
+
+# * colissimo-tracking-worker — same reason: cron + manual internal triggers.
+[functions.colissimo-tracking-worker]
+verify_jwt = false

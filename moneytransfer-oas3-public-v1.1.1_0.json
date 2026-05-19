@@ -1,0 +1,2480 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "BPCE Open Finance Transfer",
+    "version": "1.1.1",
+    "description": "Enables partners applications to initiate a transfer without enforcing our common end user customers to use their BPCE internet bank site interface. Also enables to check-in information of a new recipient in the BPCE systems to permit future transfers.\n\n# Authentication\n\nThis API is secured with standard Authorization `Oauth2` flows.\n\n## Initial Authorization request\nThe Authorization request uses `PKCE` method and so it uses a `code_challenge_method` parameter set to \"S256\" - see [RFC7636](https://datatracker.ietf.org/doc/html/rfc7636).\n\n## Authorization process\nIn presence of our common end user client, the partner application begins the authorization process by accessing a \"BPCE CONNECT\" URL. Some parameters of the HTTP request are required and must be compliant to information registered in our systems during the registration of the partner application (`client id`, `redirection uri`, `cancel redirection uri`). The `PKCE` `code_challenge` is also required.\nBy this initial request call, the \"BPCE CONNECT\" web page enables the end user to authenticate himself to our system by using his current bank identifiers and authentication methods.\nAt the end of this process, if the authentication is OK, the \"BPCE CONNECT\" process uses the redirection uri to give the `Oauth2` authorization code to the partner application.\n\n## Get a token\nThe partner application must send a GET `Oauth2` token request with `grant_type` parameter set to \"authorization_code\" and must provide the authorization code.\n\n# Concepts\nThis API deals with bank transfers initiation and related needed concepts ; the main one is obviously the notion of bank account : customers' internal accounts and recipient accounts, since a bank transfer is a money transfer from a debited account (belonging to the customer who orders the transfer) to a recipient account.\n\n## Common end user customer\nIn order to access any endpoint of this API, the presence of the common end user customer is required.\nA common end user customer is :\n - a person who is a customer of one of the bank establishments of the BPCE banking group (mainly `Caisse d'Epargne` and `Banque Populaire`) who has entered into a contract to have access to the BPCE website,\n - a person who is a customer of the partner.\n \n## Subscriber\nBy subscriber, we mean a user of the bank's website. Via a contract with his remote bank, he has an identifier allowing him to connect to his remote bank. Throughout the remainder of this contract, the methods of this API can only be reached by the subscriber. Indeed, the authentication prior to the consumption of the API is the authentication of the subscriber. Moreover, he uses his remote bank identifier to authenticate himself and obtain access to this API. Physically, the subscriber can be confused with the common end customer.\n\n## Transfer\nAs indicated above, a bank transfer is a money transfer from a debited account (that belongs to the customer who orders the transfer) to a recipient account.\n\n### Transfer request\nIn this API, a transfer request is the order by the end user customer to create one or several transfer orders within BPCE systems. A transfer request contains one and only transfer source account that will be debited. A transfer request contains one or several transfer recipient accounts that will be credited.\n\n### Transfer request line\nBy this terminology, one designates an individual bank transfer within a transfer request. So a transfer request line is the part of the transfer request which will be processed furthermore by a transfer.\n\n### Transfer source account\nThe source account of a transfer is the account that is debited by the transfer operation.\nIt must be an internal account (see below).\nThe common end user customer must have the rights to debit this account : either the account belongs to him, either he has a mandate on it.\n\n### Transfer recipient account\nThe recipient account of a transfer is the account that is credited by the transfer operation.\n\n### Type of a transfer request line (transfer type)\nFor the moment, this API deals only with [SCT scheme transfers](https://www.europeanpaymentscouncil.eu/what-we-do/sepa-credit-transfer), that is SEPA transfer with an amount in euro.\n\n### Out of scope transfer request line types\nFor the moment, the following transfer types are out of scope :\n- account to account transfer (between two accounts that both belong to the end user customer and are both managed in the same BPCE establishment)\n- SEPA Instant Payment\n- transfer cash\n- internationnal transfer (SWIFT etc.)\n\n## Internal account\nAn internal account is managed by the end user customer's BPCE bank establishment (in which he has authenticated into).\n\n## External account\nAn external account may designate an account managed by any bank establishment (that is not necessarly the same bank establishement of the transfer source account). An external account not necessarly belongs to the customer.\nFor the moment, the external accounts are identified by an [IBAN](https://www.iso.org/fr/standard/81090.html).\n\n# Use cases\nThe following use cases demonstrate how to use the API.\n\n## Initiating a transfer\n\nIn order to be able to create a new transfer request order, one needs to identify a source account and one or several recipient accounts.\n\n1. Firstly, get the internal account list that belongs to the customer with _Get the internal accounts_ (`GET /internalAccounts`). Memorize the identifier of the chosen internal account that will be the transfer source account.\n1. Secondly, get the external account list that the customer has check-in in our systems with _Get the external accounts_ (`GET /externalAccounts`). Memorize the identifiers of the chosen external accounts.\n1. Create a transfer request with _Create a transfer request_ (`POST /transferRequests`). Once the request is called, some transfer orders will be registered but they will be set in a `TO_VALIDATE` status, and so they they will not be processed as long as the transfer request is not confirmed.\n1. Get the transfer request status with _Read transfer request characteristics_ (`GET /transferRequests/{transferRequestId}`). While the status is `INITIALIZED`, the partner application has to redo the same call with temporisation. Once the status is `CONFIRMABLE`, one can go to next step (confirmation).\n1. Optionnaly, one can add transfer lines to the transfer request with _Add additional transfers within a transfer request_ (`POST /transferRequests/{transferRequestId}/transferRequestLines`).\n1. Confirm a transfer request with a first call to _Confirm a transfer request_ (`POST /transferRequests/{transferRequestId}/confirmations`).\n1. In a general way, an error HTTP 403 is returned with a specific header \"X-Stepup-Token\" to indicate that is necessary for the caller application to enter into a step-up process (within a strong authentication) to seal the transfer request.\n1. In presence of a such response, please call \"BPCE_CONNECT\" to enter into a step-up process.\n1. After having do the strong authentification and completing the step-up process, redo a second call to _Confirm a transfer request_ (`POST /transferRequests/{transferRequestId}/confirmations`) with the access token that was just generated in order to do the confirmation action.\n1. For some transfer request, none step-up process is required, so the first call to _Confirm a transfer request_ (`POST /transferRequests/{transferRequestId}/confirmations`) will directly succeed.\n1. In particular and rare cases, besides the confirmation of the transfer request is necessary, it will be not allowed at all via a call to _Confirm a transfer request_ (`POST /transferRequests/{transferRequestId}/confirmations`) ; in this case, a specific error indicates the end user customer to validate the transfer within the BPCE web site.\n\n### Consistency checks between transfer request line\nWhen creating a transfer request, one checks the coherence of the lines set :\n- if requested debit mode is equal to `GROUPED`\n  - each line must debit the same internal account,\n  - each line must have the same requested date for delayed transfers,\n  - each line must have the same deadline type.\n- if requested debit mode is equal to `SINGLE`\n  - each line contains a single transfer (the internal account, deadline type and the requested date can be different).\n\n## Getting transfer request characteristics\nThe partner application may offer a way to the end user customer to get information about the done transfer request.\n\n### Getting transfer request global information\n1. Get global information of a transfer request with _Read transfer request characteristics_ (`GET /transferRequests/{transferRequestId}`). In response, one can get the transfer request status which describes the current state of the entry phase.\n\n### Getting transfer request lines\n1. Get the pagined list of transfer request lines with _Get the transfer request lines list_ (`GET /transferRequestLines`). The identifier of the transfer request may be passed by the transferRequestId parameter. Each returned item contains a transfer request line identifier which enables to get detailed information on it.\n\n### Getting transfer request errors\n1. Get the error list that occured during the transfer request check-in with _List of errors in a transfer request_ (`GET /transferRequests/{transferRequestId}/errors`). These errors are furnished in order to inform the end user customer and may forbid the transfer request confirmation.\n\n### Getting details of a transfer request line\n1. Get the pagined list of transfer request lines with _Get the transfer request lines list_ (`GET /transferRequestLines`) in order to get the line identifier of the searched transfer request line.\n1. Get the details of transfer request line with _Get a Transfer Request Line with details_ (`GET /transferRequestLines/{transferRequestLineId}`).\n\n## Adding a new external account\nThis adding is needed when there is no registered external account that matches with the forcasted account identification (for instance `IBAN`). This new created external account may not be usable at once. Its activation may be delayed to be conform to security rules.\n\n1. Add a new external account for the current customer in our systems with _Create a new external account_ (`POST /externalAccounts`).\n1. In a general way, an error HTTP 403 is returned with a specific header \"X-Stepup-Token\" to indicate that is necessary for the caller application to enter into a step-up process (within a strong authentication) to seal the addition of the external account.\n1. In presence of a such response, please call \"BPCE_CONNECT\" to enter into a step-up process.\n1. After having do the strong authentification and completing the step-up process, redo a second call to _Create a new external account_ (`POST /externalAccounts`) with the access token that was just generated in order to do the create action.\n\n## Canceling a transfer request\n\n1. Cancel a transfer request with _Delete a transfer request_ (`DELETE /transferRequests/{transferRequestId}`). All the transfer request lines which are embedded by the transfer request are canceled.\n\n## Canceling a transfer request line\n\n1. Cancel a transfer request line with _Delete a transfer request line_ (`DELETE /transferRequests/{transferRequestId}/transferRequestLines/{transferRequestLineId}`). The other transfer request lines included in the same transfer request are not canceled.\n",
+    "termsOfService": "https://developer.bpce.fr/mentions-legales/",
+    "contact": {
+      "name": "BPCE",
+      "url": "https://developer.bpce.fr/support/"
+    },
+    "license": {
+      "name": "Copyright BPCE",
+      "url": "https://developer.bpce.fr/mentions-legales/"
+    },
+    "x-internal-id": "RMT001"
+  },
+  "servers": [
+    {
+      "description": "prod",
+      "url": "https://api.groupebpce.com/{domain}/moneyTransfer/v1",
+      "variables": {
+        "domain": {
+          "default": "retail"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/internalAccounts": {
+      "get": {
+        "operationId": "getInternalAccounts",
+        "summary": "Get the internal accounts",
+        "description": "Get the internal accounts. These accounts are usable for debit within a transfer of the current subscriber.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/After"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response object that embeds internal accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "List of available internal accounts for source accounts within transfers",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InternalAccount"
+                      }
+                    },
+                    "page": {
+                      "$ref": "#/components/schemas/Page"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                },
+                "examples": {
+                  "Banque Populaire - one current account": {
+                    "value": {
+                      "items": [
+                        {
+                          "accountId": "13807-1-CPT31719694553",
+                          "label": "DUPONT JEAN",
+                          "accountNumber": "31719694553",
+                          "iban": "FR7613807000343179999999943",
+                          "financialInstitution": {
+                            "id": "1-CCBPFRPPNAN",
+                            "label": "BANQUE POPULAIRE GRAND OUEST",
+                            "identifiers": [
+                              {
+                                "value": "CCBPFRPPNAN",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "productLabel": "COMPTE CHEQUE",
+                          "ownerLabel": "DUPONT JEAN",
+                          "balance": {
+                            "value": 2729.81,
+                            "currencyCode": "EUR"
+                          }
+                        }
+                      ],
+                      "page": {
+                        "pageSize": 1,
+                        "pageNumber": 1,
+                        "totalElements": 1,
+                        "totalPages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.internalAccounts:READ"
+            ]
+          }
+        ],
+        "tags": [
+          "Internal Accounts"
+        ],
+        "deprecated": false
+      },
+      "parameters": []
+    },
+    "/externalAccounts": {
+      "get": {
+        "operationId": "getExternalAccounts",
+        "summary": "Get the external accounts",
+        "description": "Get the external accounts (usable for credit within a transfer) of the current user",
+        "parameters": [
+          {
+            "name": "designationLabel",
+            "in": "query",
+            "description": "Designation of the account holder (partial search is allowed). The caller must provide for the complete entry of the label sought before calling this filtered search method (i.e. it is prohibited to call this service each time a character is entered in order to avoid abusive calls. Otherwise, an error is returned)",
+            "schema": {
+              "type": "string"
+            },
+            "example": "DURAND"
+          },
+          {
+            "name": "accountStatus",
+            "in": "query",
+            "description": "External account activation status : activated or activation in progress",
+            "schema": {
+              "$ref": "#/components/schemas/ExternalAccountStatus"
+            },
+            "example": "ACTIVATED"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/After"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK Response, returning a paginated list of external accounts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "description": "List of available recipient accounts for transfers",
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExternalAccount"
+                      }
+                    },
+                    "page": {
+                      "$ref": "#/components/schemas/Page"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                },
+                "examples": {
+                  "External Accounts for BPGO - owns the first two ones": {
+                    "value": {
+                      "items": [
+                        {
+                          "accountId": "13807-2-193718-0000001-00000014-c2a2be1ce821792bb54f50786e971e65718d9bf09f137a5097e3a5fe85f3e9b2",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7613807000343179999999943",
+                          "iban": "FR7613807000343179999999943",
+                          "financialInstitution": {
+                            "id": "1-CCBPFRPPNAN",
+                            "label": "BANQUE POPULAIRE GRAND OUEST",
+                            "identifiers": [
+                              {
+                                "value": "CCBPFRPPNAN",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": true,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000001-f9474ca8c5cf68bd0ff056ac80277b618c6f90f5b5bc7d96b57e34f950db439f",
+                          "label": "Donnees de commentaire 2",
+                          "accountNumber": "FR7630003000100009999999966",
+                          "iban": "FR7630003000100009999999966",
+                          "financialInstitution": {
+                            "id": "1-SOGEFRPPXXX",
+                            "label": "SOCIETE GENERALE",
+                            "identifiers": [
+                              {
+                                "value": "SOGEFRPPXXX",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": true,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000013-c1efb0849373569ad48683e4149c5c485ab3f8c4202329d2eb16ae27637fb083",
+                          "label": "benef de test 3",
+                          "accountNumber": "FR7630004000030009999999911",
+                          "iban": "FR7630004000030009999999911",
+                          "financialInstitution": {
+                            "id": "1-BNPAFRPPXXX",
+                            "label": "BNP PARIBAS",
+                            "identifiers": [
+                              {
+                                "value": "BNPAFRPPXXX",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000012-f9474ca8c5cf68bd0ff056ac80277b618c6f90f5b5bc7d96b57e34f950db439f",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7630003000100009999999953",
+                          "iban": "FR7630003000100009999999953",
+                          "financialInstitution": {
+                            "id": "1-SOGEFRPPXXX",
+                            "label": "SOCIETE GENERALE",
+                            "identifiers": [
+                              {
+                                "value": "SOGEFRPPXXX",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000011-f3edd0f24018e6807c9c4d916e7d820772e12d0bcf613de65054a6abce494d84",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7630047000060009999999972",
+                          "iban": "FR7630047000060009999999972",
+                          "financialInstitution": {
+                            "id": "1-CMCIFRPPXXX",
+                            "label": "CM - CIC BANQUES",
+                            "identifiers": [
+                              {
+                                "value": "CMCIFRPPXXX",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000009-3da2d1997b53b0bc0b1317bf979493818c5c0845eedcddcf54d5975d016edfdc",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7614706000007399999999931",
+                          "iban": "FR7614706000007399999999931",
+                          "financialInstitution": {
+                            "id": "1-AGRIFRPP847",
+                            "label": "CREDIT AGRICOLE",
+                            "identifiers": [
+                              {
+                                "value": "AGRIFRPP847",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000008-3a935364c3cd5797317cc2c0368c02a52abca8ffed46cbb0158eaf75ff4ee08f",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7617515000920489999999910",
+                          "iban": "FR7617515000920489999999910",
+                          "financialInstitution": {
+                            "id": "1-CEPAFRPP751",
+                            "label": "CAISSE D'EPARGNE ILE DE FRANCE",
+                            "identifiers": [
+                              {
+                                "value": "CEPAFRPP751",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000006-f8ac21260554886ec422f984390edbce8b9d74b80df5e893ee52dc87ac59613f",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7630077010003569999999946",
+                          "iban": "FR7630077010003569999999946",
+                          "financialInstitution": {
+                            "id": "1-SMCTFR2AXXX",
+                            "label": "SOCIETE GENERALE (FORMERLY SOCIETE",
+                            "identifiers": [
+                              {
+                                "value": "SMCTFR2AXXX",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000005-e8373a33f22d670e297c1e1838a75f68483649b39ed284466dfba834ee5c9226",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7614445852270429999999916",
+                          "iban": "FR7614445852270429999999916",
+                          "financialInstitution": {
+                            "id": "1-CEPAFRPP444",
+                            "label": "CAISSE D'EPARGNE BRETAGNE PAYS DE L",
+                            "identifiers": [
+                              {
+                                "value": "CEPAFRPP444",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000002-f02027167b723e9290d8f82a2b2d4318869214dc5b1c506c837b90693e90e163",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7616275000100419999999911",
+                          "iban": "FR7616275000100419999999911",
+                          "financialInstitution": {
+                            "id": "1-CEPAFRPP627",
+                            "label": "CAISSE D EPARGNE ET DE PREVOYANCE H",
+                            "identifiers": [
+                              {
+                                "value": "CEPAFRPP627",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        }
+                      ],
+                      "page": {
+                        "pageSize": 10,
+                        "pageNumber": 1,
+                        "totalElements": 10,
+                        "totalPages": 1
+                      }
+                    }
+                  },
+                  "External Accounts for BPGO - last one not yet activated": {
+                    "value": {
+                      "items": [
+                        {
+                          "accountId": "13807-2-193718-0000001-00000002-f02027167b723e9290d8f82a2b2d4318869214dc5b1c506c837b90693e90e163",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7613807000043169999999971",
+                          "iban": "FR7613807000043169999999971",
+                          "financialInstitution": {
+                            "id": "1-CCBPFRPPNAN",
+                            "label": "BANQUE POPULAIRE GRAND OUEST",
+                            "identifiers": [
+                              {
+                                "value": "CCBPFRPPNAN",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": true,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000004-68c275ecd058d5fb923f0d67cd69cb36893a41be98782954707e3a57a9215505",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7616275000100419999999911",
+                          "iban": "FR7616275000100419999999911",
+                          "financialInstitution": {
+                            "id": "1-CEPAFRPP627",
+                            "label": "CAISSE D EPARGNE ET DE PREVOYANCE H",
+                            "identifiers": [
+                              {
+                                "value": "CEPAFRPP627",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATION_IN_PROGRESS",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        }
+                      ],
+                      "page": {
+                        "pageSize": 2,
+                        "pageNumber": 1,
+                        "totalElements": 2,
+                        "totalPages": 1
+                      }
+                    }
+                  },
+                  "External Accounts for BPGO - first one deleted": {
+                    "value": {
+                      "items": [
+                        {
+                          "accountId": "13807-2-193718-0000001-00000002-f02027167b723e9290d8f82a2b2d4318869214dc5b1c506c837b90693e90e163",
+                          "label": "Donnees de commentaire p",
+                          "accountNumber": "FR7613807000043169999999971",
+                          "iban": "FR7613807000043169999999971",
+                          "financialInstitution": {
+                            "id": "1-CCBPFRPPNAN",
+                            "label": "BANQUE POPULAIRE GRAND OUEST",
+                            "identifiers": [
+                              {
+                                "value": "CCBPFRPPNAN",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "DELETED",
+                          "isHolder": true,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000001-f9474ca8c5cf68bd0ff056ac80277b618c6f90f5b5bc7d96b57e34f950db439f",
+                          "label": "Donnees de commentaire 2",
+                          "accountNumber": "FR7630003000100009999999953",
+                          "iban": "FR7630003000100009999999953",
+                          "financialInstitution": {
+                            "id": "1-SOGEFRPPXXX",
+                            "label": "SOCIETE GENERALE",
+                            "identifiers": [
+                              {
+                                "value": "SOGEFRPPXXX",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": true,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        },
+                        {
+                          "accountId": "13807-2-193718-0000001-00000004-68c275ecd058d5fb923f0d67cd69cb36893a41be98782954707e3a57a9215505",
+                          "label": "benef de test 3",
+                          "accountNumber": "FR7630004000030009999999911",
+                          "iban": "FR7630004000030009999999911",
+                          "financialInstitution": {
+                            "id": "1-BNPAFRPPXXX",
+                            "label": "BNP PARIBAS",
+                            "identifiers": [
+                              {
+                                "value": "BNPAFRPPXXX",
+                                "type": "BIC"
+                              }
+                            ]
+                          },
+                          "currencies": [
+                            {
+                              "code": "EUR",
+                              "label": "EUR"
+                            }
+                          ],
+                          "status": "ACTIVATED",
+                          "isHolder": false,
+                          "groupLabels": [
+                            "ListeParDefaut"
+                          ]
+                        }
+                      ],
+                      "page": {
+                        "pageSize": 3,
+                        "pageNumber": 1,
+                        "totalElements": 3,
+                        "totalPages": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.externalAccounts:READ"
+            ]
+          }
+        ],
+        "tags": [
+          "External Accounts"
+        ],
+        "deprecated": false
+      },
+      "post": {
+        "operationId": "createExternalAccount",
+        "summary": "Create a new external account",
+        "description": "Create a new external account. This external account will be usable for credit within a transfer.",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalAccount"
+              },
+              "examples": {
+                "Banque Populaire - Adding an external account": {
+                  "value": {
+                    "accountNumber": "FR7613807109548069999999961",
+                    "iban": "FR7613807109548069999999961",
+                    "label": "Jacky Mutel (ami)"
+                  }
+                },
+                "Banque Populaire - Adding my account at SOCIETE GENERALE": {
+                  "value": {
+                    "accountNumber": "FR7630003000100009999999953",
+                    "iban": "FR7630003000100009999999953",
+                    "label": "Mon Compte a la SG",
+                    "isHolder": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The external account is created and may be activated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalAccount"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenDueToRequiredStepup"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.externalAccounts:WRITE"
+            ]
+          }
+        ],
+        "tags": [
+          "External Accounts"
+        ],
+        "deprecated": false
+      },
+      "parameters": []
+    },
+    "/transferRequests": {
+      "post": {
+        "operationId": "createTransferRequest",
+        "summary": "Create a transfer request",
+        "description": "Create a transfer request. A transfer request contains one or several transfer request lines. Each transfer request line will be processed as a transfer.",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferRequest"
+              },
+              "examples": {
+                "Banque Populaire - Creating a single SEPA transfer - delayed execution": {
+                  "value": {
+                    "globalAmount": {
+                      "value": 1.05,
+                      "currencyCode": "EUR"
+                    },
+                    "requestedDebitMode": "SINGLE",
+                    "lines": [
+                      {
+                        "amount": {
+                          "value": 1.05,
+                          "currencyCode": "EUR"
+                        },
+                        "frequencyType": "ONESHOT",
+                        "requestedExecutionDate": "2024-07-25",
+                        "remittanceInformation": "Mon reglement de facture urgente pour septembre",
+                        "sourceAccount": "13807-1-CPT31719694553",
+                        "recipientAccount": "13807-2-193718-0000001-00000001-f9474ca8c5cf68bd0ff056ac80277b618c6f90f5b5bc7d96b57e34f950db439f",
+                        "executionDeadlineType": "DELAYED",
+                        "reasonLabel": "Facture plombier BSC",
+                        "allTheWayToRecipientInformation": {
+                          "endToEndReference": "FACT2024-948786",
+                          "categoryPurposeType": "CASH"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "Banque Populaire - Creating multiple SEPA transfers - delayed execution - grouped debit": {
+                  "value": {
+                    "globalAmount": {
+                      "value": 1.23,
+                      "currencyCode": "EUR"
+                    },
+                    "requestedDebitMode": "GROUPED",
+                    "lines": [
+                      {
+                        "amount": {
+                          "value": 1.11,
+                          "currencyCode": "EUR"
+                        },
+                        "frequencyType": "ONESHOT",
+                        "requestedExecutionDate": "2024-09-17",
+                        "remittanceInformation": "Mon reglement de facture urgente pour septembre",
+                        "sourceAccount": "13807-1-CPT31821456231",
+                        "recipientAccount": "13807-2-193718-0000001-00000002-f02027167b723e9290d8f82a2b2d4318869214dc5b1c506c837b90693e90e163",
+                        "executionDeadlineType": "DELAYED",
+                        "reasonLabel": "Facture Avocat PRM",
+                        "allTheWayToRecipientInformation": {
+                          "endToEndReference": "FACT2024-948786",
+                          "categoryPurposeType": "CASH"
+                        }
+                      },
+                      {
+                        "amount": {
+                          "value": 0.12,
+                          "currencyCode": "EUR"
+                        },
+                        "frequencyType": "ONESHOT",
+                        "requestedExecutionDate": "2024-09-17",
+                        "remittanceInformation": "Mon reglement de facture urgente pour septembre",
+                        "sourceAccount": "13807-1-CPT31821456231",
+                        "recipientAccount": "13807-2-193718-0000001-00000008-3a935364c3cd5797317cc2c0368c02a52abca8ffed46cbb0158eaf75ff4ee08f",
+                        "executionDeadlineType": "DELAYED",
+                        "reasonLabel": "Facture Avocat2 PRM",
+                        "allTheWayToRecipientInformation": {
+                          "endToEndReference": "FACT2024-948786",
+                          "categoryPurposeType": "CASH"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created. The entry phase is completed and the status of the transfer request can go directly to CONFIRMABLE state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferRequestSummary"
+                },
+                "examples": {
+                  "Banque Populaire- Response on creation of single SEPA transfer request": {
+                    "value": {
+                      "transferRequestId": "13807-0656574814",
+                      "globalAmount": {
+                        "value": 1.05,
+                        "currencyCode": "EUR"
+                      },
+                      "transferRequestStatus": "CONFIRMABLE",
+                      "transfersCount": 1,
+                      "creationDateTime": "2024-07-25T00:00:00+02:00"
+                    }
+                  },
+                  "Banque Populaire- Response on creation of multiple SEPA transfer request": {
+                    "value": {
+                      "transferRequestId": "13807-0656574819",
+                      "globalAmount": {
+                        "value": 1.23,
+                        "currencyCode": "EUR"
+                      },
+                      "transferRequestStatus": "CONFIRMABLE",
+                      "transfersCount": 2,
+                      "creationDateTime": "2024-09-12T00:00:00+02:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted - The Transfer Request has been accepted for further processing and will be handled later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferRequestSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:WRITE"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      },
+      "parameters": []
+    },
+    "/transferRequests/{transferRequestId}/errors": {
+      "get": {
+        "operationId": "getTransferRequestErrors",
+        "summary": "List of errors in a transfer request",
+        "description": "Get list of errors in a transfer request. For each transfer request line in error, this endpoint may return one or more errors. These errors are provided for the information of the end user customer.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/After"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK Response. The result is a list of Error objects, even if this is clearly insufficient.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Error"
+                      }
+                    },
+                    "page": {
+                      "$ref": "#/components/schemas/Page"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:READ"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/transferRequestId"
+        }
+      ]
+    },
+    "/transferRequests/{transferRequestId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/transferRequestId"
+        }
+      ],
+      "get": {
+        "operationId": "getTransferRequest",
+        "summary": "Read transfer request characteristics",
+        "description": "Read transfer request characteristics.",
+        "responses": {
+          "200": {
+            "description": "OK Response. The returned structure is a TransferRequest summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferRequestSummary"
+                },
+                "examples": {
+                  "Banque Populaire - Summary of a multiple SEPA transfer request": {
+                    "value": {
+                      "transferRequestId": "13807-0656574819",
+                      "globalAmount": {
+                        "value": 1.23,
+                        "currencyCode": "EUR"
+                      },
+                      "transferRequestStatus": "CONFIRMABLE",
+                      "transfersCount": 2,
+                      "creationDateTime": "2024-09-12T00:00:00+02:00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:READ"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteTransferRequest",
+        "summary": "Delete a transfer request",
+        "description": "Delete a transfer request. All the transfer request lines which are embedded by the transfer request are canceled. Only delayed transfer lines with an execution date set in the future can be canceled.",
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:DELETE"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      }
+    },
+    "/transferRequests/{transferRequestId}/confirmations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/transferRequestId"
+        }
+      ],
+      "post": {
+        "operationId": "createTransferRequestConfirmation",
+        "summary": "Confirm a transfer request",
+        "description": "Confirm a transfer request. The entry phase is over with calling this endpoint. At first call of this endpoint, a strong authentication may be generally demanded in order to seal the transfer. So an HTTP error 403 is returned at first call with presence of a HTTP header called \"X-Stepup-Token\". In this case, the consumer must forward to \"BPCE_CONNECT\" urls to enter into a stepup process. After that, a second call of this endpoint will be possible and needed to really do the confirmation of the transfer request.\nIn particular and rare cases, besides the confirmation of the transfer request is necessary, it is not allowed at all via this API ; in this case, an HTTP 400 error with code \"bpce.delegation.hasToBeDoneOnBankWebSite\" indicates the end user customer to validate the transfer within the BPCE web site.",
+        "responses": {
+          "201": {
+            "description": "Confirmation of the transfer. The request goes into CONFIRMED status. It is no longer possible to modify the request (by adding lines for example).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferRequestSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenDueToRequiredStepup"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests.confirmations:WRITE"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      }
+    },
+    "/transferRequests/{transferRequestId}/transferRequestLines": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/transferRequestId"
+        }
+      ],
+      "post": {
+        "operationId": "createTransferRequestTransferRequestLine",
+        "summary": "Add additional transfers within a transfer request",
+        "description": "Add transfer lines into a transfer request. The transfer request must not have been confirmed yet.",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transfers": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TransferRequestLine"
+                    }
+                  }
+                },
+                "required": [
+                  "transfers"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created. The response is a list of TransferRequestLines",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transfers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TransferRequestLine"
+                      }
+                    }
+                  },
+                  "required": [
+                    "transfers"
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted. The additional transfer lines have been accepted for further processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transfers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TransferRequestLine"
+                      }
+                    }
+                  },
+                  "required": [
+                    "transfers"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:WRITE"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      },
+      "get": {
+        "operationId": "getTransferRequestTransferRequestLines",
+        "summary": "Get the transfer request lines list",
+        "description": "Get a transfers list that fit some criterias. Transfers were initiated throught the API and the debited account is one of the current user.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/transferRequestId"
+          },
+          {
+            "name": "transferRequestLineStatus",
+            "in": "query",
+            "description": "Transfer request status.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "EXECUTED"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/After"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK. The result is a list of TransferRequestLines. ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TransferRequestLineSummary"
+                      }
+                    },
+                    "page": {
+                      "$ref": "#/components/schemas/Page"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                },
+                "examples": {
+                  "Banque Populaire - Get Lines of a multiple transfer request": {
+                    "value": {
+                      "items": [
+                        {
+                          "transferRequestLineId": "13807-0656574820",
+                          "transferRequestId": "13807-0656574819",
+                          "amount": {
+                            "value": 1.11,
+                            "currencyCode": "EUR"
+                          },
+                          "creationDateTime": "2024-09-12T00:00:00+02:00",
+                          "status": "TO_VALIDATE",
+                          "frequencyType": "ONESHOT",
+                          "remittanceInformation": "Mon reglement de facture urgente pour septembre",
+                          "sourceAccount": "13807-1-CPT31821456231",
+                          "recipientAccount": "13807-2-193718-0000001-00000002-f02027167b723e9290d8f82a2b2d4318869214dc5b1c506c837b90693e90e163"
+                        },
+                        {
+                          "transferRequestLineId": "13807-0656574821",
+                          "transferRequestId": "13807-0656574819",
+                          "amount": {
+                            "value": 0.12,
+                            "currencyCode": "EUR"
+                          },
+                          "creationDateTime": "2024-09-12T00:00:00+02:00",
+                          "status": "TO_VALIDATE",
+                          "frequencyType": "ONESHOT",
+                          "remittanceInformation": "Mon reglement de facture urgente pour septembre",
+                          "sourceAccount": "13807-1-CPT31821456231",
+                          "recipientAccount": "13807-2-193718-0000001-00000001-f9474ca8c5cf68bd0ff056ac80277b618c6f90f5b5bc7d96b57e34f950db439f"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:READ"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      }
+    },
+    "/transferRequests/{transferRequestId}/transferRequestLines/{transferRequestLineId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/transferRequestId"
+        },
+        {
+          "$ref": "#/components/parameters/transferRequestLineId"
+        }
+      ],
+      "get": {
+        "operationId": "getTransferRequestTransferRequestLine",
+        "summary": "Get a transfer request line with details",
+        "description": "Get a transfer request line with details.",
+        "responses": {
+          "200": {
+            "description": "OK - Details of the transfer in the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferRequestLine"
+                },
+                "examples": {
+                  "Banque Populaire - Get details of a line - one transfer": {
+                    "value": {
+                      "transferRequestLineId": "13807-0656574820",
+                      "transferRequestId": "13807-0656574819",
+                      "amount": {
+                        "value": 1.11,
+                        "currencyCode": "EUR"
+                      },
+                      "creationDateTime": "2024-09-12T00:00:00+02:00",
+                      "status": "TO_VALIDATE",
+                      "frequencyType": "ONESHOT",
+                      "remittanceInformation": "Mon reglement de facture urgente pour septembre",
+                      "sourceAccount": "13807-1-CPT31821456231",
+                      "recipientAccount": "13807-2-193718-0000001-00000002-f02027167b723e9290d8f82a2b2d4318869214dc5b1c506c837b90693e90e163",
+                      "debitEntry": {
+                        "amount": {
+                          "value": 1.23,
+                          "currencyCode": "EUR"
+                        },
+                        "debitMode": "GROUPED"
+                      },
+                      "executionDeadlineType": "DELAYED",
+                      "executionSettlement": "SEPA",
+                      "reasonLabel": "",
+                      "forecastedExecutionDate": "2024-09-17",
+                      "allTheWayToRecipientInformation": {
+                        "endToEndReference": "FACT2024-948786"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:READ"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteTransferRequestTransferRequestLine",
+        "summary": "Delete a transfer request line",
+        "description": "Delete a transfer request line. The other transfer request lines included in the same transfer request are not canceled. Only delayed transfer lines embedded in a transfer request with a debit mode equal to `SINGLE` and with an execution date set in the future can be canceled.",
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Unexpected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "security": [
+          {
+            "oauth2-authorizationCodePKCE-moneyTransfer": [
+              "moneyTransfer.transferRequests:DELETE"
+            ]
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ]
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "After": {
+        "name": "after",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Cursor of the last element of the previous call. Used to get the next page. Default value point to the first element"
+      },
+      "PageNumber": {
+        "name": "pageNumber",
+        "in": "query",
+        "example": 2,
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": "Number of the current page"
+      },
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "example": 50,
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": "Number of elements per page"
+      },
+      "transferRequestId": {
+        "name": "transferRequestId",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9]{5}-[a-zA-Z0-9-]{1,100}$"
+        },
+        "in": "path",
+        "example": "13807-0610601194",
+        "required": true,
+        "description": "Transfer request identifier."
+      },
+      "transferRequestLineId": {
+        "name": "transferRequestLineId",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9]{5}-[a-zA-Z0-9-]{1,100}$"
+        },
+        "in": "path",
+        "example": "13807-0610601194-0610601195",
+        "required": true,
+        "description": "Transfer request line identifier, i.e. transfer identifier."
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request - HTTP 400",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            },
+            "examples": {
+              "closed source account": {
+                "value": {
+                  "errors": [
+                    {
+                      "code": "bpce.accountDebtor",
+                      "message": "Le compte émetteur n'a pas été trouvé ou a été clôturé.",
+                      "attribute": "string"
+                    }
+                  ]
+                }
+              },
+              "Refusal for confirming a transfer request due to delegation issue": {
+                "value": {
+                  "errors": [
+                    {
+                      "code": "bpce.delegation.hasToBeDoneOnBankWebSite",
+                      "message": "le lot de virement doit être validé sur le site WEB de la Banque à Distance"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden - HTTP 403",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            }
+          }
+        }
+      },
+      "ForbiddenDueToRequiredStepup": {
+        "description": "Forbidden - HTTP 403",
+        "headers": {
+          "X-StepUp-Token": {
+            "schema": {
+              "type": "string"
+            },
+            "description": "token for stepup process. This token must be passed in the xstepuptoken parameter of the next request (GET /stepup)"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            },
+            "examples": {
+              "A stepup is required to do this action": {
+                "value": {
+                  "errors": [
+                    {
+                      "code": "insufficientAuthLevel",
+                      "message": "Niveau d'authentification insuffisant"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "NoContent": {
+        "description": "No content on response - HTTP 204"
+      },
+      "NotFound": {
+        "description": "Resource Not Found - HTTP 404",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            }
+          }
+        }
+      },
+      "NotImplemented": {
+        "description": "Not Implemented - HTTP 501.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - HTTP 401",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "Service Unavailable - HTTP 503.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            }
+          }
+        }
+      },
+      "Unexpected": {
+        "description": "Internal Server Error - HTTP 500.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Account": {
+        "title": "Account",
+        "description": "This object stands for an bank account.",
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "description": "Identifier of the account",
+            "type": "string",
+            "readOnly": true,
+            "example": "13807-1-CPT31719694553"
+          },
+          "label": {
+            "description": "Label of the account.",
+            "type": "string",
+            "example": "DUPONT JEAN"
+          },
+          "accountNumber": {
+            "description": "Number of the account.",
+            "type": "string",
+            "example": "31719694553"
+          },
+          "iban": {
+            "description": "ISO 13616 format for a bank account.",
+            "type": "string",
+            "example": "FR7613807000343179999999943"
+          },
+          "financialInstitution": {
+            "$ref": "#/components/schemas/FinancialInstitution"
+          },
+          "currencies": {
+            "description": "Currencies of the account.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Currency"
+            },
+            "readOnly": true,
+            "example": [
+              {
+                "code": "EUR",
+                "label": "Euro"
+              }
+            ]
+          }
+        },
+        "required": [
+          "accountId",
+          "label",
+          "accountNumber"
+        ]
+      },
+      "AccountIdentifier": {
+        "description": "Identifier of an account.",
+        "type": "string",
+        "minLength": 1,
+        "example": "13807-2-196717-0000001-00000992-5ab5f5df2ed9f5a224952e23adccc37ca9a09c9b23493916720e78295f69e790"
+      },
+      "AllTheWayToRecipientInformation": {
+        "description": "Additional data transmitted to the beneficiary bank, or even the beneficiary himself.",
+        "type": "object",
+        "properties": {
+          "endToEndReference": {
+            "description": "Transfer end-to-end reference, transmited from the sender to the recipient. Corresponds to the EndToEndIdentification field within the meaning of the ISO 20022 standard.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 35,
+            "example": "FACT2024-948786"
+          },
+          "categoryPurposeType": {
+            "description": "Indicates the purpose of the SEPA transfer. Must correspond to the ISO20022 standard (see https://www.iso20022.org/catalogue-messages/additional-content-messages/external-code-sets)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4,
+            "example": "CASH"
+          }
+        }
+      },
+      "Amount": {
+        "description": "Default objet which stands for an amount (number value + currency code).",
+        "type": "object",
+        "properties": {
+          "value": {
+            "description": "Value of the amount.",
+            "type": "number",
+            "format": "double",
+            "example": 3.18
+          },
+          "currencyCode": {
+            "description": "Alphabetical code of the currency code (ISO 4217)",
+            "type": "string",
+            "example": "EUR"
+          }
+        },
+        "required": [
+          "value",
+          "currencyCode"
+        ],
+        "example": {
+          "value": 517.14,
+          "currencyCode": "EUR"
+        }
+      },
+      "Currency": {
+        "title": "Currency",
+        "description": "A Currency object, with a code and an optional label.",
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "An ISO 3166 3-char code for a currency.",
+            "type": "string",
+            "example": "EUR"
+          },
+          "label": {
+            "description": "A human readable label for the currency.",
+            "type": "string",
+            "example": "Euro"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "DebitEntry": {
+        "description": "Information about the debit and the posting to the debited account.",
+        "type": "object",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Amount"
+          },
+          "debitMode": {
+            "$ref": "#/components/schemas/TransferRequestDebitMode"
+          }
+        },
+        "required": [
+          "amount",
+          "debitMode"
+        ],
+        "readOnly": true
+      },
+      "Error": {
+        "description": "Error produced during request processing.",
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "Error code.",
+            "type": "string",
+            "example": "bpce.accountDebtor"
+          },
+          "message": {
+            "description": "Error message.",
+            "type": "string",
+            "example": "Le compte émetteur n'a pas été trouvé ou a été clôturé."
+          },
+          "attribute": {
+            "description": "Attribute concerned by the error.",
+            "type": "string",
+            "example": "error.attribute"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Errors": {
+        "description": "List of errors",
+        "type": "object",
+        "properties": {
+          "errors": {
+            "description": "List of errors",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": [
+              {
+                "code": "bpce.accountDebtor",
+                "message": "Le compte émetteur n'a pas été trouvé ou a été clôturé."
+              }
+            ]
+          }
+        },
+        "required": [
+          "errors"
+        ],
+        "example": {
+          "errors": [
+            {
+              "code": "bpce.accountDebtor",
+              "message": "Le compte émetteur n'a pas été trouvé ou a été clôturé."
+            }
+          ]
+        }
+      },
+      "ExecutionDeadlineType": {
+        "title": "ExecutionDeadlineType",
+        "description": "Execution delay type. <table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>INSTANT</td> <td>Within the minute (instant payment).</td></tr><tr><td>ASAP</td> <td>=As soon as possible (today). The transfer request lines may be processed in the following days.</td></tr><tr><td>DELAYED</td> <td>For a date in the future.</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "INSTANT",
+          "ASAP",
+          "DELAYED"
+        ],
+        "example": "DELAYED"
+      },
+      "ExecutionFrequency": {
+        "title": "ExecutionFrequency",
+        "description": "Indicates if a transfer will be processed only one time or if it is a standing transfer.<table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>ONESHOT</td> <td>The transfer will be processed only one time</td></tr><tr><td>STANDING</td> <td>The transfer will be processed several times in a periodic way</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "ONESHOT",
+          "STANDING"
+        ],
+        "example": "ONESHOT"
+      },
+      "ExecutionSettlement": {
+        "title": "Settlement",
+        "description": "Type of transfer processing chain used.<table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>INTERNAL</td> <td>Between two internal accounts belonging to the subscriber and managed by the same BPCE bank establishment.</td></tr><tr><td>SEPA</td> <td>SCT Transfer using the SEPA scheme.</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "INTERNAL",
+          "SEPA"
+        ],
+        "readOnly": true,
+        "example": "SEPA"
+      },
+      "ExecutionStatus": {
+        "title": "ExecutionStatus",
+        "description": "Transfer processing status (i.e. a transfer request line status).<table><tr><td> Status </td> <td> Meaning </td></tr>  <tr><td>TO_VALIDATE</td> <td>Needs to be validated.</td></tr><tr><td>VALIDATED</td> <td>Validated by the subscriber or by an authorized validator.</td></tr><tr><td>WAITING_DECISION</td> <td>Waiting for a decision.</td></tr><tr><td>PENDING</td> <td>Waiting for execution.</td></tr><tr><td>REFUSED</td> <td>Refused.</td></tr><tr><td>CANCELED</td> <td>Canceled by the subscriber.</td></tr><tr><td>REJECTED</td> <td>Rejected by the system.</td></tr><tr><td>EXECUTED</td> <td>Executed.</td></tr><tr><td>REFUNDED</td> <td>Refunded.</td></tr><tr><td>TERMINATED</td> <td>Terminated.</td></tr><tr><td>REJECTED_BY_RECIPIENT_BANK_AND_REFUNDED</td> <td>Transfer that has been rejected by the beneficiary bank and so the transfer request line is refunded in an individual way.</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "TO_VALIDATE",
+          "VALIDATED",
+          "WAITING_DECISION",
+          "PENDING",
+          "REFUSED",
+          "CANCELED",
+          "REJECTED",
+          "EXECUTED",
+          "REFUNDED",
+          "TERMINATED",
+          "REJECTED_BY_RECIPIENT_BANK_AND_REFUNDED"
+        ],
+        "readOnly": true,
+        "example": "EXECUTED"
+      },
+      "ExternalAccount": {
+        "description": "Characteristics of an account beneficiary for making transfers, authorized to the user of the subscription. This may be an IBAN registered by the subscriber to make transfers to third parties, but also a subset of his own accounts in the banking establishment and which are eligible for credit as part of a transfer account to account.",
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Account"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "$ref": "#/components/schemas/ExternalAccountStatus"
+              },
+              "activationDateTime": {
+                "description": "If the beneficiary account is being activated, indicates the date from which it will be usable.",
+                "type": "string",
+                "format": "date-time",
+                "readOnly": true
+              },
+              "isHolder": {
+                "description": "Indicates whether the subscriber is the owner or co-owner of the beneficiary account. Declarative data.",
+                "type": "boolean",
+                "default": false
+              },
+              "groupLabels": {
+                "description": "Name of the beneficiary groups to which the account is attached.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 32
+                },
+                "readOnly": true
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        ]
+      },
+      "ExternalAccountStatus": {
+        "title": "ExternalAccountStatus",
+        "description": "Status of the external account (beneficiary). <table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>DELETED</td> <td>The external account has been canceled. It will not be usable anymore.</td></tr><tr><td>ACTIVATION_IN_PROGRESS</td> <td>The external account has been created but is not usable yet.</td></tr><tr><td>ACTIVATED</td> <td>The external account can be used for a new transfer.</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "DELETED",
+          "ACTIVATION_IN_PROGRESS",
+          "ACTIVATED"
+        ],
+        "readOnly": true,
+        "example": "ACTIVATED"
+      },
+      "FinancialInstitution": {
+        "title": "Financial Institution",
+        "description": "A financial Institution is a legitimate organization contributing to financial operations. It is not necessarily a Bank.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Financial institution identifier.",
+            "type": "string",
+            "readOnly": true,
+            "example": "1-CCBPFRPPNAN"
+          },
+          "label": {
+            "description": "Financial institution label",
+            "type": "string",
+            "readOnly": true,
+            "example": "BANQUE POPULAIRE GRAND OUEST"
+          },
+          "identifiers": {
+            "description": "Financial institution identifier value and type.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "SWIFT",
+                    "BIC",
+                    "BANQUE_DE_FRANCE",
+                    "ABA"
+                  ]
+                }
+              }
+            },
+            "example": [
+              {
+                "value": "CCBPFRPPNAN",
+                "type": "BIC"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "identifiers"
+        ],
+        "readOnly": true,
+        "example": {
+          "id": "1-CCBPFRPPNAN",
+          "label": "BANQUE POPULAIRE GRAND OUEST",
+          "identifiers": [
+            {
+              "value": "CCBPFRPPNAN",
+              "type": "BIC"
+            }
+          ]
+        }
+      },
+      "FrequencyCode": {
+        "title": "FrequencyCode",
+        "description": "For a standing transfer, this code indicates the frequency of the transfers. <table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>WEEKLY</td> <td>Once every seven days.</td></tr><tr><td>EVERY_TWO_WEEKS</td> <td>Once every fifteen days.</td></tr><tr><td>MONTHLY</td> <td>Once every month.</td></tr><tr><td>EVERY_TWO_MONTHS</td> <td>Once every two months.</td></tr><tr><td>QUARTERLY</td> <td>Once every three months.</td></tr><tr><td>EVERY_SIX_MONTHS</td> <td>Once every six months.</td></tr><tr><td>ANNUALLY</td> <td>Once every year.</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "WEEKLY",
+          "EVERY_TWO_WEEKS",
+          "MONTHLY",
+          "EVERY_TWO_MONTHS",
+          "QUARTERLY",
+          "EVERY_SIX_MONTHS",
+          "ANNUALLY"
+        ],
+        "example": "MONTHLY"
+      },
+      "InternalAccount": {
+        "description": "Account contract authorized to the user of the subscription and debitable as part of a transfer",
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Account"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "productLabel": {
+                "description": "Product commercial name",
+                "type": "string",
+                "example": "Compte courant"
+              },
+              "ownerLabel": {
+                "description": "Designates the owner of the account. Can be a group label if there is several owners.",
+                "type": "string",
+                "example": "PAUL DURAND"
+              },
+              "balance": {
+                "$ref": "#/components/schemas/Amount"
+              }
+            },
+            "required": [
+              "productLabel"
+            ]
+          }
+        ]
+      },
+      "Page": {
+        "description": "A pagination structure. This may be a pagination by index or by cursor.",
+        "type": "object",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PaginationByIndex"
+          },
+          {
+            "$ref": "#/components/schemas/PaginationByCursor"
+          }
+        ]
+      },
+      "PaginationByCursor": {
+        "description": "Pagination via cursor of the last element of the previous call.",
+        "type": "object",
+        "properties": {
+          "pageSize": {
+            "description": "Number of items by page",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "example": 50
+          },
+          "after": {
+            "description": "Cursor of the last element of the previous call.\nUsed to get the next page.",
+            "type": "string",
+            "example": "13807-1-CPT31719694553"
+          }
+        },
+        "required": [
+          "pageSize",
+          "after"
+        ]
+      },
+      "PaginationByIndex": {
+        "title": "PaginationByIndex",
+        "description": "Pagination by index of page.",
+        "type": "object",
+        "properties": {
+          "pageSize": {
+            "description": "Number of items by page",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "example": 50
+          },
+          "pageNumber": {
+            "description": "Page number requested.",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "example": 1
+          },
+          "totalElements": {
+            "description": "Number of items matching the query",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "example": 20
+          },
+          "totalPages": {
+            "description": "Number of pages of items matching the query",
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "example": 1
+          }
+        },
+        "required": [
+          "pageSize",
+          "pageNumber"
+        ]
+      },
+      "RequestedTransferRequestDebitMode": {
+        "title": "RequestedTransferRequestDebitMode",
+        "description": "Indicates how the caller wishes the set of transfer request lines to be debited from the source account ; that is if there should be only one global accounting entry with the global amount or alternatively there should be n single transfers (one accounting entry for one transfer request line). <table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>GROUPED</td> <td>One global accounting entry with the global amount.</td></tr><tr><td>SINGLE</td> <td>One accounting entry for each transfer request line.</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "SINGLE",
+          "GROUPED"
+        ],
+        "default": "GROUPED",
+        "example": "GROUPED",
+        "writeOnly": true
+      },
+      "StandingTransfer": {
+        "title": "StandingTransfer",
+        "description": "Standing transfer",
+        "type": "object",
+        "properties": {
+          "frequency": {
+            "$ref": "#/components/schemas/FrequencyCode"
+          },
+          "startDate": {
+            "description": "The start date for a standing transfer.",
+            "type": "string",
+            "format": "date",
+            "example": "2024-02-02"
+          },
+          "endDate": {
+            "description": "The last theoretical date for the standing transfer.",
+            "type": "string",
+            "format": "date",
+            "example": "2024-11-02"
+          },
+          "lastExecutionDate": {
+            "description": "The last actual date a transfer was actually made as part of this standing transfer order. It may be adjusted for calendar reasons.",
+            "type": "string",
+            "format": "date",
+            "readOnly": true,
+            "example": "2024-05-02"
+          }
+        },
+        "required": [
+          "frequency",
+          "startDate"
+        ]
+      },
+      "TransferRequest": {
+        "description": "This resource stands for the wish from the caller to initiate a set of transfer. The size of the list of transfer request lines is valued to \"1\" for single transfer or be greater to initiate a multiple transfer.",
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TransferRequestSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "lines": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TransferRequestLine"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "lines"
+            ]
+          }
+        ]
+      },
+      "TransferRequestDebitMode": {
+        "title": "TransferRequestDebitMode",
+        "description": "Indicates how the set of transfer request lines are debited from the source account ; that is if there is only one global accounting entry with the global amount or alternatively there are n single transfers (one accounting entry for one transfer request line). <table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>GROUPED</td> <td>One global accounting entry with the global amount.</td></tr><tr><td>SINGLE</td> <td>One accounting entry for each transfer request line.</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "SINGLE",
+          "GROUPED"
+        ],
+        "readOnly": true,
+        "example": "GROUPED"
+      },
+      "TransferRequestLine": {
+        "description": "This resource stands for the detailed characteristics of a transfer request line. A transfer request line is the atomic part of the request that will be processed by a bank transfer.",
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TransferRequestLineSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "debitEntry": {
+                "$ref": "#/components/schemas/DebitEntry"
+              },
+              "executionDeadlineType": {
+                "$ref": "#/components/schemas/ExecutionDeadlineType"
+              },
+              "executionSettlement": {
+                "$ref": "#/components/schemas/ExecutionSettlement"
+              },
+              "reasonLabel": {
+                "description": "Reason label in the transfer historic view in the bank web site",
+                "type": "string",
+                "maxLength": 35,
+                "example": "Facture plombier"
+              },
+              "forecastedExecutionDate": {
+                "description": "Execution date planned for the execution of the transfer (but not contractual)",
+                "type": "string",
+                "format": "date",
+                "readOnly": true,
+                "example": "2024-05-02"
+              },
+              "allTheWayToRecipientInformation": {
+                "$ref": "#/components/schemas/AllTheWayToRecipientInformation"
+              },
+              "standingTransfer": {
+                "$ref": "#/components/schemas/StandingTransfer"
+              },
+              "economicReasonLabel": {
+                "description": "Economic reason code (mandatory if very high amount)",
+                "type": "string"
+              },
+              "fee": {
+                "$ref": "#/components/schemas/Amount"
+              }
+            },
+            "required": [
+              "executionDeadlineType",
+              "executionSettlement"
+            ]
+          }
+        ]
+      },
+      "TransferRequestLineSummary": {
+        "description": "This resource stands for important characteristics of a transfer request line. The amount attribute is free of charge.",
+        "type": "object",
+        "properties": {
+          "transferRequestLineId": {
+            "description": "Identifier of a transfer request line.",
+            "type": "string",
+            "minLength": 1,
+            "readOnly": true,
+            "example": "13807-0656574820"
+          },
+          "transferRequestId": {
+            "description": "Identifier of a transfer request within the transfer request line is embedded.",
+            "type": "string",
+            "minLength": 1,
+            "readOnly": true,
+            "example": "13807-0656574819"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Amount"
+          },
+          "creationDateTime": {
+            "description": "Timestamp of transfer request creation",
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "example": "2024-04-30T17:35:00Z"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ExecutionStatus"
+          },
+          "frequencyType": {
+            "$ref": "#/components/schemas/ExecutionFrequency"
+          },
+          "requestedExecutionDate": {
+            "description": "Requested execution date of the transfer. Significant if executionDeadlineType is DELAYED.",
+            "type": "string",
+            "format": "date",
+            "example": "2024-04-30",
+            "writeOnly": true
+          },
+          "executionDate": {
+            "description": "Date of execution of the transfer.",
+            "type": "string",
+            "format": "date",
+            "readOnly": true,
+            "example": "2024-05-03"
+          },
+          "remittanceInformation": {
+            "description": "Reason for transfer, transmitted to the recipient",
+            "type": "string",
+            "maxLength": 140,
+            "example": "Mon reglement de facture urgente pour juin"
+          },
+          "sourceAccount": {
+            "$ref": "#/components/schemas/AccountIdentifier"
+          },
+          "recipientAccount": {
+            "$ref": "#/components/schemas/AccountIdentifier"
+          }
+        },
+        "required": [
+          "transferRequestLineId",
+          "transferRequestId",
+          "amount",
+          "status",
+          "frequencyType",
+          "remittanceInformation",
+          "sourceAccount",
+          "recipientAccount"
+        ]
+      },
+      "TransferRequestStatus": {
+        "title": "TransferRequestStatus",
+        "description": "State of the transfer request. This state is useful to follow and manage a transfer request only during the entry phase. Once confirmed, rejected or canceled, the transfer request is in a terminal state and will not change, so that it is the state of the transfer request line one must then examinate to know if a transfer have been well processed or not.<table><tr><td>Code</td> <td>Meaning</td></tr><tr><td>INITIALIZED</td> <td>The transfer request has been accepted but all transfer lines has not been processed so that the transfer request confirmation step is not yet available.</td></tr><tr><td>CONFIRMABLE</td> <td>The transfer request has been accepted and all transfer lines has been processed so that the transfer request confirmation step is available.</td></tr><tr><td>CONFIRMED</td> <td>The transfer request has been confirmed. One cannot add additional transfer lines to the transfer request anymore.</td></tr><tr><td>REJECTED</td> <td>The BPCE system has rejected all the lines (for a common cause).</td></tr><tr><td>DELETED</td> <td>The subscriber has canceled the transfer request (all lines are canceled).</td></tr></table>",
+        "type": "string",
+        "enum": [
+          "INITIALIZED",
+          "CONFIRMABLE",
+          "CONFIRMED",
+          "REJECTED",
+          "DELETED"
+        ],
+        "readOnly": true,
+        "example": "CONFIRMABLE"
+      },
+      "TransferRequestSummary": {
+        "description": "Summary of a transfer request. This resource includes only global information of the request. There is no information about the lines details here. The globalAmount property is a free of charge amount.",
+        "type": "object",
+        "properties": {
+          "transferRequestId": {
+            "description": "Identifier related to the transfer request",
+            "type": "string",
+            "readOnly": true,
+            "example": "13807-0610601194"
+          },
+          "globalAmount": {
+            "description": "Global amount of the transfer request.",
+            "readOnly": true,
+            "example": {
+              "value": 3.18,
+              "currencyCode": "EUR"
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Amount"
+              }
+            ]
+          },
+          "transferRequestStatus": {
+            "$ref": "#/components/schemas/TransferRequestStatus"
+          },
+          "transfersCount": {
+            "description": "Number of transfers included in this request.",
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "readOnly": true,
+            "example": 5
+          },
+          "creationDateTime": {
+            "description": "Date and time of creation for the request.",
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "example": "2024-04-23T13:56:23+01:00"
+          },
+          "modificationDateTime": {
+            "description": "Date and time of modification for the request.",
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "example": "2024-04-23T13:56:23+01:00"
+          },
+          "requestedDebitMode": {
+            "$ref": "#/components/schemas/RequestedTransferRequestDebitMode"
+          },
+          "globalFee": {
+            "description": "Global fees of the transfer request.",
+            "readOnly": true,
+            "example": {
+              "value": 2,
+              "currencyCode": "EUR"
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Amount"
+              }
+            ]
+          }
+        },
+        "required": [
+          "transferRequestId",
+          "transferRequestStatus",
+          "transfersCount",
+          "creationDateTime"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "oauth2-authorizationCodePKCE-moneyTransfer": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "scopes": {
+              "moneyTransfer.externalAccounts:READ": "Scope for read External accounts",
+              "moneyTransfer.externalAccounts:WRITE": "Scope for write External accounts",
+              "moneyTransfer.internalAccounts:READ": "Scope for read Internal accounts",
+              "moneyTransfer.transferRequests:READ": "Minimal scope for consultation of transfer requests",
+              "moneyTransfer.transferRequests:WRITE": "Scope to create or modify transfer requests",
+              "moneyTransfer.transferRequests:DELETE": "Scope to delete transfer requests.",
+              "moneyTransfer.transferRequests.confirmations:WRITE": "Scope for transfer requests confirmations."
+            },
+            "authorizationUrl": "/api/oauth/authorize",
+            "refreshUrl": "/api/oauth/refresh",
+            "tokenUrl": "/api/oauth/token"
+          }
+        },
+        "description": ""
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "External Accounts",
+      "description": "External Accounts Management: Searching for accounts or declaring new ones."
+    },
+    {
+      "name": "Internal Accounts",
+      "description": "Internal Accounts Management."
+    },
+    {
+      "name": "Transfers",
+      "description": "Creating and validating transfers."
+    }
+  ]
+}

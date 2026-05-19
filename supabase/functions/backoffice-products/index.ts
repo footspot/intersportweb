@@ -1,0 +1,681 @@
+// * backoffice-products — CRUD for products, variants, and bundle composition.
+// * Admin OR employee.
+// *
+// * POST/PUT body (JSON or multipart with `data` field):
+// *   Regular product:
+// *     { ...productFields, variants: [...], image_slots: [...] }
+// *   Bundle product (is_pack: true):
+// *     { ...productFields, is_pack: true, components: [...], image_slots: [...] }
+// *     — variants MUST be empty for bundles; bundle stock is derived from components.
+// *
+// * Images: `image_slots` is an ordered list (position 0 = primary, max 5).
+// * Each slot is either `{ existing: "<path>" }` to keep a pre-existing image,
+// * or `{ file_key: "<key>" }` to upload the file attached under that key in
+// * the multipart form.
+// *
+// * Emits `product_locked_into_bundle` / `product_released_from_bundle` notifications
+// * via `notify_backoffice` RPC on the component set delta.
+import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
+import { verifyBackoffice } from '../_shared/auth.ts'
+import { serviceClient } from '../_shared/supabase.ts'
+import { validatePricing, type DiscountSource } from '../_shared/pricing.ts'
+import { parseMultipartFiles, uploadImage, removeImage } from '../_shared/multipart.ts'
+
+const BUCKET = 'product-images'
+const MAX_IMAGES = 5
+
+type FlockingKind = 'none' | 'members' | 'supporters'
+type BundleAxis = 'primary' | 'secondary'
+
+interface VariantPayload {
+  id?: string
+  size: string
+  stock: number
+  sku?: string | null
+}
+
+interface BundleComponentPayload {
+  component_product_id: string
+  axis: BundleAxis
+  quantity?: number
+}
+
+interface ImageSlot {
+  existing?: string
+  file_key?: string
+}
+
+interface ProductData {
+  id?: string
+  club_id: string
+  name: { fr: string; en: string }
+  reference: string
+  details?: { fr?: string; en?: string } | null
+  category?: string | null
+  buying_price: number
+  selling_price: number
+  discount_percent?: number
+  discount_source?: DiscountSource
+  flocking_kind?: FlockingKind
+  flocking_members_name_price?: number
+  flocking_members_initials_price?: number
+  flocking_supporter_price?: number
+  is_pack?: boolean
+  is_visible?: boolean
+  is_on_clearance?: boolean
+  weight_grams?: number
+  available_from?: string | null
+  sort_order?: number
+  variants?: VariantPayload[]
+  components?: BundleComponentPayload[]
+  image_slots?: ImageSlot[]
+}
+
+const PRODUCT_SELECT =
+  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position)'
+
+function normaliseVariants(vs: VariantPayload[] | undefined): VariantPayload[] | string {
+  if (!Array.isArray(vs) || vs.length === 0) return 'at least one variant is required'
+  const seen = new Set<string>()
+  for (const v of vs) {
+    if (!v?.size?.trim()) return 'variant size cannot be empty'
+    const size = v.size.trim().toLowerCase()
+    if (seen.has(size)) return `duplicate size: ${v.size.trim()}`
+    seen.add(size)
+    if (!Number.isFinite(v.stock) || v.stock < 0) return 'variant stock must be >= 0'
+  }
+  return vs.map((v) => ({
+    ...v,
+    size: v.size.trim(),
+    stock: Math.floor(Number(v.stock)),
+    sku: v.sku?.trim() || null,
+  }))
+}
+
+function normaliseComponents(
+  cs: BundleComponentPayload[] | undefined,
+): BundleComponentPayload[] | string {
+  if (!Array.isArray(cs) || cs.length === 0) return 'bundle requires at least one component'
+  const seen = new Set<string>()
+  let hasPrimary = false
+  for (const c of cs) {
+    if (!c?.component_product_id) return 'component_product_id required'
+    if (c.axis !== 'primary' && c.axis !== 'secondary') return 'axis must be primary or secondary'
+    if (seen.has(c.component_product_id)) return `duplicate component: ${c.component_product_id}`
+    seen.add(c.component_product_id)
+    if (c.axis === 'primary') hasPrimary = true
+    const q = Number(c.quantity ?? 1)
+    if (!Number.isFinite(q) || q < 1) return 'component quantity must be >= 1'
+  }
+  if (!hasPrimary) return 'at least one component must use the primary axis'
+  return cs.map((c) => ({
+    component_product_id: c.component_product_id,
+    axis: c.axis,
+    quantity: Math.max(1, Math.floor(Number(c.quantity ?? 1))),
+  }))
+}
+
+// * Validate image_slots shape; returns the cleaned list or an error string.
+function normaliseSlots(
+  slots: ImageSlot[] | undefined,
+  files: Record<string, File>,
+): ImageSlot[] | string {
+  if (slots === undefined || slots === null) return []
+  if (!Array.isArray(slots)) return 'image_slots must be an array'
+  if (slots.length > MAX_IMAGES) return `at most ${MAX_IMAGES} images per product`
+  const seenExisting = new Set<string>()
+  const seenFile = new Set<string>()
+  const out: ImageSlot[] = []
+  for (const s of slots) {
+    const hasExisting = typeof s?.existing === 'string' && s.existing.length > 0
+    const hasFile = typeof s?.file_key === 'string' && s.file_key.length > 0
+    if (hasExisting && hasFile) return 'slot cannot have both existing and file_key'
+    if (!hasExisting && !hasFile) return 'slot must have either existing or file_key'
+    if (hasExisting) {
+      if (seenExisting.has(s.existing!)) return 'duplicate existing image path'
+      seenExisting.add(s.existing!)
+      out.push({ existing: s.existing })
+    } else {
+      if (seenFile.has(s.file_key!)) return 'duplicate file_key'
+      seenFile.add(s.file_key!)
+      if (!(s.file_key! in files)) return `missing file for slot: ${s.file_key}`
+      out.push({ file_key: s.file_key })
+    }
+  }
+  return out
+}
+
+// * Upload each new file, returning the final ordered path list + any paths
+// * actually uploaded (so we can clean up on failure).
+async function applySlotsToStorage(
+  sb: ReturnType<typeof serviceClient>,
+  slots: ImageSlot[],
+  files: Record<string, File>,
+): Promise<{ paths: string[]; uploaded: string[] }> {
+  const paths: string[] = []
+  const uploaded: string[] = []
+  for (const s of slots) {
+    if (s.existing) {
+      paths.push(s.existing)
+    } else {
+      const path = await uploadImage(sb, BUCKET, files[s.file_key!])
+      uploaded.push(path)
+      paths.push(path)
+    }
+  }
+  return { paths, uploaded }
+}
+
+async function replaceProductImages(
+  sb: ReturnType<typeof serviceClient>,
+  productId: string,
+  paths: string[],
+) {
+  const { error: dErr } = await sb.from('product_images').delete().eq('product_id', productId)
+  if (dErr) throw dErr
+  if (paths.length === 0) return
+  const rows = paths.map((image_path, position) => ({ product_id: productId, image_path, position }))
+  const { error: iErr } = await sb.from('product_images').insert(rows)
+  if (iErr) throw iErr
+}
+
+async function cleanupUploads(
+  sb: ReturnType<typeof serviceClient>,
+  paths: string[],
+): Promise<void> {
+  for (const p of paths) await removeImage(sb, BUCKET, p)
+}
+
+function productRow(body: ProductData) {
+  const pct = Number(body.discount_percent ?? 0)
+  const source: DiscountSource = pct > 0 ? body.discount_source ?? null : null
+  const kind: FlockingKind = body.flocking_kind ?? 'none'
+  const isPack = !!body.is_pack
+  return {
+    club_id: body.club_id,
+    name: body.name,
+    reference: body.reference.trim(),
+    details: body.details ?? null,
+    category: body.category?.trim() || null,
+    buying_price: Number(body.buying_price),
+    selling_price: Number(body.selling_price),
+    discount_percent: pct,
+    discount_source: source,
+    flocking_kind: kind,
+    flocking_members_name_price:
+      kind === 'members' ? Math.max(0, Number(body.flocking_members_name_price ?? 0)) : 0,
+    flocking_members_initials_price:
+      kind === 'members' ? Math.max(0, Number(body.flocking_members_initials_price ?? 0)) : 0,
+    flocking_supporter_price:
+      kind === 'supporters' ? Math.max(0, Number(body.flocking_supporter_price ?? 0)) : 0,
+    is_pack: isPack,
+    is_visible: body.is_visible ?? true,
+    is_on_clearance: !!body.is_on_clearance,
+    weight_grams: Math.max(0, Math.floor(Number(body.weight_grams ?? 0))),
+    available_from: body.available_from && body.available_from.trim() !== '' ? body.available_from : null,
+    sort_order: body.sort_order ?? 0,
+  }
+}
+
+// * Fetch each component's product details (for club-scope check + name). All
+// * components must belong to the same club as the bundle itself.
+async function loadComponentProducts(
+  sb: ReturnType<typeof serviceClient>,
+  ids: string[],
+): Promise<{ id: string; club_id: string; is_pack: boolean; name: any; reference: string }[]> {
+  if (ids.length === 0) return []
+  const { data, error } = await sb
+    .from('products')
+    .select('id, club_id, is_pack, name, reference')
+    .in('id', ids)
+  if (error) throw error
+  return (data ?? []) as any[]
+}
+
+// * Diffs component sets between previous and next, and emits notifications for
+// * products newly locked (first time in any bundle) or newly released (no other
+// * active bundle references them).
+async function emitBundleLockNotifications(
+  sb: ReturnType<typeof serviceClient>,
+  bundleId: string,
+  bundleName: string,
+  clubId: string,
+  previousIds: string[],
+  nextIds: string[],
+) {
+  const toAdd = nextIds.filter((id) => !previousIds.includes(id))
+  const toRemove = previousIds.filter((id) => !nextIds.includes(id))
+
+  // * For added components: notify only if this is the product's FIRST bundle.
+  if (toAdd.length > 0) {
+    const { data: others } = await sb
+      .from('bundle_components')
+      .select('component_product_id, bundle_product_id')
+      .in('component_product_id', toAdd)
+      .neq('bundle_product_id', bundleId)
+    const firstLock = toAdd.filter(
+      (id) => !(others ?? []).some((o: any) => o.component_product_id === id),
+    )
+    if (firstLock.length > 0) {
+      const { data: names } = await sb
+        .from('products')
+        .select('id, name')
+        .in('id', firstLock)
+      for (const p of names ?? []) {
+        const productName = (p as any).name?.fr ?? (p as any).name?.en ?? ''
+        await sb.rpc('notify_backoffice', {
+          p_kind: 'product_locked_into_bundle',
+          p_payload: {
+            product_id: (p as any).id,
+            product_name: productName,
+            bundle_id: bundleId,
+            bundle_name: bundleName,
+            club_id: clubId,
+          },
+        })
+      }
+    }
+  }
+
+  // * For removed components: notify if they no longer belong to ANY bundle.
+  if (toRemove.length > 0) {
+    const { data: stillLinked } = await sb
+      .from('bundle_components')
+      .select('component_product_id')
+      .in('component_product_id', toRemove)
+    const linkedSet = new Set((stillLinked ?? []).map((r: any) => r.component_product_id))
+    const released = toRemove.filter((id) => !linkedSet.has(id))
+    if (released.length > 0) {
+      const { data: names } = await sb
+        .from('products')
+        .select('id, name')
+        .in('id', released)
+      for (const p of names ?? []) {
+        const productName = (p as any).name?.fr ?? (p as any).name?.en ?? ''
+        await sb.rpc('notify_backoffice', {
+          p_kind: 'product_released_from_bundle',
+          p_payload: {
+            product_id: (p as any).id,
+            product_name: productName,
+          },
+        })
+      }
+    }
+  }
+}
+
+Deno.serve(async (req) => {
+  const pre = handlePreflight(req)
+  if (pre) return pre
+
+  const guard = await verifyBackoffice(req)
+  if (guard instanceof Response) return guard
+
+  const sb = serviceClient()
+  const url = new URL(req.url)
+  const contentType = req.headers.get('content-type') ?? ''
+  const isMultipart = contentType.startsWith('multipart/form-data')
+
+  try {
+    if (req.method === 'POST') {
+      const { data, files } = isMultipart
+        ? await parseMultipartFiles<ProductData>(req)
+        : { data: (await req.json()) as ProductData, files: {} as Record<string, File> }
+
+      if (!data?.club_id) return jsonResponse({ error: 'club_id required' }, { status: 400 })
+      if (!data?.name?.fr || !data?.name?.en)
+        return jsonResponse({ error: 'name.fr and name.en required' }, { status: 400 })
+      if (!data?.reference?.trim())
+        return jsonResponse({ error: 'reference required' }, { status: 400 })
+
+      const priceErr = validatePricing(data)
+      if (priceErr) return jsonResponse({ error: priceErr }, { status: 400 })
+
+      const slotsResult = normaliseSlots(data.image_slots, files)
+      if (typeof slotsResult === 'string') return jsonResponse({ error: slotsResult }, { status: 400 })
+      // * On create there are no pre-existing paths to reference.
+      if (slotsResult.some((s) => s.existing))
+        return jsonResponse({ error: 'cannot reference existing images on create' }, { status: 400 })
+
+      const isPack = !!data.is_pack
+      let components: BundleComponentPayload[] = []
+      let variants: VariantPayload[] = []
+
+      if (isPack) {
+        const c = normaliseComponents(data.components)
+        if (typeof c === 'string') return jsonResponse({ error: c }, { status: 400 })
+        components = c
+
+        const compIds = components.map((x) => x.component_product_id)
+        const compProducts = await loadComponentProducts(sb, compIds)
+        if (compProducts.length !== compIds.length) {
+          return jsonResponse({ error: 'one or more components not found' }, { status: 400 })
+        }
+        const wrongClub = compProducts.find((p) => p.club_id !== data.club_id)
+        if (wrongClub)
+          return jsonResponse({ error: 'component belongs to a different club' }, { status: 400 })
+        const nestedPack = compProducts.find((p) => p.is_pack)
+        if (nestedPack)
+          return jsonResponse({ error: 'cannot nest a bundle inside another' }, { status: 400 })
+      } else {
+        const v = normaliseVariants(data.variants)
+        if (typeof v === 'string') return jsonResponse({ error: v }, { status: 400 })
+        variants = v
+      }
+
+      // * Upload all new files first so the failure path is just storage cleanup.
+      let uploadedPaths: string[] = []
+      let finalPaths: string[] = []
+      try {
+        const r = await applySlotsToStorage(sb, slotsResult, files)
+        uploadedPaths = r.uploaded
+        finalPaths = r.paths
+      } catch (e) {
+        await cleanupUploads(sb, uploadedPaths)
+        throw e
+      }
+
+      const { data: product, error: pErr } = await sb
+        .from('products')
+        .insert(productRow(data))
+        .select()
+        .single()
+      if (pErr) {
+        await cleanupUploads(sb, uploadedPaths)
+        throw pErr
+      }
+
+      try {
+        if (finalPaths.length > 0) {
+          await replaceProductImages(sb, product.id, finalPaths)
+        }
+
+        if (isPack) {
+          const rows = components.map((c) => ({
+            bundle_product_id: product.id,
+            component_product_id: c.component_product_id,
+            axis: c.axis,
+            quantity: c.quantity ?? 1,
+          }))
+          const { error: bcErr } = await sb.from('bundle_components').insert(rows)
+          if (bcErr) throw bcErr
+          await emitBundleLockNotifications(
+            sb,
+            product.id,
+            product.name?.fr ?? product.reference,
+            product.club_id,
+            [],
+            components.map((c) => c.component_product_id),
+          )
+        } else {
+          const { error: vErr } = await sb
+            .from('product_variants')
+            .insert(variants.map((v) => ({ ...v, product_id: product.id })))
+          if (vErr) throw vErr
+        }
+      } catch (e) {
+        await sb.from('products').delete().eq('id', product.id)
+        await cleanupUploads(sb, uploadedPaths)
+        throw e
+      }
+
+      const { data: full, error: fErr } = await sb
+        .from('products')
+        .select(PRODUCT_SELECT)
+        .eq('id', product.id)
+        .single()
+      if (fErr) {
+        console.error('[backoffice-products] reload after insert failed', fErr)
+        throw fErr
+      }
+      return jsonResponse({ product: full }, { status: 201 })
+    }
+
+    if (req.method === 'PUT') {
+      const { data, files } = isMultipart
+        ? await parseMultipartFiles<ProductData>(req)
+        : { data: (await req.json()) as ProductData, files: {} as Record<string, File> }
+
+      if (!data?.id) return jsonResponse({ error: 'id required' }, { status: 400 })
+
+      const priceErr = validatePricing(data)
+      if (priceErr) return jsonResponse({ error: priceErr }, { status: 400 })
+
+      const slotsResult = normaliseSlots(data.image_slots, files)
+      if (typeof slotsResult === 'string') return jsonResponse({ error: slotsResult }, { status: 400 })
+
+      const isPack = !!data.is_pack
+      let components: BundleComponentPayload[] = []
+      let variants: VariantPayload[] = []
+
+      if (isPack) {
+        const c = normaliseComponents(data.components)
+        if (typeof c === 'string') return jsonResponse({ error: c }, { status: 400 })
+        components = c
+        const compIds = components.map((x) => x.component_product_id)
+        const compProducts = await loadComponentProducts(sb, compIds)
+        if (compProducts.length !== compIds.length)
+          return jsonResponse({ error: 'one or more components not found' }, { status: 400 })
+        const wrongClub = compProducts.find((p) => p.club_id !== data.club_id)
+        if (wrongClub)
+          return jsonResponse({ error: 'component belongs to a different club' }, { status: 400 })
+        const nestedPack = compProducts.find((p) => p.is_pack)
+        if (nestedPack)
+          return jsonResponse({ error: 'cannot nest a bundle inside another' }, { status: 400 })
+      } else {
+        const v = normaliseVariants(data.variants)
+        if (typeof v === 'string') return jsonResponse({ error: v }, { status: 400 })
+        variants = v
+      }
+
+      const { data: current, error: cErr } = await sb
+        .from('products')
+        .select('is_pack, name, club_id, product_images(image_path)')
+        .eq('id', data.id)
+        .single()
+      if (cErr) throw cErr
+
+      const previousPaths: string[] = ((current as any)?.product_images ?? []).map(
+        (r: any) => r.image_path,
+      )
+      const prevSet = new Set(previousPaths)
+
+      // * Every `existing` path must come from this product's current gallery.
+      for (const s of slotsResult) {
+        if (s.existing && !prevSet.has(s.existing)) {
+          return jsonResponse({ error: 'unknown existing image path' }, { status: 400 })
+        }
+      }
+
+      let uploadedPaths: string[] = []
+      let finalPaths: string[] = []
+      try {
+        const r = await applySlotsToStorage(sb, slotsResult, files)
+        uploadedPaths = r.uploaded
+        finalPaths = r.paths
+      } catch (e) {
+        await cleanupUploads(sb, uploadedPaths)
+        throw e
+      }
+
+      try {
+        const { error: pErr } = await sb
+          .from('products')
+          .update(productRow(data))
+          .eq('id', data.id)
+        if (pErr) throw pErr
+
+        await replaceProductImages(sb, data.id!, finalPaths)
+
+        if (isPack) {
+          // * Drop any lingering variants if the product used to be non-pack.
+          await sb.from('product_variants').delete().eq('product_id', data.id)
+
+          // * Diff component set for notifications.
+          const { data: existingBc } = await sb
+            .from('bundle_components')
+            .select('component_product_id')
+            .eq('bundle_product_id', data.id)
+          const previousIds = (existingBc ?? []).map((r: any) => r.component_product_id)
+          const nextIds = components.map((c) => c.component_product_id)
+
+          await sb.from('bundle_components').delete().eq('bundle_product_id', data.id)
+          const rows = components.map((c) => ({
+            bundle_product_id: data.id,
+            component_product_id: c.component_product_id,
+            axis: c.axis,
+            quantity: c.quantity ?? 1,
+          }))
+          const { error: bcErr } = await sb.from('bundle_components').insert(rows)
+          if (bcErr) throw bcErr
+
+          await emitBundleLockNotifications(
+            sb,
+            data.id!,
+            data.name?.fr ?? current.name?.fr ?? '',
+            data.club_id,
+            previousIds,
+            nextIds,
+          )
+        } else {
+          // * If product used to be a pack, clear its bundle_components (release).
+          if (current?.is_pack) {
+            const { data: wasBc } = await sb
+              .from('bundle_components')
+              .select('component_product_id')
+              .eq('bundle_product_id', data.id)
+            const previousIds = (wasBc ?? []).map((r: any) => r.component_product_id)
+            await sb.from('bundle_components').delete().eq('bundle_product_id', data.id)
+            await emitBundleLockNotifications(
+              sb,
+              data.id!,
+              current?.name?.fr ?? '',
+              current?.club_id,
+              previousIds,
+              [],
+            )
+          }
+
+          // * Diff-and-apply variants.
+          const { data: existing, error: existErr } = await sb
+            .from('product_variants')
+            .select('id, size')
+            .eq('product_id', data.id)
+          if (existErr) throw existErr
+
+          const keepIds = new Set<string>()
+          for (const v of variants) {
+            const row = { size: v.size, stock: v.stock, sku: v.sku ?? null }
+            if (v.id) {
+              keepIds.add(v.id)
+              const { error: uErr } = await sb
+                .from('product_variants')
+                .update(row)
+                .eq('id', v.id)
+              if (uErr) throw uErr
+            } else {
+              const { data: inserted, error: iErr } = await sb
+                .from('product_variants')
+                .insert({ product_id: data.id, ...row })
+                .select('id')
+                .single()
+              if (iErr) throw iErr
+              if (inserted?.id) keepIds.add(inserted.id)
+            }
+          }
+          const toDelete = (existing ?? []).filter((e) => !keepIds.has(e.id)).map((e) => e.id)
+          if (toDelete.length > 0) {
+            const { error: dErr } = await sb.from('product_variants').delete().in('id', toDelete)
+            if (dErr) throw dErr
+          }
+        }
+      } catch (e) {
+        await cleanupUploads(sb, uploadedPaths)
+        throw e
+      }
+
+      // * Remove storage files that no longer belong to this product's gallery.
+      const finalSet = new Set(finalPaths)
+      const toRemove = previousPaths.filter((p) => !finalSet.has(p))
+      await cleanupUploads(sb, toRemove)
+
+      const { data: full, error: fErr } = await sb
+        .from('products')
+        .select(PRODUCT_SELECT)
+        .eq('id', data.id)
+        .single()
+      if (fErr) {
+        console.error('[backoffice-products] reload after update failed', fErr)
+        throw fErr
+      }
+      return jsonResponse({ product: full })
+    }
+
+    if (req.method === 'DELETE') {
+      const id = url.searchParams.get('id')
+      if (!id) return jsonResponse({ error: 'id required' }, { status: 400 })
+
+      const { count: orderCount, error: countErr } = await sb
+        .from('order_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', id)
+      if (countErr) throw countErr
+      if ((orderCount ?? 0) > 0) {
+        return jsonResponse({ error: 'product_has_orders', order_count: orderCount }, { status: 409 })
+      }
+
+      // * If this product is a component in some bundle, refuse.
+      const { count: usedInBundles } = await sb
+        .from('bundle_components')
+        .select('*', { count: 'exact', head: true })
+        .eq('component_product_id', id)
+      if ((usedInBundles ?? 0) > 0) {
+        return jsonResponse(
+          { error: 'product_locked_in_bundle', bundle_count: usedInBundles },
+          { status: 409 },
+        )
+      }
+
+      // * If this product is a bundle, release its components (emit notifications).
+      const { data: cur } = await sb
+        .from('products')
+        .select('is_pack, name, club_id, product_images(image_path)')
+        .eq('id', id)
+        .single()
+      if (cur?.is_pack) {
+        const { data: bc } = await sb
+          .from('bundle_components')
+          .select('component_product_id')
+          .eq('bundle_product_id', id)
+        const previousIds = (bc ?? []).map((r: any) => r.component_product_id)
+        await emitBundleLockNotifications(
+          sb,
+          id,
+          cur.name?.fr ?? '',
+          cur.club_id,
+          previousIds,
+          [],
+        )
+      }
+
+      const { error } = await sb.from('products').delete().eq('id', id)
+      if (error) throw error
+
+      const paths: string[] = ((cur as any)?.product_images ?? []).map((r: any) => r.image_path)
+      await cleanupUploads(sb, paths)
+      return jsonResponse({ ok: true })
+    }
+
+    return jsonResponse({ error: 'Method not allowed' }, { status: 405 })
+  } catch (err) {
+    const e = err as { message?: string; code?: string; details?: string; hint?: string }
+    const msg = e?.message || (err instanceof Error ? err.message : 'Unknown error')
+    console.error('[backoffice-products]', {
+      message: e?.message, code: e?.code, details: e?.details, hint: e?.hint,
+    })
+    return jsonResponse(
+      { error: msg, code: e?.code, details: e?.details, hint: e?.hint },
+      { status: 500 },
+    )
+  }
+})

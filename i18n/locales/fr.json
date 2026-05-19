@@ -1,0 +1,1092 @@
+{
+  "app": {
+    "name": "Intersport Club IDF",
+    "tagline": "La boutique officielle de votre club"
+  },
+  "nav": {
+    "home": "Accueil",
+    "shop": "Boutique",
+    "catalog": "Catalogue",
+    "contact": "Contact",
+    "whoWeAre": "Qui sommes-nous",
+    "orders": "Mes commandes",
+    "login": "Connexion",
+    "register": "Inscription",
+    "logout": "Déconnexion",
+    "backoffice": "Back-office",
+    "menu": "Menu",
+    "language": "Langue",
+    "toggleDark": "Mode sombre"
+  },
+  "cart": {
+    "title": "Mon panier",
+    "open": "Ouvrir le panier",
+    "empty": "Votre panier est vide",
+    "emptyHint": "Ajoutez des articles depuis la boutique d'un club.",
+    "size": "Taille",
+    "subtotal": "Sous-total",
+    "shipping": "Livraison",
+    "total": "Total",
+    "checkout": "Valider la commande",
+    "clear": "Vider le panier",
+    "promoApplied": "Code {code}",
+    "promo": {
+      "placeholder": "Code promo",
+      "apply": "Appliquer",
+      "remove": "Retirer",
+      "applied": "−{amount}",
+      "errors": {
+        "empty": "Saisissez un code.",
+        "invalid_code": "Code invalide.",
+        "invalid_subtotal": "Panier invalide.",
+        "unknown_code": "Ce code n'existe pas.",
+        "already_used": "Ce code a déjà été utilisé.",
+        "not_yet_active": "Ce code n'est pas encore actif.",
+        "expired": "Ce code a expiré.",
+        "below_min_subtotal": "Le panier est en dessous du minimum requis.",
+        "below_min_subtotal_v": "Ce code nécessite un panier d'au moins {min}.",
+        "unknown": "Validation impossible."
+      }
+    }
+  },
+  "checkout": {
+    "title": "Finaliser la commande",
+    "shipping": "Adresse de livraison",
+    "fullName": "Nom complet",
+    "email": "Email",
+    "phone": "Téléphone",
+    "line1": "Adresse",
+    "line2": "Complément (optionnel)",
+    "postalCode": "Code postal",
+    "city": "Ville",
+    "country": "Pays",
+    "summary": "Récapitulatif",
+    "placeOrder": "Payer la commande",
+    "securityHint": "Paiement sécurisé. Vos informations ne sont pas stockées sur nos serveurs.",
+    "payment": {
+      "title": "Mode de paiement",
+      "card": "Carte bancaire / PayPal / wallets",
+      "cardHint": "Saisie sécurisée via SystemPay. Toutes les méthodes activées sur le contrat bancaire.",
+      "paypal": "PayPal",
+      "paypalHint": "Via votre compte PayPal."
+    },
+    "errors": {
+      "cartEmpty": "Votre panier est vide.",
+      "addressIncomplete": "Adresse de livraison incomplète.",
+      "validation": "Certains articles ne sont plus disponibles aux conditions choisies.",
+      "guestIdentity": "Renseignez votre nom, prénom et e-mail.",
+      "guestEmailInvalid": "Adresse e-mail invalide.",
+      "deliveryRequired": "Sélectionnez un mode de livraison.",
+      "shopRequired": "Sélectionnez un magasin de retrait.",
+      "generic": "Une erreur est survenue. Veuillez réessayer.",
+      "phoneRequired": "Téléphone obligatoire."
+    },
+    "issues": {
+      "outOfStock": "Stock insuffisant ({n} restants).",
+      "priceChanged": "Le prix a été mis à jour ({p}).",
+      "bundleUnavailable": "Ce pack n'est plus disponible dans la combinaison choisie."
+    },
+    "guestNotice": "Aucun compte requis — vous recevrez votre commande par e-mail.",
+    "guestFirstName": "Prénom",
+    "guestLastName": "Nom",
+    "guestEmailHelp": "C'est ici que nous enverrons votre confirmation et votre facture.",
+    "delivery": {
+      "title": "Mode de livraison",
+      "colissimo": "Livraison à domicile (Colissimo)",
+      "colissimoHint": "Livraison sous 3–5 jours ouvrés à l'adresse indiquée.",
+      "clubPickup": "Retrait au club",
+      "clubPickupHint": "Récupérez votre commande directement au siège du club. Gratuit.",
+      "shopPickup": "Retrait en magasin Intersport",
+      "shopPickupHint": "Récupérez votre commande dans un magasin Intersport partenaire. Gratuit.",
+      "chooseShop": "Choisissez un magasin",
+      "allDisabled": "Aucun mode de livraison n'est disponible pour ce club."
+    },
+    "customerInfo": "Informations client"
+  },
+  "orders": {
+    "title": "Mes commandes",
+    "empty": "Aucune commande pour l'instant.",
+    "goShopping": "Découvrir la boutique",
+    "back": "Retour aux commandes",
+    "items": "Articles",
+    "refundTotal": "Remboursements",
+    "shipping": "Livraison",
+    "tracking": "Numéro de suivi",
+    "shippedAt": "Expédiée le",
+    "deliveredAt": "Livrée le",
+    "refundHistory": "Historique des remboursements",
+    "lineRefunded": "Article remboursé (rupture de stock)",
+    "downloadInvoice": "Télécharger la facture (PDF)"
+  },
+  "catalog": {
+    "title": "Nos catalogues",
+    "subtitle": "Parcourez les catalogues partenaires en ligne.",
+    "empty": "Aucun catalogue publié pour l'instant."
+  },
+  "contactPage": {
+    "title": "Contact",
+    "subtitle": "Retrouvez-nous sur place ou par téléphone.",
+    "kicker": "On vous attend",
+    "whoWeAre": "Qui sommes-nous ?",
+    "address": "Adresse",
+    "phone": "Téléphone",
+    "email": "Email",
+    "social": "Réseaux sociaux",
+    "empty": "Les coordonnées seront publiées prochainement.",
+    "directions": "Itinéraire",
+    "callNow": "Appeler",
+    "writeUs": "Écrire",
+    "hours": "Ouvert",
+    "findUs": "Nous trouver"
+  },
+  "storefront": {
+    "pickSport": "Choisissez votre sport",
+    "pickSportHint": "Puis sélectionnez votre club pour accéder à la boutique.",
+    "pickClub": "Choisissez votre club",
+    "backToSports": "Retour aux sports",
+    "backToClubs": "Retour aux clubs",
+    "noSports": "Aucun sport disponible pour l'instant.",
+    "noClubs": "Aucun club rattaché à ce sport.",
+    "noProducts": "Aucun produit disponible pour ce club.",
+    "sportNotFound": "Sport introuvable",
+    "productsCount": "{n} produits",
+    "productsAvailable": "produits disponibles",
+    "protected": "Protégé",
+    "home": {
+      "heroEyebrow": "Nouveau site 2026",
+      "heroTitlePre": "Équipez",
+      "heroTitleAccent": "votre club",
+      "heroTitlePost": "avec style.",
+      "heroSubtitle": "Trouvez les tenues officielles de votre club sportif. Sélectionnez votre sport, choisissez votre club, et commandez en quelques clics.",
+      "statsClubs": "Clubs partenaires",
+      "statsProducts": "Produits",
+      "statsSports": "Sports",
+      "stepEntryTitle": "Comment souhaitez-vous commander ?",
+      "stepEntryHint": "Choisissez une option",
+      "stepSportsTitle": "Choisissez votre sport",
+      "stepSportsHint": "Cliquez sur un sport →",
+      "stepClubsTitle": "Sélectionnez votre club",
+      "entryCatalogTitle": "Catalogues",
+      "entryCatalogDesc": "Consultez les catalogues de nos fournisseurs et partenaires",
+      "entryShopTitle": "Boutique Club",
+      "entryShopDesc": "Commandez l'équipement officiel de votre club sportif",
+      "backToSports": "Retour aux sports",
+      "backToHome": "Accueil",
+      "backToHomeCatalog": "Retour à l'accueil",
+      "catalogSectionTitle": "Catalogues partenaires",
+      "productsTitlePrefix": "Produits — ",
+      "filterAll": "Tout",
+      "clubsWord": "clubs",
+      "productsWord": "produits",
+      "noClubsForSport": "Aucun club rattaché à ce sport pour l'instant.",
+      "noCatalog": "Aucun catalogue partenaire n'est disponible pour l'instant.",
+      "noProducts": "Aucun produit",
+      "noProductsHint": "Ce club n'a pas encore de produits.",
+      "badgeFlocking": "Flocage",
+      "badgePack": "Pack",
+      "clearance": {
+        "title": "Soldes & Déstockage",
+        "subtitle": "Profitez d'offres exceptionnelles avant épuisement des stocks.",
+        "badge": "Soldes",
+        "itemsCount": "{n} articles",
+        "empty": "Aucun article en soldes pour le moment."
+      },
+      "homeSection": {
+        "empty": "Aucun lien disponible dans cette section pour le moment."
+      }
+    },
+    "soldOut": "Épuisé",
+    "backorder": "Précommande",
+    "password": {
+      "title": "Boutique protégée",
+      "hint": "Saisissez le mot de passe fourni par votre club pour voir les produits.",
+      "required": "Le mot de passe est requis.",
+      "invalid": "Mot de passe incorrect.",
+      "unlock": "Déverrouiller",
+      "unlocked": "Déverrouillé"
+    },
+    "product": {
+      "notFound": "Produit introuvable.",
+      "size": "Taille",
+      "secondarySize": "Deuxième taille",
+      "outOfStock": "Épuisé",
+      "inStock": "en stock",
+      "backorderBanner": "Stock actuellement épuisé. Disponible à partir du {date} — commandez maintenant, livraison à la réception.",
+      "backorderHint": "Précommande : livraison à la réception du stock le {date}.",
+      "addToCart": "Ajouter au panier",
+      "addedToCart": "Ajouté au panier !",
+      "lockedHint": "Déverrouillez d'abord la boutique du club.",
+      "componentOnly": "Ce produit est inclus dans un pack et n'est pas disponible à l'unité.",
+      "packContents": "Contenu du pack",
+      "flocking": {
+        "title": "Personnalisation",
+        "optional": "optionnel",
+        "nameOnBack": "Nom au dos",
+        "initials": "Initiale",
+        "supporter": "Flocage supporter au dos",
+        "nameLabel": "Indique ton nom au dos",
+        "namePlaceholder": "Saisissez votre texte",
+        "initialsLabel": "Indique tes initiales",
+        "initialsPlaceholder": "Saisissez votre texte",
+        "numberLabel": "Indique ton numéro",
+        "numberPlaceholder": "Saisissez votre texte",
+        "addonNote": "+{amount} flocage"
+      },
+      "errors": {
+        "pickSize": "Sélectionnez une taille.",
+        "outOfStock": "Cette taille est en rupture de stock.",
+        "locked": "Déverrouillez la boutique du club avant de commander.",
+        "componentOnly": "Ce produit est inclus dans un pack."
+      }
+    }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "fullName": "Nom complet",
+    "signIn": "Se connecter",
+    "signUp": "Créer un compte",
+    "noAccount": "Pas encore de compte ?",
+    "haveAccount": "Déjà inscrit ?",
+    "forgotPassword": "Mot de passe oublié ?",
+    "errors": {
+      "invalidCredentials": "Email ou mot de passe incorrect",
+      "emailTaken": "Cet email est déjà utilisé",
+      "generic": "Une erreur est survenue",
+      "notBackoffice": "Ce compte n'a pas accès au back-office. Utilisez la page de connexion client.",
+      "notCustomer": "Ce compte est un compte back-office. Utilisez la page de connexion admin.",
+      "passwordMismatch": "Les mots de passe ne correspondent pas."
+    },
+    "registerSuccess": "Vérifiez votre boîte mail pour confirmer votre email, puis connectez-vous.",
+    "adminLink": "Accès back-office",
+    "logoutConfirm": {
+      "title": "Se déconnecter ?",
+      "message": "Vous devrez saisir à nouveau vos identifiants pour revenir.",
+      "button": "Déconnecter"
+    },
+    "admin": {
+      "title": "Accès back-office",
+      "subtitle": "Réservé aux comptes administrateur et employé.",
+      "customerHint": "Vous êtes client ?",
+      "customerLink": "Connexion boutique"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Dashboard",
+      "breadcrumb": "Admin / Vue d'ensemble",
+      "tabs": {
+        "overview": "Vue d'ensemble",
+        "products": "Produits",
+        "clubs": "Clubs",
+        "orders": "Commandes",
+        "stats": "Statistiques",
+        "users": "Utilisateurs"
+      },
+      "kpi": {
+        "revenue": "Chiffre d'affaires (30j)",
+        "orders": "Commandes (30j)",
+        "averageClub": "Valeur moy. / commande club",
+        "activeProducts": "Produits actifs"
+      },
+      "revenueByMonth": "Revenus par mois",
+      "revenue": "Revenus",
+      "range": {
+        "6m": "6 mois",
+        "12m": "12 mois"
+      },
+      "recent": {
+        "title": "Commandes récentes",
+        "viewAll": "Voir tout",
+        "articles": "{n} art."
+      },
+      "quick": {
+        "addProduct": "Ajouter un produit",
+        "addProductHint": "{n} produits au catalogue",
+        "manageFund": "Gérer les cagnottes",
+        "manageFundHint": "Débits, crédits, historique",
+        "manageUsers": "Gestion utilisateurs",
+        "manageUsersHint": "{n} comptes actifs"
+      },
+      "noData": "Aucune donnée"
+    },
+    "sidebar": {
+      "main": "Principal",
+      "dashboard": "Tableau de bord",
+      "sportsClubs": "Sports & Clubs",
+      "sports": "Sports",
+      "clubs": "Clubs",
+      "products": "Produits",
+      "commerce": "Commerce",
+      "orders": "Commandes",
+      "fund": "Cagnottes",
+      "stats": "Statistiques",
+      "administration": "Administration",
+      "users": "Utilisateurs",
+      "catalog": "Catalogue",
+      "promoCodes": "Codes promo",
+      "carousel": "Carrousel",
+      "homeSections": "Sections accueil",
+      "contact": "Contact",
+      "settings": "Paramètres",
+      "viewSite": "Voir le site"
+    },
+    "common": {
+      "upload": "Envoyer",
+      "choose": "Choisir une image",
+      "removeImage": "Retirer l'image",
+      "imageTooLarge": "Image trop volumineuse (max 5 Mo)."
+    },
+    "sports": {
+      "title": "Sports",
+      "subtitle": "Créez les sports avant d'ajouter des clubs.",
+      "new": "Nouveau sport",
+      "edit": "Modifier le sport",
+      "empty": "Aucun sport pour l'instant. Commencez par en créer un.",
+      "name": "Nom",
+      "icon": "Icône du sport",
+      "savingOrder": "Enregistrement de l'ordre…",
+      "deleteTitle": "Supprimer ce sport ?",
+      "deleteConfirm": "Supprimer définitivement « {name} » ? Cette action est irréversible.",
+      "col": {
+        "icon": "Icône",
+        "name": "Nom",
+        "order": "Ordre",
+        "actions": "Actions"
+      },
+      "errors": {
+        "nameRequired": "Le nom est requis.",
+        "hasClubs": "Impossible de supprimer : des clubs sont encore rattachés à ce sport."
+      }
+    },
+    "clubs": {
+      "title": "Clubs",
+      "subtitle": "Gérez les clubs rattachés à un sport.",
+      "new": "Nouveau club",
+      "edit": "Modifier le club",
+      "empty": "Aucun club ne correspond à ce filtre.",
+      "name": "Nom du club",
+      "sport": "Sport",
+      "logo": "Logo du club",
+      "password": "Mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "keepExistingHint": "Laissez vide pour conserver le mot de passe actuel.",
+      "passwordProtect": "Protéger par mot de passe",
+      "passwordProtectHint": "Les visiteurs devront saisir ce mot de passe pour voir la boutique du club.",
+      "protected": "Protégé",
+      "products": "Produits",
+      "fund": "Cagnotte",
+      "filterAll": "Tous",
+      "resetPassword": "Réinitialiser le mot de passe",
+      "resetPasswordFor": "Mot de passe — {name}",
+      "clearPassword": "Désactiver la protection",
+      "noSportsHint": "Créez d'abord un sport pour pouvoir ajouter un club.",
+      "goCreateSport": "Créer un sport",
+      "deleteTitle": "Supprimer ce club ?",
+      "deleteConfirm": "Supprimer définitivement « {name} » ? Cette action est irréversible.",
+      "accentColor": "Couleur d'accent",
+      "accentColorHint": "Visible sur la boutique du club",
+      "slogan": "Slogan",
+      "sloganPlaceholder": "Ex : Ensemble, on va plus loin",
+      "errors": {
+        "nameRequired": "Le nom du club est requis.",
+        "sportRequired": "Le sport est requis.",
+        "passwordRequired": "Un mot de passe est requis lorsque la protection est activée.",
+        "passwordTooShort": "Le mot de passe doit contenir au moins 4 caractères.",
+        "hasProducts": "Impossible de supprimer : ce club possède encore des produits."
+      }
+    },
+    "products": {
+      "title": "Produits",
+      "subtitle": "Gérez le catalogue, les tailles, les stocks et les marges.",
+      "new": "Nouveau produit",
+      "edit": "Modifier le produit",
+      "empty": "Aucun produit ne correspond à ce filtre.",
+      "club": "Club",
+      "reference": "Référence (SKU)",
+      "name": "Nom",
+      "category": "Catégorie",
+      "categoryPlaceholder": "maillot, training, accessoire, lifestyle…",
+      "image": "Images du produit",
+      "gallery": {
+        "primary": "Principale",
+        "makePrimary": "Définir principale",
+        "hint": "Jusqu'à {max} images. La première est affichée en vignette."
+      },
+      "pricing": "Tarification",
+      "buyingPrice": "Prix d'achat (Intersport → club)",
+      "sellingPrice": "Prix de vente (club → membre)",
+      "weight": "Poids (g)",
+      "weightHint": "Pour Colissimo. 0 = non renseigné.",
+      "availableFrom": "Disponible à partir du",
+      "availableFromHint": "Date prévue de réapprovisionnement. Si renseignée, le produit reste commandable même à stock 0 (précommande).",
+      "visible": "Visible sur la boutique",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "stockTotal": "Stock total : {n}",
+      "searchPlaceholder": "Rechercher par nom ou référence…",
+      "noClubsHint": "Créez d'abord un club pour ajouter des produits.",
+      "goCreateClub": "Créer un club",
+      "deleteTitle": "Supprimer ce produit ?",
+      "deleteConfirm": "Supprimer définitivement « {name} » ? Les variantes seront aussi retirées.",
+      "filter": {
+        "allClubs": "Tous les clubs",
+        "all": "Tous",
+        "visible": "Visibles",
+        "hidden": "Masqués",
+        "clearance": "En soldes"
+      },
+      "clearance": {
+        "enable": "Article en soldes / déstockage",
+        "hint": "Coché : ce produit apparaît dans la section soldes de la page d'accueil.",
+        "addFlag": "Marquer en soldes",
+        "removeFlag": "Retirer des soldes",
+        "bannerTitle": "Section soldes (page d'accueil)",
+        "bannerActiveHint": "Visible par les clients · {n} produit(s) en soldes",
+        "bannerInactiveHint": "Masquée des clients · {n} produit(s) prêts à être affichés",
+        "bannerNoProducts": "Marquez d'abord au moins un produit en soldes.",
+        "activate": "Activer la section",
+        "deactivate": "Masquer la section",
+        "live": "En direct"
+      },
+      "col": {
+        "product": "Produit",
+        "club": "Club",
+        "price": "Prix vente",
+        "discount": "Réduction",
+        "margin": "Marge",
+        "sizes": "Tailles",
+        "flocking": "Flocage",
+        "clearance": "Soldes",
+        "visible": "Visible",
+        "actions": "Actions"
+      },
+      "discount": {
+        "percent": "Pourcentage de réduction",
+        "source": "Qui absorbe la réduction ?",
+        "club": "Club",
+        "clubHint": "La réduction est déduite de la marge du club.",
+        "intersport": "Intersport",
+        "intersportHint": "Intersport absorbe la remise, le club garde sa marge."
+      },
+      "variants": {
+        "title": "Tailles & stocks",
+        "add": "Ajouter une taille",
+        "empty": "Ajoutez au moins une taille.",
+        "size": "Taille",
+        "stock": "Stock",
+        "sku": "SKU (optionnel)",
+        "sizePlaceholder": "S, M, 42…",
+        "skuPlaceholder": "XYZ-42"
+      },
+      "flocking": {
+        "title": "Flocage",
+        "kind": {
+          "none": "Aucun",
+          "members": "Membres",
+          "supporters": "Supporters"
+        },
+        "membersHint": "Deux options indépendantes : le membre peut cocher l'une, l'autre ou les deux.",
+        "supportersHint": "Une seule case : le supporter saisit son nom et/ou son numéro.",
+        "nameOnBackPrice": "Prix « Nom au dos »",
+        "initialsPrice": "Prix « Initiales »",
+        "supporterPrice": "Prix flocage supporter"
+      },
+      "pack": {
+        "title": "Pack",
+        "enable": "Ce produit est un pack",
+        "hint": "Un pack regroupe plusieurs produits existants. Le stock et la cagnotte suivent ceux des composants."
+      },
+      "bundle": {
+        "componentsTitle": "Composition du pack",
+        "addComponent": "Ajouter un produit",
+        "empty": "Aucun produit sélectionné. Cliquez sur « Ajouter un produit ».",
+        "axis": "Axe",
+        "axisPrimary": "Principal",
+        "axisSecondary": "Secondaire",
+        "qty": "Qté",
+        "availabilityTitle": "Disponibilité par combinaison",
+        "availabilityHint": "Nombre d'unités vendables par combinaison de tailles, calculé à partir du stock des composants.",
+        "stockUnits": "Unités",
+        "lockedBanner": "Ce produit fait partie d'un pack — il est masqué des clients.",
+        "lockedBannerIn": "Dans les packs : {names}",
+        "inBundleBadge": "Dans un pack"
+      },
+      "picker": {
+        "title": "Choisir un produit",
+        "searchPlaceholder": "Rechercher un produit…",
+        "empty": "Aucun produit disponible pour ce club.",
+        "stock": "Stock total : {n}",
+        "inBundles": "Dans {n} pack(s)"
+      },
+      "preview": {
+        "title": "Aperçu",
+        "memberPays": "Le membre paie",
+        "fundPerUnit": "Cagnotte par unité",
+        "margin": "Marge",
+        "buyingEffective": "Prix d'achat effectif",
+        "absorbedByClub": "Club absorbe",
+        "absorbedByIntersport": "Intersport absorbe",
+        "noDiscount": "Sans réduction"
+      },
+      "cardPreview": {
+        "title": "Aperçu boutique",
+        "subtitle": "Voici comment ce produit apparaît côté client.",
+        "openProductPage": "Ouvrir la fiche produit"
+      },
+      "errors": {
+        "clubRequired": "Sélectionnez un club.",
+        "nameRequired": "Le nom est requis.",
+        "referenceRequired": "La référence est requise.",
+        "sellingBelowBuying": "Le prix de vente doit être supérieur ou égal au prix d'achat.",
+        "discountSourceRequired": "Choisissez qui absorbe la réduction.",
+        "variantRequired": "Ajoutez au moins une taille avec un nom.",
+        "bundleEmpty": "Ajoutez au moins un composant au pack.",
+        "bundleNeedsPrimary": "Au moins un composant doit utiliser l'axe principal.",
+        "hasOrders": "Impossible de supprimer : ce produit est lié à des commandes.",
+        "lockedInBundle": "Impossible de supprimer : ce produit appartient à {n} pack(s)."
+      }
+    },
+    "orders": {
+      "title": "Commandes",
+      "subtitle": "Suivez les commandes en temps réel.",
+      "empty": "Aucune commande pour ce filtre.",
+      "realtime": "Temps réel",
+      "searchPlaceholder": "Rechercher par numéro, email…",
+      "filter": {
+        "all": "Toutes",
+        "pending": "En attente",
+        "paid": "Payées",
+        "shipped": "Expédiées",
+        "delivered": "Livrées",
+        "cancelled": "Annulées",
+        "refunded": "Remboursées"
+      },
+      "status": {
+        "pending": "En attente",
+        "paid": "Payée",
+        "partially_refunded": "Partiellement remboursée",
+        "shipped": "Expédiée",
+        "delivered": "Livrée",
+        "cancelled": "Annulée",
+        "refunded": "Remboursée",
+        "awaiting_pickup": "En attente de retrait",
+        "picked_up": "Retirée",
+        "changed": "Statut mis à jour",
+        "changeFailed": "Échec de la mise à jour du statut",
+        "editHint": "Cliquer pour changer le statut",
+        "confirmTitle": "Changer le statut",
+        "confirmMessage": "Passer la commande {n} au statut « {s} » ?",
+        "confirmCta": "Confirmer"
+      },
+      "col": {
+        "number": "Numéro",
+        "client": "Client",
+        "club": "Club",
+        "amount": "Montant",
+        "status": "Statut",
+        "date": "Date",
+        "actions": "Actions"
+      },
+      "actions": {
+        "tracking": "Suivi Colissimo",
+        "detail": "Détail",
+        "refund": "Rembourser"
+      },
+      "sound": {
+        "title": "Son des commandes",
+        "on": "Activé",
+        "off": "Désactivé",
+        "volume": "Volume",
+        "test": "Tester",
+        "mute": "Couper le son",
+        "unmute": "Activer le son"
+      },
+      "toast": {
+        "newPaid": "Nouvelle commande payée"
+      },
+      "tracking": {
+        "title": "Suivi — {n}",
+        "code": "Numéro Colissimo",
+        "open": "Ouvrir sur laposte.fr",
+        "markShipped": "Marquer comme expédiée"
+      },
+      "refund": {
+        "title": "Rembourser — {n}",
+        "nothingRefundable": "Aucune ligne remboursable.",
+        "selectSomething": "Sélectionnez au moins une ligne.",
+        "size": "Taille",
+        "restock": "Remettre en stock",
+        "reason": "Motif",
+        "reasonPlaceholder": "Retour client, erreur de taille…",
+        "total": "Total à rembourser",
+        "confirm": "Confirmer le remboursement",
+        "errorLyraNotEnabled": "Les remboursements ne sont pas activés sur le contrat bancaire. Contactez le support SystemPay (BPCE) pour activer l'option « Webservices REST – Gestion des transactions »."
+      },
+      "detail": {
+        "client": "Client",
+        "club": "Club",
+        "items": "Articles",
+        "flocking": "Flocage",
+        "buying": "Prix achat",
+        "fund": "Cagnotte créditée",
+        "refunded": "Remboursé",
+        "subtotal": "Sous-total",
+        "shipping": "Livraison",
+        "totalWeight": "Poids total",
+        "refundTotal": "Remboursements",
+        "total": "Total",
+        "shippingSection": "Livraison",
+        "tracking": "Suivi",
+        "shippedAt": "Expédiée le",
+        "deliveredAt": "Livrée le",
+        "refundHistory": "Historique des remboursements",
+        "changeStatus": "Changer le statut",
+        "downloadInvoice": "Télécharger la facture",
+        "openLabel": "Étiquette (imprimer)"
+      }
+    },
+    "fund": {
+      "title": "Cagnottes des clubs",
+      "subtitle": "Créditez ou débitez manuellement la cagnotte d'un club.",
+      "empty": "Aucun club à afficher.",
+      "searchPlaceholder": "Rechercher un club…",
+      "filterAll": "Tous les sports",
+      "balance": "Solde actuel",
+      "recent": "Historique récent",
+      "showMore": "Voir tout ({n})",
+      "showLess": "Réduire",
+      "amount": "Montant",
+      "reason": "Motif",
+      "reference": "Référence",
+      "referencePlaceholder": "DOT-2026-001, facture n°…",
+      "before": "Avant",
+      "after": "Après",
+      "warningNegative": "Le solde passerait en négatif après cette opération.",
+      "kpi": {
+        "total": "Total cagnottes",
+        "clubs": "{n} clubs",
+        "active": "Clubs positifs",
+        "empty": "Clubs à 0 ou négatifs"
+      },
+      "actions": {
+        "credit": "Créditer",
+        "debit": "Débiter"
+      },
+      "credit": {
+        "title": "Créditer la cagnotte",
+        "confirm": "Confirmer le crédit",
+        "reasons": {
+          "annual": "Dotation annuelle",
+          "bonus": "Bonus performance",
+          "correction": "Correction",
+          "refund": "Remboursement",
+          "other": "Autre"
+        }
+      },
+      "debit": {
+        "title": "Débiter la cagnotte",
+        "confirm": "Confirmer le débit",
+        "reasons": {
+          "jerseys": "Achat maillots",
+          "training": "Achat équipement training",
+          "accessories": "Achat accessoires",
+          "shoes": "Achat chaussures",
+          "flocking": "Commande flocage",
+          "other": "Autre matériel"
+        }
+      },
+      "tx": {
+        "autoSale": "Vente automatique",
+        "manualCredit": "Crédit manuel",
+        "manualDebit": "Débit manuel",
+        "refundReversal": "Contrepassation"
+      },
+      "history": {
+        "empty": "Aucune transaction pour l'instant."
+      },
+      "errors": {
+        "amountPositive": "Le montant doit être strictement positif.",
+        "reasonRequired": "Le motif est requis."
+      }
+    },
+    "settings": {
+      "title": "Paramètres",
+      "subtitle": "Paramètres généraux de l'application.",
+      "comingSoon": "Cette section arrive bientôt."
+    },
+    "users": {
+      "title": "Utilisateurs",
+      "subtitle": "Gérez les comptes administrateur et employé. Les clients s'inscrivent sur la boutique.",
+      "new": "Nouvel utilisateur",
+      "edit": "Modifier l'utilisateur",
+      "empty": "Aucun utilisateur à afficher.",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "emailLocked": "L'email ne peut pas être modifié.",
+      "inactive": "Désactivé",
+      "active": "Compte actif",
+      "activeHint": "Décoché : la session est bloquée immédiatement.",
+      "deactivate": "Désactiver",
+      "reactivate": "Réactiver",
+      "deleteTitle": "Désactiver ce compte ?",
+      "deleteConfirm": "Désactiver « {name} » ? Le compte sera banni et ne pourra plus se connecter.",
+      "role": {
+        "label": "Rôle",
+        "admin": "Administrateur",
+        "adminHint": "Accès complet au back-office.",
+        "employee": "Employé",
+        "employeeHint": "Produits et commandes uniquement."
+      },
+      "filter": {
+        "all": "Tous",
+        "admin": "Admins",
+        "employee": "Employés",
+        "inactive": "Désactivés"
+      },
+      "created": {
+        "title": "Compte créé avec succès",
+        "password": "Mot de passe temporaire",
+        "magicLink": "Lien de connexion",
+        "hint": "Transmettez ces informations à la personne concernée. Elles ne seront plus affichées."
+      },
+      "errors": {
+        "emailRequired": "L'email est requis.",
+        "lastAdmin": "Impossible — au moins un administrateur actif doit rester."
+      }
+    },
+    "catalog": {
+      "title": "Catalogue",
+      "subtitle": "Liens affichés sur la page publique /catalog.",
+      "new": "Nouveau lien",
+      "edit": "Modifier le lien",
+      "empty": "Aucun lien pour l'instant.",
+      "url": "URL",
+      "logo": "Logo",
+      "deleteTitle": "Supprimer ce lien ?",
+      "deleteConfirm": "Supprimer « {name} » ?",
+      "col": {
+        "logo": "Logo",
+        "url": "URL",
+        "actions": "Actions",
+        "name": "Nom"
+      },
+      "errors": {
+        "nameRequired": "Les noms FR et EN sont requis.",
+        "urlRequired": "L'URL est requise."
+      },
+      "name": "Nom"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Événements internes du back-office (alertes stock, ruptures de pack, etc.).",
+      "markAllRead": "Tout marquer comme lu",
+      "empty": "Aucune notification.",
+      "viewAll": "Voir toutes les notifications",
+      "justNow": "à l'instant",
+      "minutesAgo": "il y a {n} min",
+      "hoursAgo": "il y a {n} h",
+      "filter": {
+        "all": "Toutes",
+        "unread": "Non lues",
+        "allKinds": "Tous types"
+      },
+      "kind": {
+        "low_stock": {
+          "title": "Stock faible",
+          "body": "{product_name} ({product_reference}) est descendu à {current_stock} unités."
+        },
+        "bundle_component_oos_at_sale": {
+          "title": "Composant pack en rupture",
+          "body": "Le pack {bundle_name} a été remboursé sur la commande {order_number} car un composant était indisponible."
+        },
+        "product_locked_into_bundle": {
+          "title": "Produit verrouillé dans un pack",
+          "body": "{product_name} fait désormais partie du pack {bundle_name} — il n'est plus vendu à l'unité."
+        },
+        "product_released_from_bundle": {
+          "title": "Produit libéré d'un pack",
+          "body": "{product_name} n'est plus dans un pack — il est à nouveau vendu à l'unité."
+        }
+      }
+    },
+    "promo": {
+      "title": "Codes promo",
+      "subtitle": "Codes à usage unique global. Le gagnant est déterminé au paiement (race atomique).",
+      "new": "Nouveau code",
+      "empty": "Aucun code promo créé.",
+      "createTitle": "Nouveau code promo",
+      "editTitle": "Modifier {code}",
+      "deleteTitle": "Supprimer ce code ?",
+      "deleteConfirm": "Supprimer le code {code} ? Cette action est définitive.",
+      "from": "Début",
+      "until": "Fin",
+      "minSubtotalShort": "Min. {v}",
+      "col": {
+        "code": "Code",
+        "amount": "Montant",
+        "absorbs": "Pris en charge par",
+        "window": "Validité",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Actif",
+        "used": "Utilisé",
+        "expired": "Expiré",
+        "scheduled": "Planifié"
+      },
+      "absorbs": {
+        "intersport": "Intersport",
+        "club": "Club"
+      },
+      "field": {
+        "code": "Code",
+        "codeHint": "3 à 32 caractères : lettres majuscules, chiffres, _ ou -. Le code n'est pas modifiable une fois créé.",
+        "amount": "Montant de la remise",
+        "minSubtotal": "Panier minimum (optionnel)",
+        "minSubtotalHint": "Si renseigné, le code ne s'applique qu'aux paniers atteignant ce montant. Doit être ≥ au montant de la remise.",
+        "absorbs": "Pris en charge par",
+        "absorbsHint": "Intersport : la cagnotte du club reste intacte. Club : la cagnotte est débitée du montant de la remise.",
+        "validFrom": "Valide à partir du",
+        "validUntil": "Expire le",
+        "note": "Note interne",
+        "notePlaceholder": "Campagne, contexte… (non visible par le client)"
+      },
+      "errors": {
+        "codeExists": "Ce code existe déjà.",
+        "invalidCode": "Code invalide (3–32 caractères, lettres/chiffres/_/-).",
+        "invalidAmount": "Montant invalide.",
+        "invalidMin": "Le panier minimum doit être supérieur ou égal au montant de la remise."
+      }
+    },
+    "contact": {
+      "title": "Contact",
+      "subtitle": "Informations affichées sur la page /contact.",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "email": "Email",
+      "mapsUrl": "Carte Google Maps",
+      "mapsHint": "Sur Google Maps : Partager → onglet \"Intégrer une carte\" → copiez le code <iframe…> et collez-le ici (l'URL est extraite automatiquement).",
+      "mapsInvalid": "Lien invalide. Utilisez Google Maps → Partager → \"Intégrer une carte\" et collez le code <iframe…>. Les liens courts (maps.app.goo.gl) ne fonctionnent pas.",
+      "whoWeAre": "Qui sommes-nous ?",
+      "whoWeAreHint": "Présentation affichée en haut de la page Contact.",
+      "social": "Réseaux sociaux",
+      "addSocial": "Ajouter un réseau",
+      "noSocial": "Aucun réseau ajouté.",
+      "saved": "Modifications enregistrées."
+    },
+    "carousel": {
+      "title": "Carrousel d'accueil",
+      "subtitle": "Images affichées dans la bannière de la page d'accueil.",
+      "new": "Nouveau slide",
+      "edit": "Modifier la slide",
+      "empty": "Aucune slide. Ajoutez-en une pour activer le carrousel.",
+      "image": "Image",
+      "titleLabel": "Titre (optionnel)",
+      "titlePlaceholder": "Ex. Nouvelle collection 2026",
+      "titleHint": "Affiché en surimpression sur l'image. Laissez vide pour aucun texte.",
+      "noTitle": "(sans titre)",
+      "position": "Position",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "deleteTitle": "Supprimer cette slide ?",
+      "deleteConfirm": "Cette image sera retirée du carrousel d'accueil.",
+      "preview": {
+        "label": "Aperçu en direct",
+        "hint": "Voici comment la bannière apparaît côté boutique.",
+        "empty": "Ajoutez une slide pour voir l'aperçu."
+      },
+      "errors": {
+        "imageRequired": "Sélectionnez une image."
+      }
+    },
+    "homeSections": {
+      "title": "Sections accueil",
+      "subtitle": "Cartes d'entrée supplémentaires sur la page d'accueil (après Catalogue et Boutique). Chaque carte ouvre un panneau de liens URL.",
+      "new": "Nouvelle section",
+      "edit": "Modifier la section",
+      "empty": "Aucune section. Ajoutez-en une pour étendre la page d'accueil.",
+      "name": "Nom",
+      "description": "Description",
+      "descriptionPlaceholder": "Ex. Découvrez le matériel de nos partenaires",
+      "url": "URL",
+      "logo": "Logo",
+      "accentColor": "Couleur d'accent",
+      "visible": "Visible sur la page d'accueil",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "deleteTitle": "Supprimer cette section ?",
+      "deleteConfirm": "Supprimer « {name} » ? Tous les liens à l'intérieur seront aussi supprimés.",
+      "linksCount": "{n} lien(s)",
+      "manageLinks": "Gérer les liens",
+      "backToList": "Sections",
+      "newLink": "Nouveau lien",
+      "editLink": "Modifier le lien",
+      "linksSubtitle": "Chaque lien s'ouvre dans un nouvel onglet depuis la page d'accueil.",
+      "linksEmpty": "Aucun lien. Ajoutez-en un pour remplir cette section.",
+      "notFound": "Section introuvable.",
+      "deleteLinkTitle": "Supprimer ce lien ?",
+      "deleteLinkConfirm": "Supprimer « {name} » ?",
+      "col": {
+        "logo": "Logo",
+        "name": "Nom",
+        "url": "URL",
+        "linksCount": "Liens",
+        "color": "Couleur",
+        "visible": "Visible",
+        "actions": "Actions"
+      },
+      "errors": {
+        "nameRequired": "Le nom est requis.",
+        "urlRequired": "L'URL est requise.",
+        "colorInvalid": "Utilisez une couleur hex à 6 chiffres (ex. #0331f9)."
+      }
+    },
+    "stats": {
+      "title": "Statistiques",
+      "subtitle": "Chiffres clés et tendances sur la période choisie.",
+      "revenueChart": "Chiffre d'affaires & cagnotte",
+      "revenue": "CA",
+      "margin": "Cagnotte",
+      "sportDonut": "CA par sport",
+      "sizeBreakdown": "Ventes par taille",
+      "bestSellers": "Meilleures ventes",
+      "total": "Total",
+      "noData": "Aucune donnée pour cette sélection.",
+      "scrollHint": "Maintenez [Maj] et faites défiler pour parcourir",
+      "kpi": {
+        "revenue": "Chiffre d'affaires",
+        "margin": "Cagnotte totale",
+        "orders": "Commandes",
+        "averageBasket": "Panier moyen",
+        "activeProducts": "Produits actifs",
+        "totalFund": "Total cagnottes"
+      },
+      "col": {
+        "product": "Produit",
+        "club": "Club",
+        "qty": "Qté",
+        "revenue": "CA",
+        "margin": "Cagnotte"
+      },
+      "filters": {
+        "period": "Période",
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "12m": "12 mois",
+        "club": "Club",
+        "allClubs": "Tous",
+        "category": "Catégorie",
+        "allCategories": "Toutes",
+        "product": "Produit",
+        "productPlaceholder": "Rechercher un produit…",
+        "clearProduct": "Effacer la sélection",
+        "size": "Taille",
+        "allSizes": "Toutes",
+        "reference": "Référence produit",
+        "referencePlaceholder": "XYZ-42…"
+      }
+    },
+    "shops": {
+      "title": "Magasins Intersport",
+      "addShop": "Ajouter un magasin",
+      "name": "Nom",
+      "address": "Adresse",
+      "postalCode": "Code postal",
+      "city": "Ville",
+      "phone": "Téléphone",
+      "active": "Actif",
+      "noShops": "Aucun magasin configuré.",
+      "editShop": "Modifier",
+      "deleteShop": "Supprimer"
+    },
+    "labels": {
+      "title": "Étiquettes Colissimo",
+      "ready": "Étiquettes prêtes",
+      "errors": "Erreurs d'étiquette",
+      "orderNumber": "Commande",
+      "parcelNumber": "N° de suivi",
+      "generatedAt": "Générée le",
+      "download": "Télécharger",
+      "retry": "Réessayer",
+      "markShipped": "Confirmer remise La Poste",
+      "noLabels": "Aucune étiquette à éditer pour le moment."
+    },
+    "pickups": {
+      "title": "Retraits",
+      "awaitingPrep": "À préparer",
+      "awaitingPickup": "À retirer par le client",
+      "pickedUp": "Retirés",
+      "markReady": "Marquer comme prêt",
+      "confirmPickup": "Confirmer le retrait",
+      "shop": "Magasin",
+      "club": "Club",
+      "noPickups": "Aucun retrait à gérer pour le moment."
+    }
+  },
+  "errorPage": {
+    "notFoundTitle": "Page introuvable",
+    "notFoundSubtitle": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "forbiddenTitle": "Accès refusé",
+    "forbiddenSubtitle": "Vous n'avez pas l'autorisation d'accéder à cette page.",
+    "genericTitle": "Une erreur est survenue",
+    "genericSubtitle": "Quelque chose s'est mal passé. Réessayez dans un instant.",
+    "goHome": "Retour à l'accueil",
+    "goBack": "Page précédente"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "preview": "Aperçu",
+    "close": "Fermer",
+    "loading": "Chargement…",
+    "empty": "Aucun résultat",
+    "deleteKeyword": "supprimer",
+    "typeToConfirm": "Tapez {keyword} pour confirmer.",
+    "next": "Suivant"
+  },
+  "publicOrder": {
+    "thanks": "Merci pour votre commande !",
+    "orderNumber": "N° de commande",
+    "placedOn": "Passée le",
+    "status": "Statut",
+    "total": "Total",
+    "deliveryMethod": "Livraison",
+    "paymentMethod": "Paiement",
+    "tracking": "Suivi du colis",
+    "trackParcel": "Suivre mon colis",
+    "pickupAt": "À retirer chez",
+    "saveThisPage": "Conservez cette page — un e-mail vous a également été envoyé.",
+    "createAccount": "Créer un compte avec ces informations",
+    "createAccountHint": "Retrouvez toutes vos commandes dans un seul espace.",
+    "password": "Mot de passe",
+    "createAccountCta": "Créer mon compte",
+    "createAccountSuccess": "Compte créé. Connectez-vous pour accéder à vos commandes.",
+    "notFound": "Commande introuvable",
+    "tokenInvalid": "Lien invalide ou expiré.",
+    "items": "Articles",
+    "subtotal": "Sous-total",
+    "shipping": "Livraison",
+    "refunds": "Remboursements",
+    "timeline": {
+      "pending": "En attente de paiement",
+      "paid": "Paiement reçu",
+      "shipped": "Expédiée",
+      "awaiting_pickup": "Prête à être retirée",
+      "picked_up": "Retirée",
+      "delivered": "Livrée",
+      "cancelled": "Annulée",
+      "refunded": "Remboursée",
+      "partially_refunded": "Partiellement remboursée"
+    }
+  }
+}

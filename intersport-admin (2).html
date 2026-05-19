@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intersport Club IDF — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#0331f9;--primary-dark:#0225c4;--primary-light:#3a5fff;
+  --primary-glow:rgba(3,49,249,0.12);--secondary:#e30b0c;
+  --green:#10b981;--green-bg:rgba(16,185,129,0.08);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.08);
+  --purple:#8b5cf6;--purple-bg:rgba(139,92,246,0.08);
+  --gold:#f59e0b;--gold-bg:rgba(245,158,11,0.1);
+  --sidebar-bg:#0a0e27;--sidebar-hover:rgba(255,255,255,0.06);
+  --sidebar-active:rgba(3,49,249,0.25);
+  --sidebar-text:rgba(255,255,255,0.45);--sidebar-text-active:#fff;
+  --sidebar-w:260px;
+  --bg:#f3f4f8;--bg-card:#fff;
+  --text:#1a1a2e;--text-muted:#6b7280;--text-light:#9ca3af;
+  --border:#e5e7eb;--radius:14px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);
+  --shadow-md:0 4px 20px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* DARK */
+body.dark{--bg:#07091a;--bg-card:#0f1428;--text:#e8eaf6;--text-muted:#8892b0;--text-light:#4a5070;--border:#1a2040}
+body.dark .topbar,body.dark .card,body.dark .quick-card,body.dark .tab-btn,
+body.dark .card-action-btn,body.dark .topbar-search,body.dark .topbar-btn,
+body.dark .table-action,body.dark .page-btn,body.dark .sf-chip,
+body.dark .stat-filter-btn,body.dark .cagnotte-card,body.dark .stat-card-overview,
+body.dark .club-mgmt-card,body.dark .club-mgmt-btn,body.dark .user-card,
+body.dark .filter-input{background:var(--bg-card);border-color:var(--border);color:var(--text)}
+body.dark thead th{background:#0d1230}
+body.dark .modal-bg{background:#0f1428}
+body.dark .modal-input,body.dark .modal-select{background:#07091a;border-color:var(--border);color:var(--text)}
+body.dark .table-size,body.dark .hist-item{background:#1a2040}
+body.dark .notif-panel,body.dark .search-dd{background:var(--bg-card);border-color:var(--border)}
+body.dark .cagnotte-bar-bg{background:#1a2040}
+body.dark .orders-table-card{border-color:var(--border)}
+
+/* TOAST */
+#toastZone{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{background:#0a0e27;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:500;
+  box-shadow:0 8px 30px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;
+  opacity:0;transform:translateY(16px);animation:toastIn .35s ease forwards,toastOut .35s ease 2.8s forwards;
+  pointer-events:auto;border-left:3px solid var(--primary);min-width:260px}
+@keyframes toastIn{to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(16px)}}
+
+/* RIPPLE */
+.rpl{position:relative;overflow:hidden}
+.ripple-dot{position:absolute;border-radius:50%;background:rgba(255,255,255,.3);transform:scale(0);animation:ripplePop .55s linear;pointer-events:none}
+@keyframes ripplePop{to{transform:scale(4);opacity:0}}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto;overflow-x:hidden;
+  transition:width .3s cubic-bezier(.4,0,.2,1)}
+.sidebar.collapsed{width:64px}
+.sidebar.collapsed .sidebar-brand,.sidebar.collapsed .sidebar-section-label,
+.sidebar.collapsed .sidebar-user-info,.sidebar.collapsed .sidebar-item>span:not(.icon),
+.sidebar.collapsed .badge{display:none}
+.sidebar.collapsed .sidebar-item{justify-content:center;padding:10px}
+.sidebar.collapsed .sidebar-header{justify-content:center;padding:20px 0}
+.sidebar-header{padding:24px 20px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;transition:background .2s;flex-shrink:0}
+.sidebar-header:hover{background:rgba(255,255,255,.04)}
+.sidebar-logo-svg{height:28px;width:auto;flex-shrink:0}
+.sidebar-brand{font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;color:#fff;white-space:nowrap}
+.sidebar-brand span{color:var(--primary-light)}
+.sidebar-section{padding:20px 12px 8px}
+.sidebar-section-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.2);text-transform:uppercase;
+  letter-spacing:1.5px;padding:0 12px;margin-bottom:8px;white-space:nowrap;overflow:hidden}
+.sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;
+  color:var(--sidebar-text);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;
+  margin-bottom:2px;white-space:nowrap;position:relative;user-select:none}
+.sidebar-item:hover{background:var(--sidebar-hover);color:rgba(255,255,255,.8);transform:translateX(3px)}
+.sidebar-item.active{background:var(--sidebar-active);color:var(--sidebar-text-active);font-weight:600}
+.sidebar-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;border-radius:3px;background:var(--primary-light)}
+.sidebar-item .icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.sidebar-item .badge{margin-left:auto;background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:16px 12px;border-top:1px solid rgba(255,255,255,.06)}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.04);cursor:pointer;transition:background .2s}
+.sidebar-user:hover{background:rgba(255,255,255,.08)}
+.sidebar-avatar{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
+.sidebar-user-info{overflow:hidden}
+.sidebar-user-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap}
+.sidebar-user-role{font-size:11px;color:rgba(255,255,255,.35)}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left .3s cubic-bezier(.4,0,.2,1)}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;box-shadow:var(--shadow-sm)}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.topbar h1{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.3px}
+.topbar-breadcrumb{font-size:13px;color:var(--text-muted)}
+.topbar-breadcrumb span{color:var(--text);font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:10px;position:relative}
+.topbar-search{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;background:var(--bg);border:1px solid var(--border);font-size:13px;color:var(--text-light);width:240px;transition:all .2s}
+.topbar-search:hover{border-color:var(--primary)}
+.topbar-search input{background:transparent;border:none;outline:none;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);width:100%}
+.topbar-btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative}
+.topbar-btn:hover{border-color:var(--primary);transform:translateY(-1px)}
+.topbar-btn:active{transform:scale(.93)}
+.topbar-btn .notif-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--secondary);border:2px solid #fff}
+.search-dd{position:absolute;top:52px;right:110px;width:280px;background:#fff;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:200;overflow:hidden;display:none}
+.search-dd.open{display:block;animation:fadeDown .2s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.search-dd-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;transition:background .15s;font-size:13px}
+.search-dd-item:hover{background:#f8f9fc}
+.notif-panel{position:absolute;top:52px;right:52px;width:320px;background:#fff;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:200;overflow:hidden;display:none}
+.notif-panel.open{display:block;animation:fadeDown .2s ease}
+.notif-header{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.notif-header h4{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700}
+.notif-clear{font-size:12px;color:var(--primary);cursor:pointer}
+.notif-item{display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:#f8faff}
+.notif-dot2{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:6px;flex-shrink:0}
+.notif-text{font-size:13px;line-height:1.5}
+.notif-time{font-size:11px;color:var(--text-light);margin-top:2px}
+
+/* TABS */
+.tabs-demo{display:flex;align-items:center;gap:10px;padding:24px 32px 16px;flex-wrap:wrap}
+.tab-btn{padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid var(--border);background:#fff;color:var(--text-muted);transition:all .2s;font-family:'Sora',sans-serif;user-select:none}
+.tab-btn:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-1px)}
+.tab-btn:active{transform:scale(.96)}
+.tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 4px 14px rgba(3,49,249,.35)}
+.view-overview,.view-products,.view-clubs,.view-orders,.view-stats,.view-users{display:none}
+.view-overview.active,.view-products.active,.view-clubs.active,.view-orders.active,.view-stats.active,.view-users.active{display:block;animation:viewIn .3s ease}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.content{padding:4px 32px 40px;flex:1}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:var(--bg-card);border-radius:var(--radius);padding:22px;border:1px solid var(--border);position:relative;overflow:hidden;transition:all .3s cubic-bezier(.4,0,.2,1);cursor:pointer}
+.stat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;transition:height .3s}
+.stat-card:hover::after{height:4px}
+.stat-card:nth-child(1)::after{background:var(--primary)}
+.stat-card:nth-child(2)::after{background:var(--green)}
+.stat-card:nth-child(3)::after{background:var(--amber)}
+.stat-card:nth-child(4)::after{background:var(--purple)}
+.stat-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.stat-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.stat-card:hover .stat-card-icon{transform:scale(1.15) rotate(-5deg)}
+.stat-card:nth-child(1) .stat-card-icon{background:var(--primary-glow)}
+.stat-card:nth-child(2) .stat-card-icon{background:var(--green-bg)}
+.stat-card:nth-child(3) .stat-card-icon{background:var(--amber-bg)}
+.stat-card:nth-child(4) .stat-card-icon{background:var(--purple-bg)}
+.stat-card-change{font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px}
+.change-up{color:var(--green);background:var(--green-bg)}
+.change-down{color:var(--secondary);background:rgba(227,11,12,.08)}
+.stat-card-value{font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:4px}
+.stat-card-label{font-size:13px;color:var(--text-muted)}
+
+/* CARD */
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:28px}
+.card{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
+.card-title{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;letter-spacing:-.2px}
+.card-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.card-action-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid var(--border);background:#fff;color:var(--text-muted);font-family:'Sora',sans-serif;user-select:none}
+.card-action-btn:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-1px)}
+.card-action-btn:active{transform:scale(.95)}
+.card-action-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 3px 10px rgba(3,49,249,.3)}
+.card-action-btn.primary:hover{background:var(--primary-dark)}
+.card-action-btn.danger{background:var(--secondary);color:#fff;border-color:var(--secondary)}
+.card-action-btn.danger:hover{background:#c00}
+.card-body{padding:22px}
+
+/* FILTER CHIPS */
+.sf-chip{padding:5px 14px;border-radius:100px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--text-muted);background:#fff;user-select:none}
+.sf-chip:hover{border-color:var(--primary);color:var(--primary)}
+.sf-chip:active{transform:scale(.95)}
+.sf-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* FILTER INPUT */
+.filter-input{padding:8px 14px;border-radius:10px;border:1.5px solid var(--border);font-family:'Sora',sans-serif;font-size:13px;outline:none;transition:border-color .2s;background:#fff;color:var(--text)}
+.filter-input:focus{border-color:var(--primary)}
+.filter-bar-row{display:flex;align-items:center;gap:10px;padding:14px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.filter-bar-row label{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+
+/* CHART */
+.chart-placeholder{width:100%;height:260px;position:relative;padding-top:10px}
+.chart-bars{display:flex;align-items:flex-end;gap:10px;height:220px;padding:0 10px;border-bottom:1px solid var(--border)}
+.chart-bar-group{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.chart-bar{width:100%;max-width:40px;border-radius:6px 6px 0 0;transition:all .5s cubic-bezier(.4,0,.2,1);cursor:pointer;position:relative}
+.chart-bar:hover{opacity:.75}
+.chart-bar-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) scale(0);background:var(--text);color:#fff;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;white-space:nowrap;transition:transform .2s cubic-bezier(.34,1.56,.64,1);pointer-events:none;z-index:10}
+.chart-bar:hover .chart-bar-tooltip{transform:translateX(-50%) scale(1)}
+.chart-bar-label{font-size:11px;color:var(--text-light);margin-top:8px}
+.chart-legend{display:flex;gap:20px;padding:14px 10px 0}
+.chart-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted)}
+.chart-legend-dot{width:10px;height:10px;border-radius:3px}
+
+/* ORDERS LIST */
+.order-list{padding:0}
+.order-item{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--border);transition:all .2s;cursor:pointer}
+.order-item:last-child{border-bottom:none}
+.order-item:hover{background:rgba(3,49,249,.02);transform:translateX(3px)}
+.order-avatar{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.order-info{flex:1}
+.order-name{font-size:13px;font-weight:600;color:var(--text)}
+.order-detail{font-size:12px;color:var(--text-muted);margin-top:2px}
+.order-amount{font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;color:var(--text);text-align:right}
+.order-status{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.status-paid{background:var(--green-bg);color:var(--green)}
+.status-pending{background:var(--amber-bg);color:var(--amber)}
+.status-shipped{background:var(--primary-glow);color:var(--primary)}
+
+/* QUICK GRID */
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.quick-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1)}
+.quick-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.quick-card:active{transform:scale(.98)}
+.quick-card-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.quick-card:hover .quick-card-icon{transform:scale(1.15) rotate(-5deg)}
+.quick-card-info{flex:1}
+.quick-card-title{font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px}
+.quick-card-desc{font-size:12px;color:var(--text-muted)}
+.quick-card-arrow{font-size:18px;color:var(--text-light);transition:all .2s}
+.quick-card:hover .quick-card-arrow{transform:translateX(5px);color:var(--primary)}
+
+/* TABLE */
+.table-section{margin-bottom:28px}
+.table-container{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;padding:12px 18px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;background:#fafbfc;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:color .2s}
+thead th:hover{color:var(--primary)}
+thead th.sorted{color:var(--primary)}
+thead th.sorted::after{content:' ↑'}
+thead th.sorted.desc::after{content:' ↓'}
+tbody td{padding:14px 18px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr{transition:background .15s;cursor:pointer}
+tbody tr:hover{background:rgba(3,49,249,.025)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.selected{background:rgba(3,49,249,.06)!important}
+.table-product{display:flex;align-items:center;gap:12px}
+.table-product-img{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#f0f0f5,#e8e8ef);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:transform .3s}
+tbody tr:hover .table-product-img{transform:scale(1.08)}
+.table-product-name{font-weight:600;color:var(--text)}
+.table-product-ref{font-size:11px;color:var(--text-light);margin-top:2px}
+.table-price{font-family:'Outfit',sans-serif;font-weight:700}
+.table-club-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;background:var(--primary-glow);font-size:12px;font-weight:500;color:var(--primary)}
+.table-sizes{display:flex;gap:3px;flex-wrap:wrap}
+.table-size{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:#f3f4f6;color:var(--text-muted)}
+.table-toggle{width:36px;height:20px;border-radius:100px;position:relative;cursor:pointer;transition:background .25s}
+.table-toggle.on{background:var(--green)}.table-toggle.off{background:#d1d5db}
+.table-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;transition:left .25s cubic-bezier(.4,0,.2,1);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.table-toggle.on::after{left:18px}.table-toggle.off::after{left:2px}
+.table-actions{display:flex;gap:6px}
+.table-action{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .2s}
+.table-action:hover{border-color:var(--primary);transform:scale(1.1)}
+.table-action.delete:hover{border-color:var(--secondary);background:rgba(227,11,12,.05)}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-top:1px solid var(--border)}
+.pagination-info{font-size:13px;color:var(--text-muted)}
+.pagination-buttons{display:flex;gap:4px}
+.page-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--text-muted)}
+.page-btn:hover{border-color:var(--primary);color:var(--primary);transform:scale(1.05)}
+.page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:500}
+.modal-overlay.open{display:flex;animation:fadeO .2s ease}
+@keyframes fadeO{from{opacity:0}to{opacity:1}}
+.modal-bg{background:#fff;border-radius:20px;padding:36px;width:520px;max-width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,.2);animation:modalPop .3s cubic-bezier(.34,1.56,.64,1)}
+.modal-bg.wide{width:640px}
+@keyframes modalPop{from{opacity:0;transform:scale(.85) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.modal-title{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700}
+.modal-close-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s}
+.modal-close-btn:hover{background:#f3f4f6}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.modal-field{display:flex;flex-direction:column;gap:6px}
+.modal-field.full{grid-column:1/-1}
+.modal-label{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.modal-input,.modal-select{padding:11px 14px;border-radius:10px;border:1.5px solid var(--border);font-family:'Sora',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;background:#fafbfc;color:var(--text)}
+.modal-input:focus,.modal-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(3,49,249,.1);background:#fff}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px}
+.btn-cancel{padding:11px 22px;border-radius:10px;border:1px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-cancel:hover{border-color:var(--text-muted)}
+.btn-save{padding:11px 24px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(3,49,249,.35)}
+.btn-save:hover{background:var(--primary-dark);transform:translateY(-1px)}
+.btn-danger-full{padding:11px 24px;border-radius:10px;background:var(--secondary);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-danger-full:hover{background:#c00;transform:translateY(-1px)}
+.btn-gold{padding:11px 24px;border-radius:10px;background:var(--amber);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(245,158,11,.35)}
+.btn-gold:hover{background:#d97706;transform:translateY(-1px)}
+.delete-modal{text-align:center}
+.delete-icon{font-size:48px;margin-bottom:14px}
+.delete-modal h3{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px}
+.delete-modal p{font-size:14px;color:var(--text-muted);margin-bottom:24px}
+
+/* CLUBS VIEW */
+.clubs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+.club-mgmt-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.club-mgmt-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--primary);transform:scaleX(0);transition:transform .3s}
+.club-mgmt-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.club-mgmt-card:hover::after{transform:scaleX(1)}
+.club-mgmt-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.club-mgmt-logo{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.club-mgmt-name{font-weight:700;font-size:15px}
+.club-mgmt-sport{font-size:12px;color:var(--text-muted)}
+.club-mgmt-stats{display:flex;gap:16px;flex-wrap:wrap}
+.club-stat{font-size:12px;color:var(--text-muted)}
+.club-stat strong{display:block;font-size:16px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--text)}
+.club-mgmt-actions{display:flex;gap:6px;margin-top:14px}
+.club-mgmt-btn{flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Sora',sans-serif}
+.club-mgmt-btn:hover{border-color:var(--primary);color:var(--primary)}
+.club-mgmt-btn.danger:hover{border-color:var(--secondary);color:var(--secondary)}
+
+/* ORDERS VIEW */
+.orders-table-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:28px}
+.status-filter{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ══════════ STATS VIEW ══════════ */
+.stats-period-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.stat-filter-group{display:flex;gap:8px;flex-wrap:wrap}
+.stat-filter-btn{padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Sora',sans-serif;color:var(--text-muted);user-select:none}
+.stat-filter-btn:hover{border-color:var(--primary);color:var(--primary)}
+.stat-filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.stats-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card-overview{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .3s;cursor:default}
+.stat-card-overview:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.sko-label{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:500}
+.sko-value{font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px}
+
+/* ══════════ CAGNOTTE SECTION ══════════ */
+.cagnotte-section-title{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin-bottom:16px;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
+.cagnotte-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px}
+.cagnotte-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;transition:all .3s;position:relative;overflow:hidden}
+.cagnotte-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--amber));transform:scaleX(0);transition:transform .4s}
+.cagnotte-card:hover::after{transform:scaleX(1)}
+.cagnotte-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.cagnotte-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cagnotte-club-info{display:flex;align-items:center;gap:12px}
+.cagnotte-logo{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.cagnotte-club-name{font-weight:700;font-size:15px}
+.cagnotte-club-sport{font-size:11px;color:var(--text-muted)}
+.cagnotte-solde-wrap{text-align:right}
+.cagnotte-solde-label{font-size:11px;color:var(--text-muted);margin-bottom:2px}
+.cagnotte-solde{font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;color:var(--gold);letter-spacing:-.5px}
+.cagnotte-solde.low{color:var(--secondary)}
+.cagnotte-solde.mid{color:var(--amber)}
+
+/* Progress bar */
+.cagnotte-bar-row{margin-bottom:14px}
+.cagnotte-bar-label-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.cagnotte-bar-bg{width:100%;height:10px;border-radius:100px;background:#f0f0f5;overflow:hidden}
+.cagnotte-bar-fill{height:100%;border-radius:100px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+/* History */
+.cagnotte-hist{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-height:96px;overflow:hidden}
+.cagnotte-hist.expanded{max-height:none}
+.hist-item{display:flex;align-items:center;gap:8px;font-size:12px;background:#fafbfc;border-radius:8px;padding:6px 10px}
+.hist-icon{font-size:14px;flex-shrink:0}
+.hist-label{flex:1;color:var(--text-muted)}
+.hist-amount{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px}
+.hist-amount.debit{color:var(--secondary)}
+.hist-amount.credit{color:var(--green)}
+.hist-date{font-size:10px;color:var(--text-light)}
+.show-more{font-size:11px;color:var(--primary);cursor:pointer;font-weight:600;text-align:center;padding:4px}
+.show-more:hover{opacity:.7}
+
+.cagnotte-actions{display:flex;gap:8px}
+.cagnotte-btn{flex:1;padding:8px 12px;border-radius:9px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Sora',sans-serif;text-align:center}
+.cagnotte-btn:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-1px)}
+.cagnotte-btn.gold{background:var(--gold);color:#fff;border-color:var(--gold);box-shadow:0 3px 10px rgba(245,158,11,.3)}
+.cagnotte-btn.gold:hover{background:#d97706}
+.cagnotte-btn.red{border-color:var(--secondary)}
+.cagnotte-btn.red:hover{background:rgba(227,11,12,.06);color:var(--secondary)}
+
+/* Top produits filter bar */
+.stats-table-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:28px}
+.top-filter-bar{display:flex;align-items:center;gap:10px;padding:14px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:#fafbfc}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:28px;padding:16px 0}
+.donut-chart{position:relative;width:140px;height:140px;flex-shrink:0}
+.donut-chart svg{transform:rotate(-90deg)}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut-center-val{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800}
+.donut-center-label{font-size:11px;color:var(--text-muted)}
+.donut-legend{display:flex;flex-direction:column;gap:10px;flex:1}
+.donut-item{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:background .15s}
+.donut-item:hover{background:var(--primary-glow)}
+.donut-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.donut-item-label{flex:1}
+.donut-item-pct{font-weight:700;font-size:13px}
+
+/* ══════════ USERS VIEW ══════════ */
+.users-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.users-search{display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;background:var(--bg-card);border:1.5px solid var(--border);font-size:13px;flex:1;min-width:200px;transition:border-color .2s}
+.users-search:focus-within{border-color:var(--primary)}
+.users-search input{background:transparent;border:none;outline:none;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);width:100%}
+.users-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.user-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .25s;position:relative}
+.user-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--primary)}
+.user-card-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.user-avatar{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;font-family:'Outfit',sans-serif}
+.user-name{font-weight:700;font-size:14px}
+.user-email{font-size:11px;color:var(--text-muted)}
+.user-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.user-tag{padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.tag-admin{background:var(--primary-glow);color:var(--primary)}
+.tag-club{background:var(--green-bg);color:var(--green)}
+.tag-viewer{background:#f3f4f6;color:var(--text-muted)}
+.tag-inactive{background:rgba(227,11,12,.08);color:var(--secondary)}
+.user-stats{display:flex;gap:12px;margin-bottom:14px}
+.u-stat{font-size:12px;color:var(--text-muted)}
+.u-stat strong{display:block;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;color:var(--text)}
+.user-actions{display:flex;gap:6px}
+.user-btn{flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Sora',sans-serif;text-align:center}
+.user-btn:hover{border-color:var(--primary);color:var(--primary)}
+.user-btn.danger:hover{border-color:var(--secondary);color:var(--secondary)}
+
+/* DEBIT MODAL */
+.debit-summary{background:var(--gold-bg);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+.debit-summary-icon{font-size:32px}
+.debit-summary-club{font-weight:700;font-size:15px}
+.debit-summary-solde{font-size:13px;color:var(--text-muted);margin-top:2px}
+.debit-summary-solde strong{color:var(--gold);font-family:'Outfit',sans-serif;font-size:16px}
+.debit-preview{background:#fafbfc;border-radius:10px;padding:14px;margin-bottom:16px}
+.debit-preview-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0}
+.debit-preview-row.total{border-top:1px solid var(--border);padding-top:10px;margin-top:6px;font-weight:700;font-size:14px}
+.debit-preview-row.total .amount{color:var(--secondary);font-family:'Outfit',sans-serif;font-size:16px}
+
+/* FOOTSPOT BADGE */
+.footspot-badge{display:inline-flex;align-items:center;cursor:pointer;transition:transform .2s;flex-shrink:0}
+.footspot-badge:hover{transform:scale(1.15)}
+.footspot-badge-off{display:inline-flex;align-items:center;opacity:.45;flex-shrink:0}
+/* DISCOUNT */
+.discount-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(227,11,12,.1);color:var(--secondary);border:1px solid rgba(227,11,12,.2)}
+.price-with-discount{display:flex;flex-direction:column;gap:2px}
+.price-original{font-family:'Outfit',sans-serif;font-weight:500;font-size:12px;color:var(--text-light);text-decoration:line-through}
+.price-discounted{font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;color:var(--secondary)}
+@media(max-width:768px){.sidebar{width:64px}.main{margin-left:64px}.topbar{padding:0 16px}.topbar-search{width:140px}.content{padding:4px 16px 40px}.stats-row,.stats-kpi-row{grid-template-columns:repeat(2,1fr)}.clubs-grid,.cagnotte-grid,.users-grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="toastZone"></div>
+
+<!-- MODAL: Produit -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal-bg">
+    <div class="modal-header"><div class="modal-title" id="modalTitle">Nouveau produit</div><button class="modal-close-btn" onclick="closeModal('productModal')">✕</button></div>
+    <div class="modal-grid">
+      <div class="modal-field"><label class="modal-label">Nom</label><input class="modal-input" id="mNom" placeholder="Maillot Nike…"/></div>
+      <div class="modal-field"><label class="modal-label">Référence</label><input class="modal-input" id="mRef" placeholder="NK-MJ-…"/></div>
+      <div class="modal-field"><label class="modal-label">Prix vente (€)</label><input class="modal-input" id="mPrix" type="number" placeholder="45.00"/></div>
+      <div class="modal-field"><label class="modal-label">Prix achat (€)</label><input class="modal-input" id="mAchat" type="number" placeholder="25.00"/></div>
+      <div class="modal-field"><label class="modal-label">Club</label><select class="modal-select" id="mClub"><option>FC 93</option><option>Ivry Football</option><option>Racing Club Neauphle</option><option>Rueil Football</option><option>Fontenay-aux-Roses</option><option>Villiers-le-Mahieu</option></select></div>
+      <div class="modal-field"><label class="modal-label">Flocage</label><select class="modal-select" id="mFlocage"><option value="">Aucun</option><option>Nom + Numéro</option><option>Nom + Initial</option><option>Numéro uniquement</option></select></div>
+      <div class="modal-field"><label class="modal-label">Réduction (%)</label><input class="modal-input" id="mDiscount" type="number" min="0" max="100" placeholder="0" oninput="updateDiscountPreview()"/></div>
+      <div class="modal-field full" id="discountPreviewRow" style="display:none">
+        <div style="background:rgba(227,11,12,.06);border:1px solid rgba(227,11,12,.15);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:16px">
+          <span style="font-size:20px">🏷️</span>
+          <div>
+            <div style="font-size:12px;color:var(--text-muted)">Prix après réduction</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+              <span id="mDiscountOriginal" style="font-size:13px;color:var(--text-light);text-decoration:line-through">—</span>
+              <span id="mDiscountFinal" style="font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;color:var(--secondary)">—</span>
+              <span id="mDiscountBadge" class="discount-badge">−0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-field full"><label class="modal-label">Tailles</label><input class="modal-input" id="mTailles" placeholder="XS, S, M, L, XL"/></div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('productModal')">Annuler</button><button class="btn-save rpl" onclick="saveProduct()">Enregistrer →</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Delete -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-bg delete-modal">
+    <div class="delete-icon">🗑️</div><h3>Supprimer ce produit ?</h3><p>Cette action est irréversible.</p>
+    <div class="modal-footer" style="justify-content:center;gap:12px"><button class="btn-cancel" onclick="closeModal('deleteModal')">Annuler</button><button class="btn-danger-full rpl" id="confirmDeleteBtn">Supprimer définitivement</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Suivi Colissimo -->
+<div class="modal-overlay" id="trackingModal">
+  <div class="modal-bg" style="width:460px;max-width:calc(100vw - 32px)">
+    <div class="modal-header">
+      <div class="modal-title">📦 Suivi Colissimo</div>
+      <button class="modal-close-btn" onclick="closeModal('trackingModal')">✕</button>
+    </div>
+    <div style="background:var(--primary-glow);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:24px">📋</span>
+      <div>
+        <div style="font-weight:700;font-size:14px" id="trackingOrderNum">—</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="trackingOrderClient">—</div>
+      </div>
+    </div>
+    <div class="modal-field" style="margin-bottom:8px">
+      <label class="modal-label">N° de suivi Colissimo</label>
+      <input class="modal-input" id="trackingInput" placeholder="ex: 6V12345678901" style="font-family:monospace;font-size:15px;letter-spacing:2px" oninput="updateTrackingPreview()"/>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;padding-left:2px">13 caractères — commence généralement par 6V, 9V ou 8R</div>
+    <div id="trackingPreviewBox" style="display:none;border-radius:12px;padding:14px 16px;margin-bottom:16px;background:var(--green-bg);border:1px solid rgba(16,185,129,.2)">
+      <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔗 Lien de suivi Colissimo</div>
+      <a id="trackingPreviewLink" href="#" target="_blank"
+         style="font-size:13px;color:var(--primary);font-weight:600;word-break:break-all;display:block;padding:8px 12px;background:white;border-radius:8px;border:1px solid var(--border);text-decoration:none;transition:background .2s"
+         onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='white'">—</a>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px">↗ Cliquez pour ouvrir la page de suivi sur le site La Poste</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('trackingModal')">Annuler</button>
+      <button class="btn-save rpl" onclick="saveTracking()">Enregistrer →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Débit cagnotte -->
+<div class="modal-overlay" id="debitModal">
+  <div class="modal-bg">
+    <div class="modal-header"><div class="modal-title">💳 Débit cagnotte</div><button class="modal-close-btn" onclick="closeModal('debitModal')">✕</button></div>
+    <div class="debit-summary" id="debitSummary">
+      <div class="debit-summary-icon" id="debitLogo">🔵</div>
+      <div><div class="debit-summary-club" id="debitClubName">—</div><div class="debit-summary-solde">Solde actuel : <strong id="debitSolde">—</strong></div></div>
+    </div>
+    <div class="modal-grid">
+      <div class="modal-field"><label class="modal-label">Motif</label><select class="modal-select" id="dMotif"><option value="">-- Sélectionner --</option><option>Achat maillots</option><option>Achat équipement training</option><option>Achat accessoires</option><option>Achat chaussures</option><option>Commande flocage</option><option>Autre matériel</option></select></div>
+      <div class="modal-field"><label class="modal-label">Référence achat</label><input class="modal-input" id="dRef" placeholder="CMD-2026-…"/></div>
+      <div class="modal-field full"><label class="modal-label">Montant à débiter (€)</label><input class="modal-input" id="dMontant" type="number" placeholder="0.00" oninput="updateDebitPreview()"/></div>
+      <div class="modal-field full"><label class="modal-label">Note (optionnel)</label><input class="modal-input" id="dNote" placeholder="Saison 2026-2027, 24 maillots…"/></div>
+    </div>
+    <div class="debit-preview" id="debitPreview">
+      <div class="debit-preview-row"><span>Solde avant débit</span><span id="dpBefore" class="amount" style="color:var(--gold);font-family:'Outfit',sans-serif;font-weight:700">—</span></div>
+      <div class="debit-preview-row"><span>Montant débité</span><span id="dpAmount" class="amount" style="color:var(--secondary);font-family:'Outfit',sans-serif;font-weight:700">—</span></div>
+      <div class="debit-preview-row total"><span>Solde après débit</span><span class="amount" id="dpAfter">—</span></div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('debitModal')">Annuler</button><button class="btn-gold rpl" onclick="executeDebit()">Confirmer le débit →</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Crédit cagnotte -->
+<div class="modal-overlay" id="creditModal">
+  <div class="modal-bg">
+    <div class="modal-header"><div class="modal-title">➕ Créditer cagnotte</div><button class="modal-close-btn" onclick="closeModal('creditModal')">✕</button></div>
+    <div class="debit-summary" id="creditSummary" style="background:var(--green-bg);border-color:rgba(16,185,129,.2)">
+      <div class="debit-summary-icon" id="creditLogo">🔵</div>
+      <div><div class="debit-summary-club" id="creditClubName">—</div><div class="debit-summary-solde">Solde actuel : <strong id="creditSolde" style="color:var(--green)">—</strong></div></div>
+    </div>
+    <div class="modal-grid">
+      <div class="modal-field"><label class="modal-label">Motif</label><select class="modal-select" id="cMotif"><option>Dotation annuelle</option><option>Bonus performance</option><option>Correction</option><option>Remboursement</option><option>Autre</option></select></div>
+      <div class="modal-field"><label class="modal-label">Montant à créditer (€)</label><input class="modal-input" id="cMontant" type="number" placeholder="0.00"/></div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('creditModal')">Annuler</button><button class="btn-save rpl" style="background:var(--green);box-shadow:0 4px 14px rgba(16,185,129,.35)" onclick="executeCredit()">Créditer →</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Utilisateur -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal-bg">
+    <div class="modal-header"><div class="modal-title" id="userModalTitle">Nouvel utilisateur</div><button class="modal-close-btn" onclick="closeModal('userModal')">✕</button></div>
+    <div class="modal-grid">
+      <div class="modal-field"><label class="modal-label">Prénom</label><input class="modal-input" id="uPrenom" placeholder="Jean"/></div>
+      <div class="modal-field"><label class="modal-label">Nom</label><input class="modal-input" id="uNom" placeholder="Dupont"/></div>
+      <div class="modal-field full"><label class="modal-label">Email</label><input class="modal-input" id="uEmail" type="email" placeholder="jean.dupont@fc93.fr"/></div>
+      <div class="modal-field"><label class="modal-label">Rôle</label><select class="modal-select" id="uRole"><option value="admin">Administrateur</option><option value="club">Responsable club</option><option value="viewer">Lecteur</option></select></div>
+      <div class="modal-field"><label class="modal-label">Club associé</label><select class="modal-select" id="uClub"><option value="">— Tous les clubs —</option><option>FC 93</option><option>Ivry Football</option><option>Racing Club Neauphle</option><option>Rueil Football</option><option>Fontenay-aux-Roses</option><option>Villiers-le-Mahieu</option></select></div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('userModal')">Annuler</button><button class="btn-save rpl" onclick="saveUser()">Enregistrer →</button></div>
+  </div>
+</div>
+
+<!-- NOTIF -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-header"><h4>🔔 Notifications</h4><span class="notif-clear" onclick="clearNotifs()">Tout marquer lu</span></div>
+  <div id="notifList">
+    <div class="notif-item"><div class="notif-dot2"></div><div><div class="notif-text">Nouvelle commande de <strong>Marc Dupont</strong> — €127.00</div><div class="notif-time">il y a 5 min</div></div></div>
+    <div class="notif-item"><div class="notif-dot2"></div><div><div class="notif-text">Commande <strong>#0086</strong> expédiée — Ivry Football</div><div class="notif-time">il y a 23 min</div></div></div>
+    <div class="notif-item"><div class="notif-dot2" style="background:var(--amber)"></div><div><div class="notif-text">Cagnotte <strong>Racing Club</strong> faible — €180 restants</div><div class="notif-time">il y a 1h</div></div></div>
+    <div class="notif-item"><div class="notif-dot2" style="background:var(--green)"></div><div><div class="notif-text">Dotation créditée : <strong>FC 93 +€500</strong></div><div class="notif-time">il y a 2h</div></div></div>
+  </div>
+</div>
+<div class="search-dd" id="searchDd"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header" onclick="toggleSidebar()">
+    <svg class="sidebar-logo-svg" viewBox="0 0 180 38" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="0,4 11,4 6,20 0,20" fill="#e30b0c"/>
+      <text x="14" y="17" font-family="Arial Black,sans-serif" font-weight="900" font-size="14" fill="white" letter-spacing="-0.5">INTER</text>
+      <text x="62" y="17" font-family="Arial Black,sans-serif" font-weight="900" font-size="14" fill="rgba(255,255,255,0.6)" letter-spacing="-0.5">SPORT</text>
+      <text x="14" y="30" font-family="Arial,sans-serif" font-weight="700" font-size="9" fill="rgba(255,255,255,0.4)" letter-spacing="1.5">CLUB IDF</text>
+    </svg>
+    <div class="sidebar-brand">Admin</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Principal</div>
+    <a class="sidebar-item active" id="sNav-overview" onclick="navigate(this,'overview','Dashboard','Vue d\'ensemble')"><span class="icon">📊</span><span>Dashboard</span></a>
+    <a class="sidebar-item" id="sNav-clubs" onclick="navigate(this,'clubs','Clubs','Gestion des clubs')"><span class="icon">🏅</span><span>Sports & Clubs</span><span class="badge">15</span></a>
+    <a class="sidebar-item" id="sNav-products" onclick="navigate(this,'products','Produits','Catalogue')"><span class="icon">📦</span><span>Produits</span><span class="badge">142</span></a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Commerce</div>
+    <a class="sidebar-item" id="sNav-orders" onclick="navigate(this,'orders','Commandes','Suivi des commandes')"><span class="icon">🛒</span><span>Commandes</span><span class="badge">8</span></a>
+    <a class="sidebar-item" id="sNav-stats" onclick="navigate(this,'stats','Statistiques','Cagnottes & Revenus')"><span class="icon">📈</span><span>Statistiques</span></a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Administration</div>
+    <a class="sidebar-item" id="sNav-users" onclick="navigate(this,'users','Utilisateurs','Gestion des accès')"><span class="icon">👥</span><span>Utilisateurs</span><span class="badge">9</span></a>
+    <a class="sidebar-item" onclick="toast('⚙️','Paramètres','Page à venir')"><span class="icon">⚙️</span><span>Paramètres</span></a>
+    <a class="sidebar-item" onclick="toast('🌐','Site public','Ouverture...')"><span class="icon">🌐</span><span>Voir le site</span></a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sidebar-user" onclick="toast('👤','Admin','Options du compte')">
+      <div class="sidebar-avatar">AD</div>
+      <div class="sidebar-user-info"><div class="sidebar-user-name">Admin IDF</div><div class="sidebar-user-role">Super Administrateur</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main" id="mainArea">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 id="topbarTitle">Dashboard</h1>
+      <div class="topbar-breadcrumb">Admin / <span id="topbarCrumb">Vue d'ensemble</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-search">🔍<input id="topSearch" placeholder="Rechercher..." oninput="handleTopSearch(this.value)" onfocus="handleTopSearch(this.value)"/></div>
+      <div id="darkBtn" class="topbar-btn" onclick="toggleDark()">🌙</div>
+      <div class="topbar-btn" onclick="toggleNotif()">🔔<div class="notif-dot" id="notifDot"></div></div>
+      <div class="topbar-btn" onclick="toast('🌐','Langue','FR/EN bientôt')">FR ▾</div>
+    </div>
+  </div>
+
+  <div class="tabs-demo">
+    <button class="tab-btn active rpl" id="tab-overview" onclick="switchView('overview',this)">📊 Vue d'ensemble</button>
+    <button class="tab-btn rpl" id="tab-products" onclick="switchView('products',this)">📦 Produits</button>
+    <button class="tab-btn rpl" id="tab-clubs" onclick="switchView('clubs',this)">🛡️ Clubs</button>
+    <button class="tab-btn rpl" id="tab-orders" onclick="switchView('orders',this)">🛒 Commandes</button>
+    <button class="tab-btn rpl" id="tab-stats" onclick="switchView('stats',this)">📈 Statistiques</button>
+    <button class="tab-btn rpl" id="tab-users" onclick="switchView('users',this)">👥 Utilisateurs</button>
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="content view-overview active" id="view-overview">
+    <div class="stats-row">
+      <div class="stat-card" onclick="switchView('stats',document.getElementById('tab-stats'))"><div class="stat-card-header"><div class="stat-card-icon">💰</div><span class="stat-card-change change-up">↑ 12%</span></div><div class="stat-card-value" id="cntCA">€0</div><div class="stat-card-label">Chiffre d'affaires (30j)</div></div>
+      <div class="stat-card" onclick="switchView('orders',document.getElementById('tab-orders'))"><div class="stat-card-header"><div class="stat-card-icon">📦</div><span class="stat-card-change change-up">↑ 8%</span></div><div class="stat-card-value" id="cntOrders">0</div><div class="stat-card-label">Commandes (30j)</div></div>
+      <div class="stat-card" onclick="switchView('stats',document.getElementById('tab-stats'))"><div class="stat-card-header"><div class="stat-card-icon">📊</div><span class="stat-card-change change-up">↑ 4%</span></div><div class="stat-card-value" id="cntPanier">€0</div><div class="stat-card-label">Valeur moy. / commande club</div></div>
+      <div class="stat-card" onclick="switchView('products',document.getElementById('tab-products'))"><div class="stat-card-header"><div class="stat-card-icon">🏅</div><span class="stat-card-change change-down">↓ 2%</span></div><div class="stat-card-value" id="cntProd">0</div><div class="stat-card-label">Produits actifs</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenus par mois</span><div class="card-actions"><button class="card-action-btn" onclick="renderOverviewChart('6m',this)">6 mois</button><button class="card-action-btn primary" onclick="renderOverviewChart('12m',this)">12 mois</button></div></div>
+        <div class="card-body"><div class="chart-placeholder"><div class="chart-bars" id="chartBars"></div><div class="chart-legend"><div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--primary)"></div>Revenus</div></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Commandes récentes</span><button class="card-action-btn" onclick="switchView('orders',document.getElementById('tab-orders'))">Voir tout →</button></div>
+        <div class="order-list" id="recentOrders"></div>
+      </div>
+    </div>
+    <div class="quick-grid">
+      <div class="quick-card" onclick="openProductModal()"><div class="quick-card-icon" style="background:var(--primary-glow)">📦</div><div class="quick-card-info"><div class="quick-card-title">Ajouter un produit</div><div class="quick-card-desc">142 produits au catalogue</div></div><span class="quick-card-arrow">→</span></div>
+      <div class="quick-card" onclick="switchView('stats',document.getElementById('tab-stats'))"><div class="quick-card-icon" style="background:var(--gold-bg)">🏆</div><div class="quick-card-info"><div class="quick-card-title">Gérer les cagnottes</div><div class="quick-card-desc">Débits, crédits, historique</div></div><span class="quick-card-arrow">→</span></div>
+      <div class="quick-card" onclick="switchView('users',document.getElementById('tab-users'))"><div class="quick-card-icon" style="background:var(--purple-bg)">👥</div><div class="quick-card-info"><div class="quick-card-title">Gestion utilisateurs</div><div class="quick-card-desc">9 comptes actifs</div></div><span class="quick-card-arrow">→</span></div>
+    </div>
+  </div>
+
+  <!-- ══ PRODUCTS ══ -->
+  <div class="content view-products" id="view-products">
+    <div class="card table-section">
+      <div class="card-header">
+        <span class="card-title">Tous les produits</span>
+        <div class="card-actions">
+          <span class="sf-chip active" data-pfilter="all" onclick="filterProducts(this)">Tous</span>
+          <span class="sf-chip" data-pfilter="FC 93" onclick="filterProducts(this)">FC 93</span>
+          <span class="sf-chip" data-pfilter="Ivry Football" onclick="filterProducts(this)">Ivry</span>
+          <span class="sf-chip" data-pfilter="Racing Club Neauphle" onclick="filterProducts(this)">Racing</span>
+          <span class="sf-chip" data-pfilter="visible" onclick="filterProducts(this)">Visibles</span>
+          <span class="sf-chip" data-pfilter="hidden" onclick="filterProducts(this)">Masqués</span>
+          <button class="card-action-btn" onclick="toast('📤','Export','CSV en cours...')">Exporter</button>
+          <button class="card-action-btn primary rpl" onclick="openProductModal()">+ Nouveau</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th onclick="sortTable(0,this)">Produit</th>
+            <th onclick="sortTable(1,this)">Club</th>
+            <th onclick="sortTable(2,this)">Prix vente</th>
+            <th>Réduction</th>
+            <th onclick="sortTable(3,this)">Marge</th>
+            <th>Tailles</th><th>Flocage</th><th>Visible</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="productsTbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="pagination-info" id="pageInfo">—</div>
+        <div class="pagination-buttons"><div class="page-btn">‹</div><div class="page-btn active">1</div><div class="page-btn">2</div><div class="page-btn">3</div><div class="page-btn">›</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CLUBS ══ -->
+  <div class="content view-clubs" id="view-clubs">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <span class="card-title">Clubs partenaires</span>
+      <button class="card-action-btn primary rpl" onclick="toast('➕','Nouveau club','Formulaire à venir')">+ Nouveau club</button>
+    </div>
+    <div class="clubs-grid" id="clubsGrid"></div>
+  </div>
+
+  <!-- ══ ORDERS ══ -->
+  <div class="content view-orders" id="view-orders">
+    <div class="orders-table-card">
+      <div class="card-header">
+        <span class="card-title">Toutes les commandes</span>
+        <div class="status-filter">
+          <span class="sf-chip active" data-ostatus="all" onclick="filterOrders(this)">Tout</span>
+          <span class="sf-chip" data-ostatus="paid" onclick="filterOrders(this)">Payé</span>
+          <span class="sf-chip" data-ostatus="pending" onclick="filterOrders(this)">En attente</span>
+          <span class="sf-chip" data-ostatus="shipped" onclick="filterOrders(this)">Expédié</span>
+        </div>
+      </div>
+      <div id="ordersBody"></div>
+      <div class="pagination"><div class="pagination-info" id="ordersPageInfo">—</div><div class="pagination-buttons"><div class="page-btn">‹</div><div class="page-btn active">1</div><div class="page-btn">2</div><div class="page-btn">›</div></div></div>
+    </div>
+  </div>
+
+  <!-- ══ STATS ══ -->
+  <div class="content view-stats" id="view-stats">
+    <div class="stats-period-bar">
+      <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700">📈 Statistiques & Cagnottes</div>
+      <div class="stat-filter-group" id="periodBtns">
+        <button class="stat-filter-btn" data-period="7d" onclick="setPeriod(this)">7 jours</button>
+        <button class="stat-filter-btn" data-period="30d" onclick="setPeriod(this)">30 jours</button>
+        <button class="stat-filter-btn active" data-period="90d" onclick="setPeriod(this)">3 mois</button>
+        <button class="stat-filter-btn" data-period="12m" onclick="setPeriod(this)">12 mois</button>
+      </div>
+    </div>
+    <div class="stats-kpi-row" id="statsKpis"></div>
+    <div class="grid-2" style="margin-bottom:28px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenus & Marges brutes</span><button class="card-action-btn" onclick="toast('📤','Export PDF','En cours...')">Exporter PDF</button></div>
+        <div class="card-body"><div class="chart-placeholder"><div class="chart-bars" id="statsChartBars"></div><div class="chart-legend"><div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--primary)"></div>Revenus</div><div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--green)"></div>Marge</div></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">CA par sport</span></div>
+        <div class="card-body"><div class="donut-wrap"><div class="donut-chart"><svg width="140" height="140" viewBox="0 0 140 140"><circle cx="70" cy="70" r="50" fill="none" stroke="#f0f0f5" stroke-width="22"/><g id="donutSegs"></g></svg><div class="donut-center"><div class="donut-center-val" id="donutTotal">€0</div><div class="donut-center-label">Total CA</div></div></div><div class="donut-legend" id="donutLegend"></div></div></div>
+      </div>
+    </div>
+
+    <!-- CAGNOTTES PAR CLUB -->
+    <div class="cagnotte-section-title">🏆 Cagnottes par club <span style="font-size:13px;color:var(--text-muted);font-weight:400;font-family:'Sora',sans-serif">Solde, historique & gestion des débits</span></div>
+    <div class="cagnotte-grid" id="cagnotteGrid"></div>
+
+    <!-- TOP PRODUITS avec filtres dynamiques -->
+    <div class="stats-table-card">
+      <div class="card-header"><span class="card-title">🏆 Top produits par marge</span><button class="card-action-btn" onclick="toast('📤','Export','En cours...')">Exporter</button></div>
+      <div class="top-filter-bar">
+        <label>🔍</label>
+        <input class="filter-input" id="topFilterEquipe" placeholder="Équipe / Club…" oninput="renderTopProducts()" style="flex:1;min-width:140px"/>
+        <input class="filter-input" id="topFilterRef" placeholder="Référence produit…" oninput="renderTopProducts()" style="flex:1;min-width:140px"/>
+        <select class="filter-input" id="topFilterCat" onchange="renderTopProducts()" style="min-width:140px">
+          <option value="">Toutes catégories</option>
+          <option value="maillot">Maillots</option>
+          <option value="training">Training</option>
+          <option value="accessoire">Accessoires</option>
+          <option value="lifestyle">Lifestyle</option>
+        </select>
+        <button class="card-action-btn" onclick="resetTopFilters()">✕ Reset</button>
+      </div>
+      <div class="table-container"><table>
+        <thead><tr><th>Produit</th><th>Club</th><th>Prix vente</th><th>Prix achat</th><th>Marge €</th><th>Marge %</th><th>Qté vendue</th></tr></thead>
+        <tbody id="topProductsTbody"></tbody>
+      </table></div>
+      <div class="pagination"><div class="pagination-info" id="topPageInfo">—</div></div>
+    </div>
+  </div>
+
+  <!-- ══ USERS ══ -->
+  <div class="content view-users" id="view-users">
+    <div class="users-toolbar">
+      <div class="users-search">🔍<input id="userSearch" placeholder="Rechercher un utilisateur…" oninput="renderUsers()"/></div>
+      <select class="filter-input" id="userRoleFilter" onchange="renderUsers()">
+        <option value="">Tous les rôles</option>
+        <option value="admin">Administrateur</option>
+        <option value="club">Responsable club</option>
+        <option value="viewer">Lecteur</option>
+      </select>
+      <select class="filter-input" id="userClubFilter" onchange="renderUsers()">
+        <option value="">Tous les clubs</option>
+        <option>FC 93</option><option>Ivry Football</option><option>Racing Club Neauphle</option>
+        <option>Rueil Football</option><option>Fontenay-aux-Roses</option><option>Villiers-le-Mahieu</option>
+      </select>
+      <button class="card-action-btn primary rpl" onclick="openUserModal()">+ Nouvel utilisateur</button>
+    </div>
+    <div class="users-grid" id="usersGrid"></div>
+    <div class="pagination" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-top:0">
+      <div class="pagination-info" id="usersInfo">—</div>
+      <div class="pagination-buttons"><div class="page-btn">‹</div><div class="page-btn active">1</div><div class="page-btn">2</div><div class="page-btn">›</div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ══════════════════ DATA ══════════════════
+const PRODUCTS=[
+  {id:1,emoji:'👕',name:'Maillot Match Ext. Nike Adulte',ref:'NK-MJ-FC93-001',club:'FC 93',price:45,achat:22,discount:10,sizes:['S','M','L','XL'],flocage:'Nom + Numéro',visible:true,qty:38,cat:'maillot'},
+  {id:2,emoji:'🧥',name:'Parka Nike Park20 Enfant',ref:'NK-PK-FC93-002',club:'FC 93',price:87,achat:51,discount:0,sizes:['XS','S','M'],flocage:'',visible:true,qty:14,cat:'lifestyle'},
+  {id:3,emoji:'🎒',name:'Sac à Dos Nike FC93',ref:'NK-SAC-FC93-003',club:'FC 93',price:32,achat:14,discount:0,sizes:['Unique'],flocage:'',visible:true,qty:22,cat:'accessoire'},
+  {id:4,emoji:'👕',name:'Maillot Tiempo MC Adulte',ref:'NK-MJ-FC93-004',club:'FC 93',price:42,achat:20,discount:15,sizes:['S','M','L','XL','2XL'],flocage:'Nom + Initial',visible:true,qty:31,cat:'maillot'},
+  {id:5,emoji:'👖',name:'Pantalon Nike AC23 Enfant',ref:'NK-PT-IVR-005',club:'Ivry Football',price:28,achat:13,discount:0,sizes:['XS','S','M'],flocage:'',visible:false,qty:18,cat:'training'},
+  {id:6,emoji:'🧦',name:'Chaussettes Football Nike',ref:'NK-CH-FC93-006',club:'FC 93',price:9,achat:3.5,discount:0,sizes:['35-38','39-42','43-46'],flocage:'',visible:true,qty:55,cat:'accessoire'},
+  {id:7,emoji:'🦺',name:'Sweat Capuche hmlCORE Enfant',ref:'HM-SW-IVR-007',club:'Ivry Football',price:36,achat:17,discount:0,sizes:['8A','10A','12A','14A'],flocage:'',visible:true,qty:12,cat:'lifestyle'},
+  {id:8,emoji:'🧥',name:'Veste Sirius Hummel Enfant',ref:'HM-VT-RAC-008',club:'Racing Club Neauphle',price:31.5,achat:15,discount:20,sizes:['S','M','L'],flocage:'',visible:true,qty:9,cat:'training'},
+];
+
+const ORDERS=[
+  {name:'Marc Dupont',   club:'FC 93',             articles:3, amount:127,   status:'paid',    date:'29 Mar 2026', num:'CMD-2026-086', colissimo:''},
+  {name:'Sophie Martin', club:'Ivry Football',      articles:1, amount:45,    status:'shipped', date:'28 Mar 2026', num:'CMD-2026-085', colissimo:'6V12345678901'},
+  {name:'Ali Benali',    club:'Racing Club',         articles:5, amount:213.50,status:'pending', date:'27 Mar 2026', num:'CMD-2026-084', colissimo:''},
+  {name:'Léa Moreau',    club:'Fontenay',            articles:2, amount:68,    status:'paid',    date:'26 Mar 2026', num:'CMD-2026-083', colissimo:''},
+  {name:'Thomas Petit',  club:'Rueil Football',      articles:2, amount:92,    status:'paid',    date:'25 Mar 2026', num:'CMD-2026-082', colissimo:''},
+  {name:'Julien Blanc',  club:'FC 93',               articles:4, amount:156,   status:'shipped', date:'24 Mar 2026', num:'CMD-2026-081', colissimo:'6V98765432109'},
+  {name:'Amina Diallo',  club:'Villiers-le-Mahieu',  articles:1, amount:36,    status:'pending', date:'23 Mar 2026', num:'CMD-2026-080', colissimo:''},
+  {name:'Pierre Lebrun', club:'Ivry Football',        articles:3, amount:98,    status:'paid',    date:'22 Mar 2026', num:'CMD-2026-079', colissimo:''},
+];
+
+const CLUBS=[
+  {name:'FC 93',sport:'Football',logo:'🔵',products:24,orders:41,ca:5840,color:'var(--primary-glow)',footspot:true},
+  {name:'Ivry Football',sport:'Football',logo:'🟢',products:18,orders:22,ca:3210,color:'var(--green-bg)',footspot:true},
+  {name:'Racing Club Neauphle',sport:'Football',logo:'🔴',products:12,orders:9,ca:1850,color:'rgba(227,11,12,.08)',footspot:false},
+  {name:'Rueil Football',sport:'Football',logo:'⚫',products:15,orders:14,ca:2140,color:'rgba(0,0,0,.05)',footspot:true},
+  {name:'Fontenay-aux-Roses',sport:'Football',logo:'🟡',products:9,orders:7,ca:980,color:'var(--amber-bg)',footspot:false},
+  {name:'Villiers-le-Mahieu',sport:'Handball',logo:'🟣',products:11,orders:11,ca:1560,color:'var(--purple-bg)',footspot:true},
+];
+
+// CAGNOTTES — solde + historique (pas de plafond)
+const CAGNOTTES={
+  'FC 93':{solde:1240,logo:'🔵',color:'var(--primary-glow)',hist:[
+    {type:'debit',label:'Achat maillots (24 pcs)',amount:680,date:'15 Mar 2026',ref:'CMD-2026-041'},
+    {type:'credit',label:'Dotation annuelle 2026',amount:1500,date:'01 Jan 2026',ref:'DOT-2026-001'},
+    {type:'debit',label:'Achat équipement training',amount:420,date:'10 Nov 2025',ref:'CMD-2025-098'},
+    {type:'credit',label:'Bonus classement',amount:200,date:'30 Sep 2025',ref:'BON-2025-003'},
+    {type:'debit',label:'Commande flocage',amount:360,date:'12 Sep 2025',ref:'CMD-2025-071'},
+  ]},
+  'Ivry Football':{solde:580,logo:'🟢',color:'var(--green-bg)',hist:[
+    {type:'debit',label:'Achat maillots (18 pcs)',amount:520,date:'20 Mar 2026',ref:'CMD-2026-039'},
+    {type:'credit',label:'Dotation annuelle 2026',amount:1200,date:'01 Jan 2026',ref:'DOT-2026-002'},
+    {type:'debit',label:'Achat accessoires',amount:100,date:'05 Dec 2025',ref:'CMD-2025-102'},
+  ]},
+  'Racing Club Neauphle':{solde:180,logo:'🔴',color:'rgba(227,11,12,.08)',hist:[
+    {type:'debit',label:'Achat maillots (12 pcs)',amount:390,date:'18 Mar 2026',ref:'CMD-2026-037'},
+    {type:'credit',label:'Dotation annuelle 2026',amount:800,date:'01 Jan 2026',ref:'DOT-2026-003'},
+    {type:'debit',label:'Achat chaussures',amount:230,date:'22 Oct 2025',ref:'CMD-2025-082'},
+  ]},
+  'Rueil Football':{solde:870,logo:'⚫',color:'rgba(0,0,0,.05)',hist:[
+    {type:'credit',label:'Dotation annuelle 2026',amount:1200,date:'01 Jan 2026',ref:'DOT-2026-004'},
+    {type:'debit',label:'Achat maillots (15 pcs)',amount:330,date:'25 Feb 2026',ref:'CMD-2026-019'},
+  ]},
+  'Fontenay-aux-Roses':{solde:310,logo:'🟡',color:'var(--amber-bg)',hist:[
+    {type:'credit',label:'Dotation annuelle 2026',amount:600,date:'01 Jan 2026',ref:'DOT-2026-005'},
+    {type:'debit',label:'Achat accessoires',amount:290,date:'14 Feb 2026',ref:'CMD-2026-011'},
+  ]},
+  'Villiers-le-Mahieu':{solde:640,logo:'🟣',color:'var(--purple-bg)',hist:[
+    {type:'credit',label:'Dotation annuelle 2026',amount:1000,date:'01 Jan 2026',ref:'DOT-2026-006'},
+    {type:'debit',label:'Achat maillots handball',amount:360,date:'10 Feb 2026',ref:'CMD-2026-008'},
+  ]},
+};
+
+let USERS=[
+  {id:1,prenom:'Admin',nom:'IDF',email:'admin@intersport-idf.fr',role:'admin',club:'',actif:true,orders:0,createdAt:'Jan 2024'},
+  {id:2,prenom:'Sophie',nom:'Leclerc',email:'s.leclerc@fc93.fr',role:'club',club:'FC 93',actif:true,orders:41,createdAt:'Mar 2024'},
+  {id:3,prenom:'Karim',nom:'Bensaid',email:'k.bensaid@ivry.fr',role:'club',club:'Ivry Football',actif:true,orders:22,createdAt:'Apr 2024'},
+  {id:4,prenom:'Julie',nom:'Martin',email:'j.martin@racing.fr',role:'club',club:'Racing Club Neauphle',actif:true,orders:9,createdAt:'Jun 2024'},
+  {id:5,prenom:'Marc',nom:'Dupont',email:'m.dupont@rueil.fr',role:'club',club:'Rueil Football',actif:true,orders:14,createdAt:'Jun 2024'},
+  {id:6,prenom:'Nadia',nom:'Benali',email:'n.benali@fontenay.fr',role:'club',club:'Fontenay-aux-Roses',actif:false,orders:7,createdAt:'Aug 2024'},
+  {id:7,prenom:'Thomas',nom:'Petit',email:'t.petit@villiers.fr',role:'club',club:'Villiers-le-Mahieu',actif:true,orders:11,createdAt:'Sep 2024'},
+  {id:8,prenom:'Léa',nom:'Rousseau',email:'l.rousseau@intersport-idf.fr',role:'viewer',club:'',actif:true,orders:0,createdAt:'Oct 2024'},
+  {id:9,prenom:'Paul',nom:'Bernard',email:'p.bernard@intersport-idf.fr',role:'viewer',club:'',actif:true,orders:0,createdAt:'Nov 2024'},
+];
+
+const CHART_DATA={
+  '12m':{labels:['Jan','Fév','Mar','Avr','Mai','Jui','Jul','Aoû','Sep','Oct','Nov','Déc'],revenue:[6200,8500,5200,10300,7600,5800,4100,12100,13000,9600,8300,11000],achat:[3100,4200,2600,5150,3800,2900,2050,6050,6500,4800,4150,5500],faint:[0,0,0,0,0,0,1,0,0,0,0,0]},
+  '6m':{labels:['Jul','Aoû','Sep','Oct','Nov','Déc'],revenue:[4100,12100,13000,9600,8300,11000],achat:[2050,6050,6500,4800,4150,5500],faint:[1,0,0,0,0,0]},
+  '90d':{labels:['Oct S1','Oct S2','Nov S1','Nov S2','Déc S1','Déc S2'],revenue:[4800,4800,4150,4150,5500,5500],achat:[2400,2400,2075,2075,2750,2750],faint:[0,0,0,0,0,0]},
+  '30d':{labels:['Sem 1','Sem 2','Sem 3','Sem 4'],revenue:[3200,2800,3100,2900],achat:[1600,1400,1550,1450],faint:[0,0,0,0]},
+  '7d':{labels:['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],revenue:[480,620,390,710,540,820,430],achat:[240,310,195,355,270,410,215],faint:[0,0,0,0,0,0,0]},
+};
+const SPORT_DONUT=[{sport:'Football',pct:64,color:'#0331f9'},{sport:'Handball',pct:17,color:'#10b981'},{sport:'Tennis',pct:10,color:'#f59e0b'},{sport:'Basketball',pct:6,color:'#8b5cf6'},{sport:'Athlétisme',pct:3,color:'#e30b0c'}];
+const PERIOD_KPI={'7d':{ca:4990,orders:12,panier:416},'30d':{ca:14580,orders:86,panier:746},'90d':{ca:41200,orders:218,panier:892},'12m':{ca:105580,orders:826,panier:1067}};
+
+let productFilter='all',sortCol=-1,sortAsc=true,editingId=null,rowToDelete=null,darkMode=false,sidebarCollapsed=false;
+let currentDebitClub=null,currentCreditClub=null,editingUserId=null;
+
+// INIT
+window.addEventListener('load',()=>{
+  animateCounters();renderOverviewChart('12m');renderRecentOrders();
+  renderProducts();renderClubs();renderOrders();renderStats('90d');renderUsers();
+});
+
+// ══ TOAST ══
+function toast(icon,title,msg){
+  const z=document.getElementById('toastZone'),t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML=`<span style="font-size:18px">${icon}</span><div><div style="font-weight:700;margin-bottom:2px">${title}</div><div style="font-size:11px;opacity:.65">${msg}</div></div>`;
+  z.appendChild(t);setTimeout(()=>t.remove(),3200);
+}
+
+// ══ RIPPLE ══
+document.addEventListener('click',e=>{
+  const h=e.target.closest('.rpl');if(!h)return;
+  const d=document.createElement('div');d.className='ripple-dot';
+  const r=h.getBoundingClientRect(),s=Math.max(r.width,r.height);
+  d.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;
+  h.appendChild(d);setTimeout(()=>d.remove(),600);
+});
+
+// ══ COUNTERS ══
+function animateNum(el,to,fmt){let c=0;const step=Math.max(1,Math.ceil(to/45));const t=setInterval(()=>{c=Math.min(c+step,to);el.textContent=fmt(c);if(c>=to)clearInterval(t);},25)}
+function animateCounters(){
+  animateNum(document.getElementById('cntCA'),14580,v=>'€'+v.toLocaleString('fr-FR'));
+  animateNum(document.getElementById('cntOrders'),86,v=>v);
+  // Valeur moyenne de commande par club = CA total / nombre de clubs actifs
+  const totalCA=CLUBS.reduce((s,c)=>s+c.ca,0);
+  const panier=Math.round(totalCA/CLUBS.length);
+  animateNum(document.getElementById('cntPanier'),panier,v=>'€'+v.toLocaleString('fr-FR'));
+  animateNum(document.getElementById('cntProd'),142,v=>v);
+}
+
+// ══ CHART ══
+function renderOverviewChart(period,btn){
+  if(btn){btn.closest('.card-actions').querySelectorAll('.card-action-btn').forEach(b=>b.classList.remove('primary'));btn.classList.add('primary');}
+  const d=CHART_DATA[period]||CHART_DATA['12m'];
+  const container=document.getElementById('chartBars');
+  const max=Math.max(...d.revenue);
+  container.innerHTML=d.labels.map((l,i)=>`<div class="chart-bar-group"><div class="chart-bar" style="height:0%;background:${d.faint[i]?'rgba(3,49,249,.35)':'var(--primary)'}"><div class="chart-bar-tooltip">€${d.revenue[i].toLocaleString('fr-FR')}</div></div><span class="chart-bar-label">${l}</span></div>`).join('');
+  setTimeout(()=>container.querySelectorAll('.chart-bar').forEach((b,i)=>{setTimeout(()=>{b.style.height=(d.revenue[i]/max*90)+'%'},i*50);}),80);
+}
+
+// ══ RECENT ORDERS ══
+function renderRecentOrders(){
+  const av=['var(--primary-glow)','var(--green-bg)','var(--amber-bg)','var(--purple-bg)','var(--primary-glow)'];
+  const sH={
+    paid:   '<span class="order-status status-paid">✅ Payé</span>',
+    pending:'<span class="order-status status-pending">⏳ En attente</span>',
+    shipped:'<span class="order-status status-shipped">🚚 Expédié</span>'
+  };
+  document.getElementById('recentOrders').innerHTML=ORDERS.slice(0,5).map((o,i)=>`
+    <div class="order-item" onclick="switchView('orders',document.getElementById('tab-orders'))">
+      <div class="order-avatar" style="background:${av[i%5]}">👤</div>
+      <div class="order-info">
+        <div class="order-name">${o.name}
+          <span style="font-family:monospace;font-size:10px;color:var(--primary);background:var(--primary-glow);padding:1px 6px;border-radius:4px;margin-left:6px;font-weight:700">${o.num}</span>
+        </div>
+        <div class="order-detail">${o.club} — ${o.articles} art.${o.colissimo?` · 📦 ${o.colissimo}`:''}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="order-amount">€${o.amount.toFixed(2)}</div>
+        ${sH[o.status]}
+      </div>
+    </div>`).join('');
+}
+
+// ══ PRODUCTS ══
+function getFiltered(){
+  if(productFilter==='all')return[...PRODUCTS];
+  if(productFilter==='visible')return PRODUCTS.filter(p=>p.visible);
+  if(productFilter==='hidden')return PRODUCTS.filter(p=>!p.visible);
+  return PRODUCTS.filter(p=>p.club===productFilter);
+}
+function renderProducts(){
+  const list=getFiltered();
+  document.getElementById('pageInfo').textContent=`${list.length} produit${list.length>1?'s':''} affiché${list.length>1?'s':''} / ${PRODUCTS.length} total`;
+  if(!list.length){document.getElementById('productsTbody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">Aucun produit</td></tr>`;return;}
+  document.getElementById('productsTbody').innerHTML=list.map(p=>{
+    const mg=p.price-p.achat,pct=Math.round(mg/p.price*100);
+    const mc=pct>=45?'var(--green)':pct>=35?'var(--amber)':'var(--secondary)';
+    const discounted=p.discount>0?p.price*(1-p.discount/100):null;
+    const priceCell=discounted
+      ?`<div class="price-with-discount"><span class="price-original">€${p.price.toFixed(2)}</span><span class="price-discounted">€${discounted.toFixed(2)}</span></div>`
+      :`<span class="table-price">€${p.price.toFixed(2)}</span>`;
+    const discountCell=p.discount>0
+      ?`<span class="discount-badge">−${p.discount}%</span>`
+      :`<span style="font-size:12px;color:var(--text-light)">—</span>`;
+    return `<tr data-id="${p.id}" onclick="selectRow(this)">
+      <td><div class="table-product"><div class="table-product-img">${p.emoji}</div><div><div class="table-product-name">${p.name}</div><div class="table-product-ref">${p.ref}</div></div></div></td>
+      <td><span class="table-club-badge">⚽ ${p.club}</span></td>
+      <td>${priceCell}</td>
+      <td>${discountCell}</td>
+      <td><span style="font-family:'Outfit',sans-serif;font-weight:700;color:${mc}">+€${mg.toFixed(2)} <small style="font-weight:500;font-size:11px">(${pct}%)</small></span></td>
+      <td><div class="table-sizes">${p.sizes.map(s=>`<span class="table-size">${s}</span>`).join('')}</div></td>
+      <td>${p.flocage?`<span style="font-size:12px;color:var(--green);font-weight:600">${p.flocage}</span>`:`<span style="font-size:12px;color:var(--text-light)">—</span>`}</td>
+      <td><div class="table-toggle ${p.visible?'on':'off'}" onclick="toggleVisible(event,${p.id})"></div></td>
+      <td><div class="table-actions"><div class="table-action" onclick="editProduct(event,${p.id})">✏️</div><div class="table-action delete" onclick="confirmDelete(event,${p.id})">🗑️</div></div></td>
+    </tr>`;}).join('');
+}
+function filterProducts(chip){
+  document.querySelectorAll('#view-products .sf-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');productFilter=chip.dataset.pfilter;renderProducts();
+  toast('🔍','Filtre',chip.textContent.trim());
+}
+function selectRow(tr){document.querySelectorAll('#productsTbody tr').forEach(r=>r.classList.remove('selected'));tr.classList.add('selected')}
+function toggleVisible(e,id){e.stopPropagation();const p=PRODUCTS.find(x=>x.id===id);if(!p)return;p.visible=!p.visible;renderProducts();toast(p.visible?'👁️':'🙈',p.visible?'Visible':'Masqué',p.name)}
+function editProduct(e,id){
+  e.stopPropagation();const p=PRODUCTS.find(x=>x.id===id);editingId=id;
+  document.getElementById('modalTitle').textContent='Modifier le produit';
+  document.getElementById('mNom').value=p.name;document.getElementById('mRef').value=p.ref;
+  document.getElementById('mPrix').value=p.price;document.getElementById('mAchat').value=p.achat;
+  document.getElementById('mClub').value=p.club;document.getElementById('mTailles').value=p.sizes.join(', ');
+  document.getElementById('mFlocage').value=p.flocage;
+  document.getElementById('mDiscount').value=p.discount||0;
+  updateDiscountPreview();
+  document.getElementById('productModal').classList.add('open');
+}
+function openProductModal(){
+  editingId=null;document.getElementById('modalTitle').textContent='Nouveau produit';
+  ['mNom','mRef','mPrix','mAchat','mTailles'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mFlocage').value='';
+  document.getElementById('mDiscount').value=0;
+  document.getElementById('discountPreviewRow').style.display='none';
+  document.getElementById('productModal').classList.add('open');
+}
+function updateDiscountPreview(){
+  const prix=parseFloat(document.getElementById('mPrix').value)||0;
+  const disc=parseFloat(document.getElementById('mDiscount').value)||0;
+  const row=document.getElementById('discountPreviewRow');
+  if(disc>0&&prix>0){
+    row.style.display='block';
+    const final=prix*(1-disc/100);
+    document.getElementById('mDiscountOriginal').textContent='€'+prix.toFixed(2);
+    document.getElementById('mDiscountFinal').textContent='€'+final.toFixed(2);
+    document.getElementById('mDiscountBadge').textContent='−'+disc+'%';
+  } else {
+    row.style.display='none';
+  }
+}
+function saveProduct(){
+  const nom=document.getElementById('mNom').value.trim();
+  if(!nom){document.getElementById('mNom').style.borderColor='var(--secondary)';return;}
+  document.getElementById('mNom').style.borderColor='';
+  const prix=parseFloat(document.getElementById('mPrix').value)||0;
+  const achat=parseFloat(document.getElementById('mAchat').value)||0;
+  const discount=Math.max(0,Math.min(100,parseFloat(document.getElementById('mDiscount').value)||0));
+  const club=document.getElementById('mClub').value;
+  const sizes=document.getElementById('mTailles').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const flocage=document.getElementById('mFlocage').value;
+  const ref=document.getElementById('mRef').value.trim();
+  if(editingId){const p=PRODUCTS.find(x=>x.id===editingId);Object.assign(p,{name:nom,ref,price:prix,achat,discount,club,sizes:sizes.length?sizes:p.sizes,flocage});toast('✅','Modifié',nom+(discount>0?` — Réduction ${discount}%`:''));}
+  else{PRODUCTS.push({id:Date.now(),emoji:'📦',name:nom,ref,club,price:prix,achat,discount,sizes:sizes.length?sizes:['S','M','L'],flocage,visible:true,qty:0,cat:'maillot'});toast('✅','Ajouté',nom+(discount>0?` — Réduction ${discount}%`:''));}
+  renderProducts();closeModal('productModal');
+}
+function confirmDelete(e,id){e.stopPropagation();rowToDelete=id;document.getElementById('deleteModal').classList.add('open')}
+document.getElementById('confirmDeleteBtn').onclick=function(){
+  if(rowToDelete===null)return;const idx=PRODUCTS.findIndex(p=>p.id===rowToDelete);const name=PRODUCTS[idx]?.name||'';
+  if(idx>-1)PRODUCTS.splice(idx,1);renderProducts();closeModal('deleteModal');toast('🗑️','Supprimé',name);rowToDelete=null;
+};
+function sortTable(col,th){
+  if(sortCol===col){sortAsc=!sortAsc;th.classList.toggle('desc',!sortAsc)}
+  else{document.querySelectorAll('#view-products thead th').forEach(t=>t.classList.remove('sorted','desc'));sortCol=col;sortAsc=true}
+  th.classList.add('sorted');
+  const keys=[null,'club','price','achat'];
+  if(col===0)PRODUCTS.sort((a,b)=>sortAsc?a.name.localeCompare(b.name):b.name.localeCompare(a.name));
+  else PRODUCTS.sort((a,b)=>sortAsc?a[keys[col]]-b[keys[col]]:b[keys[col]]-a[keys[col]]);
+  renderProducts();toast('📊','Trié',['Nom','Club','Prix','Marge'][col]);
+}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+// ══ CLUBS ══
+function renderClubs(){
+  document.getElementById('clubsGrid').innerHTML=CLUBS.map(c=>{
+    const cag=CAGNOTTES[c.name];const cagTxt=cag?`Cagnotte: <strong style="color:var(--gold)">€${cag.solde.toLocaleString('fr-FR')}</strong>`:'—';
+    const footspotBadge=c.footspot
+      ?`<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;border:1px solid #a5d6a7"><svg width="12" height="12" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#2e8b3e"/><text x="22" y="62" font-family="Arial Black,sans-serif" font-weight="900" font-size="44" fill="white">F</text><circle cx="64" cy="60" r="18" fill="#f5a623"/><circle cx="64" cy="60" r="11" fill="#2e8b3e"/></svg> Footspot</span>`
+      :`<span style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;color:#9ca3af;font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;border:1px solid #e5e7eb">Non affilié</span>`;
+    return `<div class="club-mgmt-card" onclick="toast('🏟️','${c.name}','CA: €${c.ca.toLocaleString('fr-FR')} — Cagnotte: €${cag?cag.solde:0}')">
+      <div class="club-mgmt-header"><div class="club-mgmt-logo" style="background:${c.color}">${c.logo}</div><div><div class="club-mgmt-name">${c.name}</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-size:12px;color:var(--text-muted)">${c.sport}</span>${footspotBadge}</div></div></div>
+      <div class="club-mgmt-stats">
+        <div class="club-stat"><strong>${c.products}</strong>produits</div>
+        <div class="club-stat"><strong>${c.orders}</strong>commandes</div>
+        <div class="club-stat"><strong>€${(c.ca/1000).toFixed(1)}k</strong>CA</div>
+      </div>
+      <div style="font-size:12px;margin:10px 0;color:var(--text-muted)">${cagTxt}</div>
+      <div class="club-mgmt-actions">
+        <button class="club-mgmt-btn" onclick="event.stopPropagation();toast('✏️','Modifier','${c.name}')">✏️ Modifier</button>
+        <button class="club-mgmt-btn" onclick="event.stopPropagation();openDebitModal('${c.name}')">💳 Débiter</button>
+        <button class="club-mgmt-btn danger" onclick="event.stopPropagation();toast('⚠️','Attention','Action irréversible')">🗑️</button>
+      </div>
+    </div>`;}).join('');
+}
+
+// ══ ORDERS ══
+function filterOrders(chip){
+  document.querySelectorAll('#view-orders .sf-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  const status=chip.dataset.ostatus;
+  buildOrdersTable(status==='all'?ORDERS:ORDERS.filter(o=>o.status===status));
+  toast('🔍','Filtre commandes',chip.textContent.trim());
+}
+function renderOrders(){buildOrdersTable(ORDERS)}
+function buildOrdersTable(list){
+  const av=['var(--primary-glow)','var(--green-bg)','var(--amber-bg)','var(--purple-bg)','var(--primary-glow)','var(--green-bg)','var(--amber-bg)','var(--purple-bg)'];
+  const sH={
+    paid:   '<span class="order-status status-paid">✅ Payé</span>',
+    pending:'<span class="order-status status-pending">⏳ En attente</span>',
+    shipped:'<span class="order-status status-shipped">🚚 Expédié</span>'
+  };
+  document.getElementById('ordersPageInfo').textContent=`${list.length} commande${list.length>1?'s':''} affichée${list.length>1?'s':''}`;
+  if(!list.length){document.getElementById('ordersBody').innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted)">Aucune commande pour ce filtre</div>';return;}
+
+  document.getElementById('ordersBody').innerHTML=`
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr>
+      ${['N° Commande','Client','Club','Articles','Montant','Statut','Suivi Colissimo','Date','Actions'].map(h=>
+        `<th style="text-align:left;padding:12px 18px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;background:#fafbfc;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`
+      ).join('')}
+    </tr></thead>
+    <tbody>
+      ${list.map((o,i)=>{
+        const idx=ORDERS.indexOf(o);
+        const colURL=o.colissimo?`https://www.laposte.fr/outils/suivre-vos-envois?code=${o.colissimo}`:'';
+        const colCell=o.colissimo
+          ?`<div style="display:flex;flex-direction:column;gap:4px">
+               <span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--text);letter-spacing:1px">${o.colissimo}</span>
+               <a href="${colURL}" target="_blank"
+                  style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--primary);text-decoration:none;background:var(--primary-glow);padding:3px 8px;border-radius:6px;width:fit-content;transition:opacity .2s"
+                  onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'"
+                  onclick="event.stopPropagation()">
+                 🔗 Suivre sur La Poste ↗
+               </a>
+             </div>`
+          :`<span style="font-size:12px;color:var(--text-light);font-style:italic">Non renseigné</span>`;
+
+        return `<tr style="border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer"
+          onmouseover="this.style.background='rgba(3,49,249,.025)'" onmouseout="this.style.background=''">
+
+          <!-- N° commande -->
+          <td style="padding:14px 18px;vertical-align:middle">
+            <span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-glow);padding:3px 8px;border-radius:6px;white-space:nowrap">${o.num}</span>
+          </td>
+
+          <!-- Client -->
+          <td style="padding:14px 18px;vertical-align:middle">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:34px;height:34px;border-radius:9px;background:${av[i%8]};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">👤</div>
+              <div style="font-weight:600;font-size:13px">${o.name}</div>
+            </div>
+          </td>
+
+          <!-- Club -->
+          <td style="padding:14px 18px;vertical-align:middle"><span class="table-club-badge">⚽ ${o.club}</span></td>
+
+          <!-- Articles -->
+          <td style="padding:14px 18px;font-size:13px;vertical-align:middle;white-space:nowrap">${o.articles} art.</td>
+
+          <!-- Montant -->
+          <td style="padding:14px 18px;vertical-align:middle">
+            <span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:15px">€${o.amount.toFixed(2)}</span>
+          </td>
+
+          <!-- Statut -->
+          <td style="padding:14px 18px;vertical-align:middle">${sH[o.status]}</td>
+
+          <!-- Suivi Colissimo -->
+          <td style="padding:14px 18px;vertical-align:middle;min-width:200px">${colCell}</td>
+
+          <!-- Date -->
+          <td style="padding:14px 18px;font-size:12px;color:var(--text-muted);vertical-align:middle;white-space:nowrap">${o.date}</td>
+
+          <!-- Actions -->
+          <td style="padding:14px 18px;vertical-align:middle">
+            <div style="display:flex;gap:6px">
+              <div class="table-action" onclick="cycleStatus(${idx})" title="Changer statut">🔄</div>
+              <div class="table-action" onclick="openTrackingModal(${idx})" title="${o.colissimo?'Modifier le suivi':'Ajouter le suivi Colissimo'}"
+                   style="${o.colissimo?'border-color:var(--green);color:var(--green)':''}">📦</div>
+              <div class="table-action" onclick="toast('👁️','Détail','${o.num} — ${o.name}')" title="Voir détail">👁️</div>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+function cycleStatus(idx){
+  const cycle=['paid','shipped','pending'];
+  ORDERS[idx].status=cycle[(cycle.indexOf(ORDERS[idx].status)+1)%3];
+  renderOrders();renderRecentOrders();
+  const labels={paid:'Payé',shipped:'Expédié',pending:'En attente'};
+  toast('🔄','Statut',ORDERS[idx].name+' → '+labels[ORDERS[idx].status]);
+}
+
+// ══ COLISSIMO TRACKING ══
+let currentTrackingIdx=null;
+function openTrackingModal(idx){
+  currentTrackingIdx=idx;
+  const o=ORDERS[idx];
+  document.getElementById('trackingOrderNum').textContent=o.num;
+  document.getElementById('trackingOrderClient').textContent=o.name+' — '+o.club+' — '+o.articles+' article'+(o.articles>1?'s':'');
+  document.getElementById('trackingInput').value=o.colissimo||'';
+  updateTrackingPreview();
+  document.getElementById('trackingModal').classList.add('open');
+}
+function updateTrackingPreview(){
+  const val=document.getElementById('trackingInput').value.trim().toUpperCase();
+  const box=document.getElementById('trackingPreviewBox');
+  const link=document.getElementById('trackingPreviewLink');
+  if(val.length>=8){
+    box.style.display='block';
+    const url=`https://www.laposte.fr/outils/suivre-vos-envois?code=${val}`;
+    link.href=url;
+    link.textContent=url;
+  } else {
+    box.style.display='none';
+  }
+}
+function saveTracking(){
+  if(currentTrackingIdx===null)return;
+  const val=document.getElementById('trackingInput').value.trim().toUpperCase();
+  ORDERS[currentTrackingIdx].colissimo=val;
+  // Auto-switch to "shipped" if tracking added and status was pending/paid
+  if(val && ORDERS[currentTrackingIdx].status==='paid'){
+    ORDERS[currentTrackingIdx].status='shipped';
+    toast('🚚','Statut mis à jour','Commande passée en "Expédié"');
+  }
+  renderOrders();renderRecentOrders();
+  closeModal('trackingModal');
+  toast('📦','Suivi Colissimo',val?`N° ${val} enregistré`:'Numéro effacé');
+}
+
+// ══ STATS ══
+function setPeriod(btn){
+  document.querySelectorAll('#periodBtns .stat-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderStats(btn.dataset.period);toast('📅','Période',btn.textContent.trim());
+}
+function renderStats(period){
+  const kpi=PERIOD_KPI[period]||PERIOD_KPI['90d'];
+  const totalCag=Object.values(CAGNOTTES).reduce((s,c)=>s+c.solde,0);
+  document.getElementById('statsKpis').innerHTML=`
+    <div class="stat-card-overview"><div class="sko-label">💰 Chiffre d'affaires</div><div class="sko-value" style="color:var(--primary)">€${kpi.ca.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--green);margin-top:4px">↑ 12% vs période préc.</div></div>
+    <div class="stat-card-overview"><div class="sko-label">📦 Commandes</div><div class="sko-value">${kpi.orders}</div><div style="font-size:11px;color:var(--green);margin-top:4px">↑ 8% vs période préc.</div></div>
+    <div class="stat-card-overview"><div class="sko-label">📊 Valeur moy. / commande</div><div class="sko-value" style="color:var(--purple)">€${kpi.panier.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Par club sur la période</div></div>
+    <div class="stat-card-overview"><div class="sko-label">🏆 Total cagnottes</div><div class="sko-value" style="color:var(--gold)">€${totalCag.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px">${Object.keys(CAGNOTTES).length} clubs actifs</div></div>`;
+  renderStatsChart(period);renderDonut(kpi.ca);renderCagnottes();renderTopProducts();
+}
+
+function renderStatsChart(period){
+  const d=CHART_DATA[period]||CHART_DATA['12m'];
+  const container=document.getElementById('statsChartBars');
+  container.innerHTML='';const max=Math.max(...d.revenue);
+  d.labels.forEach((label,i)=>{
+    const g=document.createElement('div');g.className='chart-bar-group';
+    g.innerHTML=`<div style="display:flex;gap:3px;align-items:flex-end;width:100%;justify-content:center">
+      <div class="chart-bar" style="height:0%;background:var(--primary);width:45%;max-width:18px"><div class="chart-bar-tooltip">CA: €${d.revenue[i].toLocaleString('fr-FR')}</div></div>
+      <div class="chart-bar" style="height:0%;background:var(--green);width:45%;max-width:18px"><div class="chart-bar-tooltip">Marge: €${(d.revenue[i]-d.achat[i]).toLocaleString('fr-FR')}</div></div>
+    </div><span class="chart-bar-label">${label}</span>`;
+    container.appendChild(g);
+  });
+  setTimeout(()=>{
+    const bars=container.querySelectorAll('.chart-bar');
+    bars.forEach((b,i)=>{
+      const idx=Math.floor(i/2),isM=i%2===1;
+      const val=isM?(d.revenue[idx]-d.achat[idx]):d.revenue[idx];
+      setTimeout(()=>{b.style.height=(val/max*88)+'%'},idx*60);
+    });
+  },100);
+}
+
+function renderDonut(totalCA){
+  const R=50,C=2*Math.PI*R;let offset=0;
+  const segsEl=document.getElementById('donutSegs');segsEl.innerHTML='';
+  SPORT_DONUT.forEach(s=>{
+    const dash=C*s.pct/100;
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx','70');circle.setAttribute('cy','70');circle.setAttribute('r','50');
+    circle.setAttribute('fill','none');circle.setAttribute('stroke',s.color);circle.setAttribute('stroke-width','22');
+    circle.setAttribute('stroke-dasharray',`${dash} ${C-dash}`);
+    circle.setAttribute('stroke-dashoffset',-offset);
+    circle.style.cursor='pointer';
+    circle.addEventListener('click',()=>toast('📊',s.sport,s.pct+'% du CA total'));
+    segsEl.appendChild(circle);offset+=dash;
+  });
+  document.getElementById('donutTotal').textContent='€'+Math.round(totalCA/1000)+'k';
+  document.getElementById('donutLegend').innerHTML=SPORT_DONUT.map(s=>`<div class="donut-item" onclick="toast('📊','${s.sport}','${s.pct}% du CA')"><div class="donut-dot" style="background:${s.color}"></div><span class="donut-item-label">${s.sport}</span><span class="donut-item-pct" style="color:${s.color}">${s.pct}%</span></div>`).join('');
+}
+
+// ══ CAGNOTTES ══
+function renderCagnottes(){
+  const html=Object.entries(CAGNOTTES).map(([clubName,cag])=>{
+    const club=CLUBS.find(c=>c.name===clubName)||{color:'var(--primary-glow)',logo:'🔵',sport:'Football',footspot:false};
+    const soldeClass=cag.solde<200?'low':cag.solde<500?'mid':'';
+    // trend: last 3 movements net
+    const recentNet=cag.hist.slice(0,3).reduce((s,h)=>s+(h.type==='credit'?h.amount:-h.amount),0);
+    const trendIcon=recentNet>=0?'↑':'↓';const trendColor=recentNet>=0?'var(--green)':'var(--secondary)';
+    const histItems=cag.hist.map(h=>`
+      <div class="hist-item">
+        <span class="hist-icon">${h.type==='debit'?'💳':'➕'}</span>
+        <span class="hist-label">${h.label}</span>
+        <span class="hist-amount ${h.type}">${h.type==='debit'?'−':'+'} €${h.amount.toLocaleString('fr-FR')}</span>
+        <span class="hist-date">${h.date}</span>
+      </div>`).join('');
+    const showMore=cag.hist.length>2?`<div class="show-more" onclick="this.previousElementSibling.classList.toggle('expanded');this.textContent=this.previousElementSibling.classList.contains('expanded')?'▴ Réduire':'▾ Voir ${cag.hist.length-2} de plus'">▾ Voir ${cag.hist.length-2} de plus</div>`:'';
+    return `<div class="cagnotte-card">
+      <div class="cagnotte-header">
+        <div class="cagnotte-club-info">
+          <div class="cagnotte-logo" style="background:${club.color}">${cag.logo}</div>
+          <div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div class="cagnotte-club-name">${clubName}</div>
+              ${club.footspot?`<div class="footspot-badge" title="Affilié Footspot"><svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#2e8b3e"/><text x="22" y="62" font-family="Arial Black,sans-serif" font-weight="900" font-size="44" fill="white">F</text><circle cx="64" cy="60" r="18" fill="#f5a623"/><circle cx="64" cy="60" r="11" fill="#2e8b3e"/><circle cx="59" cy="55" r="3" fill="white" opacity="0.7"/><circle cx="69" cy="55" r="3" fill="white" opacity="0.7"/><circle cx="64" cy="66" r="3" fill="white" opacity="0.7"/></svg></div>`:`<div class="footspot-badge-off" title="Non affilié Footspot"><svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="#d1d5db"/><text x="22" y="62" font-family="Arial Black,sans-serif" font-weight="900" font-size="44" fill="white" opacity="0.5">F</text><circle cx="64" cy="60" r="18" fill="#9ca3af"/><circle cx="64" cy="60" r="11" fill="#d1d5db"/></svg></div>`}
+            </div>
+            <div class="cagnotte-club-sport">${club.sport}</div>
+          </div>
+        </div>
+        <div class="cagnotte-solde-wrap">
+          <div class="cagnotte-solde-label">Solde cagnotte</div>
+          <div class="cagnotte-solde ${soldeClass}">€${cag.solde.toLocaleString('fr-FR')}</div>
+          <div style="font-size:11px;color:${trendColor};margin-top:2px">${trendIcon} ${recentNet>=0?'+':''}€${Math.abs(recentNet).toLocaleString('fr-FR')} récemment</div>
+        </div>
+      </div>
+      <div class="cagnotte-hist" id="hist-${clubName.replace(/[\s\-']/g,'_')}">${histItems}</div>
+      ${showMore}
+      <div class="cagnotte-actions">
+        <button class="cagnotte-btn red" onclick="openDebitModal('${clubName}')">💳 Débiter</button>
+        <button class="cagnotte-btn gold" onclick="openCreditModal('${clubName}')">➕ Créditer</button>
+        <button class="cagnotte-btn" onclick="toast('📄','Historique','Export PDF en cours...')">📄 Export</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('cagnotteGrid').innerHTML=html;
+}
+
+function toggleHist(btn){
+  const id=btn.previousElementSibling?.id||btn.parentElement.querySelector('.cagnotte-hist')?.id;
+  const hist=btn.previousElementSibling;if(!hist)return;
+  const expanded=hist.classList.toggle('expanded');
+  btn.textContent=expanded?'▴ Réduire':'▾ Voir plus';
+}
+
+// ══ DEBIT MODAL ══
+function openDebitModal(clubName){
+  currentDebitClub=clubName;const cag=CAGNOTTES[clubName];if(!cag)return;
+  const club=CLUBS.find(c=>c.name===clubName)||{};
+  document.getElementById('debitLogo').textContent=cag.logo;
+  document.getElementById('debitClubName').textContent=clubName;
+  document.getElementById('debitSolde').textContent='€'+cag.solde.toLocaleString('fr-FR');
+  document.getElementById('dMontant').value='';document.getElementById('dRef').value='';
+  document.getElementById('dNote').value='';document.getElementById('dMotif').value='';
+  document.getElementById('dpBefore').textContent='€'+cag.solde.toLocaleString('fr-FR');
+  document.getElementById('dpAmount').textContent='€0.00';
+  document.getElementById('dpAfter').textContent='€'+cag.solde.toLocaleString('fr-FR');
+  document.getElementById('dpAfter').style.color='var(--gold)';
+  document.getElementById('debitModal').classList.add('open');
+}
+function updateDebitPreview(){
+  const cag=CAGNOTTES[currentDebitClub];if(!cag)return;
+  const montant=parseFloat(document.getElementById('dMontant').value)||0;
+  const after=cag.solde-montant;
+  document.getElementById('dpBefore').textContent='€'+cag.solde.toLocaleString('fr-FR');
+  document.getElementById('dpAmount').textContent='- €'+montant.toFixed(2);
+  document.getElementById('dpAfter').textContent='€'+after.toFixed(2);
+  document.getElementById('dpAfter').style.color=after<0?'var(--secondary)':after<200?'var(--amber)':'var(--gold)';
+}
+function executeDebit(){
+  const cag=CAGNOTTES[currentDebitClub];if(!cag)return;
+  const montant=parseFloat(document.getElementById('dMontant').value)||0;
+  const motif=document.getElementById('dMotif').value;
+  const ref=document.getElementById('dRef').value||'CMD-'+Date.now();
+  if(!motif){document.getElementById('dMotif').style.borderColor='var(--secondary)';return;}
+  document.getElementById('dMotif').style.borderColor='';
+  if(montant<=0){document.getElementById('dMontant').style.borderColor='var(--secondary)';return;}
+  document.getElementById('dMontant').style.borderColor='';
+  if(montant>cag.solde){toast('❌','Solde insuffisant',`Solde: €${cag.solde} — Demande: €${montant}`);return;}
+  cag.solde=Math.round((cag.solde-montant)*100)/100;
+  cag.hist.unshift({type:'debit',label:motif,amount:montant,date:new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}),ref});
+  closeModal('debitModal');renderCagnottes();renderStats('90d');animateCounters();
+  toast('💳','Débit effectué',`${currentDebitClub} — -€${montant.toFixed(2)}`);
+}
+
+// ══ CREDIT MODAL ══
+function openCreditModal(clubName){
+  currentCreditClub=clubName;const cag=CAGNOTTES[clubName];if(!cag)return;
+  document.getElementById('creditLogo').textContent=cag.logo;
+  document.getElementById('creditClubName').textContent=clubName;
+  document.getElementById('creditSolde').textContent='€'+cag.solde.toLocaleString('fr-FR');
+  document.getElementById('cMontant').value='';
+  document.getElementById('creditModal').classList.add('open');
+}
+function executeCredit(){
+  const cag=CAGNOTTES[currentCreditClub];if(!cag)return;
+  const montant=parseFloat(document.getElementById('cMontant').value)||0;
+  const motif=document.getElementById('cMotif').value;
+  if(montant<=0){document.getElementById('cMontant').style.borderColor='var(--secondary)';return;}
+  document.getElementById('cMontant').style.borderColor='';
+  cag.solde=Math.round((cag.solde+montant)*100)/100;
+  cag.hist.unshift({type:'credit',label:motif,amount:montant,date:new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}),ref:'CRD-'+Date.now()});
+  closeModal('creditModal');renderCagnottes();renderStats('90d');animateCounters();
+  toast('➕','Crédit effectué',`${currentCreditClub} — +€${montant.toFixed(2)}`);
+}
+
+// ══ TOP PRODUITS avec filtres dynamiques ══
+function renderTopProducts(){
+  const fEquipe=(document.getElementById('topFilterEquipe')?.value||'').toLowerCase().trim();
+  const fRef=(document.getElementById('topFilterRef')?.value||'').toLowerCase().trim();
+  const fCat=(document.getElementById('topFilterCat')?.value||'').toLowerCase().trim();
+  let list=[...PRODUCTS].sort((a,b)=>(b.price-b.achat)/b.price-(a.price-a.achat)/a.price);
+  if(fEquipe)list=list.filter(p=>p.club.toLowerCase().includes(fEquipe));
+  if(fRef)list=list.filter(p=>p.ref.toLowerCase().includes(fRef)||p.name.toLowerCase().includes(fRef));
+  if(fCat)list=list.filter(p=>p.cat===fCat);
+  document.getElementById('topPageInfo').textContent=`${list.length} produit${list.length>1?'s':''} affiché${list.length>1?'s':''}${list.length<PRODUCTS.length?' (filtré)':''}`;
+  if(!list.length){document.getElementById('topProductsTbody').innerHTML=`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">Aucun produit pour ces critères</td></tr>`;return;}
+  document.getElementById('topProductsTbody').innerHTML=list.map((p,i)=>{
+    const mg=p.price-p.achat,pct=Math.round(mg/p.price*100);
+    const color=pct>=45?'var(--green)':pct>=35?'var(--amber)':'var(--secondary)';
+    const bgColor=pct>=45?'var(--green-bg)':pct>=35?'var(--amber-bg)':'rgba(227,11,12,.08)';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    return `<tr style="border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer" onmouseover="this.style.background='rgba(3,49,249,.025)'" onmouseout="this.style.background=''">
+      <td style="padding:14px 18px;vertical-align:middle"><div class="table-product"><div class="table-product-img">${p.emoji}</div><div><div class="table-product-name">${medal} ${p.name}</div><div class="table-product-ref">${p.ref}</div></div></div></td>
+      <td style="padding:14px 18px;vertical-align:middle"><span class="table-club-badge">⚽ ${p.club}</span></td>
+      <td style="padding:14px 18px;vertical-align:middle">
+        ${p.discount>0
+          ?`<div class="price-with-discount"><span class="price-original">€${p.price.toFixed(2)}</span><span class="price-discounted">€${(p.price*(1-p.discount/100)).toFixed(2)}</span></div>`
+          :`<span style="font-family:'Outfit',sans-serif;font-weight:700">€${p.price.toFixed(2)}</span>`}
+        ${p.discount>0?`<span class="discount-badge" style="margin-top:2px">−${p.discount}%</span>`:''}
+      </td>
+      <td style="padding:14px 18px;font-size:13px;vertical-align:middle;color:var(--text-muted)">€${p.achat.toFixed(2)}</td>
+      <td style="padding:14px 18px;vertical-align:middle"><span style="font-family:'Outfit',sans-serif;font-weight:700;color:${color}">+€${mg.toFixed(2)}</span></td>
+      <td style="padding:14px 18px;vertical-align:middle"><span style="font-weight:700;color:${color};background:${bgColor};padding:3px 8px;border-radius:6px;font-size:12px">${pct}%</span></td>
+      <td style="padding:14px 18px;font-size:13px;vertical-align:middle">${p.qty} unités</td>
+    </tr>`;}).join('');
+}
+function resetTopFilters(){
+  ['topFilterEquipe','topFilterRef','topFilterCat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderTopProducts();toast('✕','Filtres réinitialisés','Tous les produits');
+}
+
+// ══ USERS ══
+const ROLE_COLORS={admin:'tag-admin',club:'tag-club',viewer:'tag-viewer'};
+const ROLE_LABELS={admin:'Admin',club:'Resp. Club',viewer:'Lecteur'};
+const AVATAR_COLORS=['#0331f9','#10b981','#f59e0b','#8b5cf6','#e30b0c','#0891b2','#7c3aed','#059669','#dc2626'];
+
+function renderUsers(){
+  const search=(document.getElementById('userSearch')?.value||'').toLowerCase();
+  const roleF=document.getElementById('userRoleFilter')?.value||'';
+  const clubF=document.getElementById('userClubFilter')?.value||'';
+  let list=USERS.filter(u=>{
+    const matchSearch=!search||(u.prenom+' '+u.nom+' '+u.email).toLowerCase().includes(search);
+    const matchRole=!roleF||u.role===roleF;
+    const matchClub=!clubF||u.club===clubF;
+    return matchSearch&&matchRole&&matchClub;
+  });
+  document.getElementById('usersInfo').textContent=`${list.length} utilisateur${list.length>1?'s':''} affiché${list.length>1?'s':''}`;
+  if(!list.length){document.getElementById('usersGrid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">Aucun utilisateur trouvé</div>';return;}
+  document.getElementById('usersGrid').innerHTML=list.map((u,i)=>`
+    <div class="user-card">
+      <div class="user-card-header">
+        <div class="user-avatar" style="background:${AVATAR_COLORS[i%AVATAR_COLORS.length]}">${u.prenom[0]}${u.nom[0]}</div>
+        <div style="flex:1;overflow:hidden">
+          <div class="user-name">${u.prenom} ${u.nom}</div>
+          <div class="user-email" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.email}</div>
+        </div>
+      </div>
+      <div class="user-meta">
+        <span class="user-tag ${ROLE_COLORS[u.role]}">${ROLE_LABELS[u.role]}</span>
+        ${u.club?`<span class="user-tag" style="background:var(--primary-glow);color:var(--primary)">${u.club}</span>`:''}
+        ${!u.actif?`<span class="user-tag tag-inactive">Inactif</span>`:''}
+      </div>
+      <div class="user-stats">
+        <div class="u-stat"><strong>${u.orders}</strong>commandes</div>
+        <div class="u-stat"><strong style="color:${u.actif?'var(--green)':'var(--secondary)'}">${u.actif?'Actif':'Inactif'}</strong>statut</div>
+        <div class="u-stat"><strong>${u.createdAt}</strong>inscription</div>
+      </div>
+      <div class="user-actions">
+        <button class="user-btn" onclick="editUser(${u.id})">✏️ Modifier</button>
+        <button class="user-btn" onclick="toggleUserStatus(${u.id})">${u.actif?'⏸ Désactiver':'▶ Activer'}</button>
+        <button class="user-btn danger" onclick="deleteUser(${u.id})">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+function openUserModal(){
+  editingUserId=null;document.getElementById('userModalTitle').textContent='Nouvel utilisateur';
+  ['uPrenom','uNom','uEmail'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('uRole').value='club';document.getElementById('uClub').value='';
+  document.getElementById('userModal').classList.add('open');
+}
+function editUser(id){
+  const u=USERS.find(x=>x.id===id);if(!u)return;editingUserId=id;
+  document.getElementById('userModalTitle').textContent='Modifier l\'utilisateur';
+  document.getElementById('uPrenom').value=u.prenom;document.getElementById('uNom').value=u.nom;
+  document.getElementById('uEmail').value=u.email;document.getElementById('uRole').value=u.role;
+  document.getElementById('uClub').value=u.club;document.getElementById('userModal').classList.add('open');
+}
+function saveUser(){
+  const prenom=document.getElementById('uPrenom').value.trim();const nom=document.getElementById('uNom').value.trim();
+  const email=document.getElementById('uEmail').value.trim();
+  if(!prenom||!nom||!email){toast('❌','Erreur','Tous les champs obligatoires');return;}
+  const role=document.getElementById('uRole').value;const club=document.getElementById('uClub').value;
+  if(editingUserId){
+    const u=USERS.find(x=>x.id===editingUserId);Object.assign(u,{prenom,nom,email,role,club});
+    toast('✅','Modifié',prenom+' '+nom);
+  }else{
+    USERS.push({id:Date.now(),prenom,nom,email,role,club,actif:true,orders:0,createdAt:'Avr 2026'});
+    toast('✅','Créé',prenom+' '+nom);
+  }
+  closeModal('userModal');renderUsers();
+}
+function toggleUserStatus(id){
+  const u=USERS.find(x=>x.id===id);if(!u)return;u.actif=!u.actif;renderUsers();
+  toast(u.actif?'▶':'⏸',u.actif?'Compte activé':'Compte désactivé',u.prenom+' '+u.nom);
+}
+function deleteUser(id){
+  const idx=USERS.findIndex(x=>x.id===id);if(idx<0)return;
+  const name=USERS[idx].prenom+' '+USERS[idx].nom;USERS.splice(idx,1);renderUsers();
+  toast('🗑️','Supprimé',name);
+}
+
+// ══ NAV ══
+function navigate(el,view,title,crumb){
+  document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));el.classList.add('active');
+  document.getElementById('topbarTitle').textContent=title;document.getElementById('topbarCrumb').textContent=crumb;
+  const tabMap={overview:'tab-overview',products:'tab-products',clubs:'tab-clubs',orders:'tab-orders',stats:'tab-stats',users:'tab-users'};
+  const tab=document.getElementById(tabMap[view]);if(tab)switchView(view,tab);
+}
+function switchView(view,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.view-overview,.view-products,.view-clubs,.view-orders,.view-stats,.view-users').forEach(v=>v.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const el=document.getElementById('view-'+view);if(el)el.classList.add('active');
+  const titles={overview:'Dashboard',products:'Produits',clubs:'Clubs',orders:'Commandes',stats:'Statistiques',users:'Utilisateurs'};
+  const crumbs={overview:'Vue d\'ensemble',products:'Gestion Produits',clubs:'Clubs partenaires',orders:'Suivi Commandes',stats:'Cagnottes & Revenus',users:'Gestion des accès'};
+  document.getElementById('topbarTitle').textContent=titles[view]||'Dashboard';
+  document.getElementById('topbarCrumb').textContent=crumbs[view]||'';
+  const sNav=document.getElementById('sNav-'+view);
+  if(sNav){document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));sNav.classList.add('active');}
+}
+function toggleSidebar(){
+  sidebarCollapsed=!sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed',sidebarCollapsed);
+  document.getElementById('mainArea').style.marginLeft=sidebarCollapsed?'64px':'var(--sidebar-w)';
+}
+function toggleDark(){
+  darkMode=!darkMode;document.body.classList.toggle('dark',darkMode);
+  document.getElementById('darkBtn').textContent=darkMode?'☀️':'🌙';
+  toast(darkMode?'🌙':'☀️',darkMode?'Mode sombre':'Mode clair','');
+}
+function toggleNotif(){
+  document.getElementById('notifPanel').classList.toggle('open');
+  document.getElementById('notifDot').style.display='none';
+  document.getElementById('searchDd').classList.remove('open');
+}
+function clearNotifs(){document.getElementById('notifList').innerHTML='<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-muted)">Aucune notification</div>';toast('✅','Lu','Tout marqué comme lu')}
+
+const SEARCH_ITEMS=[
+  {icon:'👕',label:'Maillot Match Ext. Nike',type:'Produit'},
+  {icon:'🧥',label:'Parka Nike Park20',type:'Produit'},
+  {icon:'🏟️',label:'FC 93',type:'Club'},
+  {icon:'🏆',label:'Cagnotte FC 93',type:'Cagnotte'},
+  {icon:'👤',label:'Sophie Leclerc',type:'Utilisateur'},
+  {icon:'📈',label:'Statistiques cagnottes',type:'Page'},
+];
+function handleTopSearch(val){
+  const dd=document.getElementById('searchDd');
+  if(!val.trim()){dd.classList.remove('open');return}
+  const filtered=SEARCH_ITEMS.filter(i=>i.label.toLowerCase().includes(val.toLowerCase()));
+  if(!filtered.length){dd.classList.remove('open');return}
+  dd.innerHTML=filtered.map(i=>`<div class="search-dd-item" onclick="toast('🔍','${i.label}','${i.type}');document.getElementById('searchDd').classList.remove('open')"><span style="font-size:20px">${i.icon}</span><div style="flex:1"><div style="font-weight:600;font-size:13px">${i.label}</div><div style="font-size:11px;color:var(--text-muted)">${i.type}</div></div></div>`).join('');
+  dd.classList.add('open');
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#notifPanel')&&!e.target.closest('.topbar-btn'))document.getElementById('notifPanel').classList.remove('open');
+  if(!e.target.closest('.topbar-search')&&!e.target.closest('#searchDd'))document.getElementById('searchDd').classList.remove('open');
+  if(e.target.classList.contains('modal-overlay'))document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));document.getElementById('notifPanel').classList.remove('open');document.getElementById('searchDd').classList.remove('open')}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!--SUBJECT: [ALERTE] Colis retourné à l'expéditeur — {{order_number}}-->
+<!DOCTYPE html>
+<html lang="fr">
+<body style="margin:0;padding:24px;background:#fff7f6;color:#111;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:560px;margin:auto;background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,.05);border-left:6px solid #e30b0c">
+    <h1 style="font-size:20px;margin:0 0 4px;color:#e30b0c">Colis retourné — action requise</h1>
+    <p style="margin:0 0 16px;color:#555;font-size:13px">Commande {{order_number}}</p>
+
+    <p style="margin:0 0 16px">
+      Le colis suivi <code>{{tracking_number}}</code> a été retourné à l'expéditeur par La Poste
+      (statut <strong>RE1</strong>). La commande a été automatiquement passée en statut
+      <strong>annulée</strong>.
+    </p>
+
+    <table style="width:100%;margin-top:8px;font-size:14px">
+      <tr><td style="color:#888">Client</td><td style="text-align:right">{{customer_name}}</td></tr>
+      <tr><td style="color:#888">E-mail</td><td style="text-align:right">{{customer_email}}</td></tr>
+      <tr><td style="color:#888">Total</td><td style="text-align:right">{{total}}</td></tr>
+      <tr><td style="color:#888">Détecté le</td><td style="text-align:right">{{detected_at}}</td></tr>
+    </table>
+
+    <p style="margin:24px 0 8px">
+      <a href="{{admin_order_url}}"
+         style="display:inline-block;background:#e30b0c;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600">
+        Ouvrir la commande dans le back-office
+      </a>
+    </p>
+
+    <p style="margin:16px 0 0;color:#666;font-size:13px">
+      Étapes recommandées&nbsp;: contacter le client pour vérifier l'adresse, rembourser
+      si pertinent, puis re-générer une étiquette pour une nouvelle expédition.
+    </p>
+  </div>
+</body>
+</html>
