@@ -29,6 +29,25 @@ interface AppliedPromo {
   absorbs_by: 'intersport' | 'club'
 }
 const appliedPromo = ref<AppliedPromo | null>(null)
+
+interface PurchaseApplied { code: string; member_id: string; member_name?: string }
+interface PrepaidApplied {
+  code: string
+  prepaid_code_ref: string
+  member_id: string
+  member_name?: string
+  member_email?: string
+  club_id: string
+  club_name?: string
+  cap_amount_cents: number
+}
+const purchaseApplied = ref<PurchaseApplied | null>(null)
+const prepaidApplied = ref<PrepaidApplied | null>(null)
+const prepaidCredit = computed(() => {
+  if (!prepaidApplied.value) return 0
+  const afterPromo = Math.max(0, cart.subtotal - promoDiscount.value)
+  return Math.min(prepaidApplied.value.cap_amount_cents / 100, afterPromo)
+})
 const promoDiscount = computed(() =>
   appliedPromo.value ? Math.min(appliedPromo.value.amount, cart.subtotal) : 0,
 )
@@ -49,6 +68,7 @@ const shipping = ref<ShippingAddress>({
 interface ClubFlags {
   delivery_colissimo_enabled: boolean
   delivery_club_pickup_enabled: boolean
+  footspot_linked: boolean
   delivery_shop_pickup_enabled: boolean
 }
 const clubFlags = ref<ClubFlags | null>(null)
@@ -61,7 +81,7 @@ watchEffect(async () => {
   }
   const { data } = await supabase
     .from('clubs')
-    .select('delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
+    .select('delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, footspot_linked')
     .eq('id', clubId)
     .maybeSingle()
   clubFlags.value = data as ClubFlags | null
@@ -218,6 +238,8 @@ async function onSubmit() {
         shipping_address: mergedShipping,
         pickup_shop_id: deliveryMethod.value === 'shop_pickup' ? pickupShopId.value : undefined,
         promo_code_id: appliedPromo.value?.promo_code_id,
+        prepaid_code: prepaidApplied.value?.code,
+        footspot_member_id: prepaidApplied.value?.member_id ?? purchaseApplied.value?.member_id,
         guest: {
           email: guest.value.email,
           first_name: guest.value.first_name,
@@ -441,11 +463,28 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
             :applied="appliedPromo"
             @update:applied="(v) => (appliedPromo = v)"
           />
+          <CheckoutFootspotStep
+            v-if="cart.lines[0]"
+            :club-id="cart.lines[0].club_id"
+            :subtotal-after-promo="cart.subtotal - promoDiscount"
+            :enabled="!!clubFlags?.footspot_linked"
+            :purchase-applied="purchaseApplied"
+            :prepaid-applied="prepaidApplied"
+            @update:purchase-applied="(v) => (purchaseApplied = v)"
+            @update:prepaid-applied="(v) => (prepaidApplied = v)"
+            @identity-locked="(v) => {
+              if (v) {
+                guest = { ...guest, first_name: v.first_name, last_name: v.last_name, email: v.email }
+              }
+            }"
+          />
           <CartSummary
             :show-shipping="true"
             :shipping="shippingCostNow"
             :promo-discount="promoDiscount"
             :promo-code="appliedPromo?.code ?? null"
+            :prepaid-credit="prepaidCredit"
+            :prepaid-code="prepaidApplied?.code ?? null"
             class="pt-3 border-t border-gray-100 dark:border-sidebar"
           />
         </section>

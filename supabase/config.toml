@@ -19,3 +19,20 @@ verify_jwt = false
 # * colissimo-tracking-worker — same reason: cron + manual internal triggers.
 [functions.colissimo-tracking-worker]
 verify_jwt = false
+
+# * lookup-club-by-id — Flow 1 callback from Footspot, HMAC-only. No Supabase JWT.
+[functions.lookup-club-by-id]
+verify_jwt = false
+
+# * footspot-pairing-complete — activation callback from Footspot, HMAC-only.
+[functions.footspot-pairing-complete]
+verify_jwt = false
+
+# * footspot-push-event — internal helper (orders trigger + retry worker).
+# * Self-gated via X-Internal-Call; service-role key is not a JWT.
+[functions.footspot-push-event]
+verify_jwt = false
+
+# * footspot-retry-worker — pg_cron every 5 min. Same internal-call gate.
+[functions.footspot-retry-worker]
+verify_jwt = false

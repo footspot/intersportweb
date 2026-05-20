@@ -32,6 +32,7 @@ interface VariantPayload {
   size: string
   stock: number
   sku?: string | null
+  footspot_size?: string | null
 }
 
 interface BundleComponentPayload {
@@ -65,6 +66,7 @@ interface ProductData {
   is_on_clearance?: boolean
   weight_grams?: number
   available_from?: string | null
+  footspot_category?: string | null
   sort_order?: number
   variants?: VariantPayload[]
   components?: BundleComponentPayload[]
@@ -89,6 +91,7 @@ function normaliseVariants(vs: VariantPayload[] | undefined): VariantPayload[] |
     size: v.size.trim(),
     stock: Math.floor(Number(v.stock)),
     sku: v.sku?.trim() || null,
+    footspot_size: v.footspot_size && v.footspot_size.trim() !== '' ? v.footspot_size.trim() : null,
   }))
 }
 
@@ -213,6 +216,7 @@ function productRow(body: ProductData) {
     is_on_clearance: !!body.is_on_clearance,
     weight_grams: Math.max(0, Math.floor(Number(body.weight_grams ?? 0))),
     available_from: body.available_from && body.available_from.trim() !== '' ? body.available_from : null,
+    footspot_category: body.footspot_category && body.footspot_category.trim() !== '' ? body.footspot_category : null,
     sort_order: body.sort_order ?? 0,
   }
 }
@@ -565,7 +569,7 @@ Deno.serve(async (req) => {
 
           const keepIds = new Set<string>()
           for (const v of variants) {
-            const row = { size: v.size, stock: v.stock, sku: v.sku ?? null }
+            const row = { size: v.size, stock: v.stock, sku: v.sku ?? null, footspot_size: v.footspot_size ?? null }
             if (v.id) {
               keepIds.add(v.id)
               const { error: uErr } = await sb

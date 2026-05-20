@@ -18,6 +18,7 @@
 // *                        Authorization header is present
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { serviceClient } from '../_shared/supabase.ts'
+import { postFootspot } from '../_shared/footspot/client.ts'
 import { computeUnitPricing, type DiscountSource } from '../_shared/pricing.ts'
 
 type DeliveryMethod = 'colissimo' | 'club_pickup' | 'shop_pickup'
@@ -51,6 +52,8 @@ interface CreateOrderPayload {
   club_id?: string
   guest?: { email: string; first_name: string; last_name: string; phone?: string }
   promo_code_id?: string
+  prepaid_code?: string
+  footspot_member_id?: string
 }
 
 function orderNumber(): string {
@@ -402,7 +405,49 @@ Deno.serve(async (req) => {
       promoCodeId = promo.id
     }
 
-    const total = Number((subtotal + shippingCost - promoDiscount).toFixed(2))
+    // * Prepaid: server-side re-validate against Footspot to capture the cap.
+    // *   Never trust client-computed credit. If Footspot is unreachable we
+    // *   reject the order so the customer can retry — better than letting them
+    // *   slip through without applying the discount they expected.
+    let prepaidCredit = 0
+    let prepaidCodeRef: string | null = null
+    let prepaidClubId: string | null = null
+    let footspotMemberId: string | null = body.footspot_member_id ?? null
+    if (body.prepaid_code?.trim()) {
+      const bearer = Deno.env.get('INTERSPORT_FOOTSPOT_SERVICE_TOKEN')
+      if (!bearer) {
+        return jsonResponse({ error: 'prepaid_not_configured' }, { status: 500 })
+      }
+      const code = body.prepaid_code.trim().toUpperCase().replace(/\s+/g, '')
+      const res = await postFootspot({
+        path: 'intersport-validate-prepaid-code',
+        bearer,
+        body: { code },
+      })
+      if (!res.ok || !res.json) {
+        return jsonResponse({ error: 'prepaid_upstream_unreachable' }, { status: 502 })
+      }
+      const fs = res.json as {
+        valid?: boolean
+        reason?: string
+        prepaid_code_ref?: string
+        member_id?: string
+        club_id?: string
+        cap_amount_cents?: number
+      }
+      if (!fs.valid) {
+        return jsonResponse({ error: 'prepaid_code_invalid', reason: fs.reason ?? null }, { status: 400 })
+      }
+      const cap = Number(fs.cap_amount_cents ?? 0) / 100
+      const afterPromo = subtotal - promoDiscount
+      prepaidCredit = Math.min(cap, Math.max(0, afterPromo))
+      prepaidCodeRef = fs.prepaid_code_ref ?? null
+      prepaidClubId = fs.club_id ?? null
+      footspotMemberId = fs.member_id ?? footspotMemberId
+    }
+
+    const total = Number((subtotal + shippingCost - promoDiscount - prepaidCredit).toFixed(2))
+    const isFullyPrepaid = prepaidCredit > 0 && total <= 0
 
     // * For colissimo: keep the supplied shipping_address. For pickup methods
     // * we still need something in the JSONB column (NOT NULL), so we stash
@@ -441,12 +486,20 @@ Deno.serve(async (req) => {
         payment_method: null,
         subtotal: Number(subtotal.toFixed(2)),
         shipping_cost: shippingCost,
-        total,
+        total: Math.max(0, total),
         shipping_address: shippingAddress,
         delivery_method: body.delivery_method,
         pickup_shop_id: body.delivery_method === 'shop_pickup' ? body.pickup_shop_id : null,
         promo_code_id: promoCodeId,
         promo_discount: Number(promoDiscount.toFixed(2)),
+        prepaid_code_ref: prepaidCodeRef,
+        prepaid_credit: Number(prepaidCredit.toFixed(2)),
+        prepaid_club_id: prepaidClubId,
+        footspot_member_id: footspotMemberId,
+        // * Fully-prepaid orders skip the IPN and land paid on the spot.
+        payment_method: isFullyPrepaid ? 'prepaid' : null,
+        status: isFullyPrepaid ? 'paid' : 'pending',
+        paid_at: isFullyPrepaid ? new Date().toISOString() : null,
       })
       .select('id, order_number, access_token, total')
       .single()
@@ -522,6 +575,37 @@ Deno.serve(async (req) => {
       }
     }
 
+    // * Fully-prepaid fast-path: run the same side effects the IPN normally
+    // *   runs after a successful card payment. The order row was already
+    // *   inserted with status='paid' + payment_method='prepaid'.
+    if (isFullyPrepaid) {
+      // * 1. Atomic promo claim (if any). On race-loss, we have to undo our
+      // *    €0 marker and tell the customer to retry.
+      const { data: claimRes } = await sb.rpc('claim_promo_for_order', { p_order_id: order.id })
+      if (claimRes === false) {
+        await sb.from('orders').update({
+          status: 'cancelled',
+          promo_code_id: null,
+          promo_discount: 0,
+        }).eq('id', order.id)
+        return jsonResponse({ error: 'promo_race_lost' }, { status: 409 })
+      }
+
+      // * 2. Stock decrement + fund credit + low-stock notif.
+      const { error: ppErr } = await sb.rpc('process_paid_order', { p_order_id: order.id })
+      if (ppErr) {
+        console.error('[create-order] process_paid_order (prepaid fast-path) failed', ppErr)
+      }
+
+      // * 3. Synthetic payment_events for audit trail.
+      await sb.from('payment_events').insert({
+        provider: 'prepaid',
+        event_id: order.id,
+        order_id: order.id,
+        event_type: 'prepaid.consumed',
+      })
+    }
+
     return jsonResponse({
       ok: true,
       order: {
@@ -529,7 +613,7 @@ Deno.serve(async (req) => {
         access_token: order.access_token,
         number: order.order_number,
         total: order.total,
-        status: 'pending',
+        status: isFullyPrepaid ? 'paid' : 'pending',
       },
     })
   } catch (err) {

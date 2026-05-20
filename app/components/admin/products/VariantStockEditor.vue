@@ -1,29 +1,43 @@
 <script setup lang="ts">
 // * Dynamic size/stock/SKU rows. Packs use `BundleComponentsEditor` instead —
 // * this editor is only used for regular (non-pack) products.
+import type { FootspotSize } from '~/stores/products'
+
 export interface DraftVariant {
   id?: string
   size: string
   stock: number
   sku: string | null
+  footspot_size?: FootspotSize | null
 }
 
 interface Props {
   modelValue: DraftVariant[]
+  // * When the product carries a footspot_category, each variant gets a
+  // *   footspot_size mapping column.
+  footspotEnabled?: boolean
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { footspotEnabled: false })
 const emit = defineEmits<{
   (e: 'update:modelValue', v: DraftVariant[]): void
 }>()
 
 const { t } = useI18n()
 
+const FOOTSPOT_SIZES: FootspotSize[] = ['4XS', '3XS', '2XS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
+
+const gridCols = computed(() =>
+  props.footspotEnabled
+    ? 'grid-cols-[0.5fr_110px_1fr_130px_32px]'
+    : 'grid-cols-[0.5fr_140px_1fr_32px]',
+)
+
 function update(next: DraftVariant[]) {
   emit('update:modelValue', next)
 }
 
 function addRow() {
-  update([...props.modelValue, { size: '', stock: 0, sku: null }])
+  update([...props.modelValue, { size: '', stock: 0, sku: null, footspot_size: null }])
 }
 
 function removeRow(i: number) {
@@ -50,16 +64,18 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
     </div>
 
     <div v-else class="mt-2 space-y-2">
-      <div class="grid gap-2 text-xs uppercase tracking-wider text-gray-500 px-1 grid-cols-[0.5fr_140px_1fr_32px]">
+      <div class="grid gap-2 text-xs uppercase tracking-wider text-gray-500 px-1" :class="gridCols">
         <div>{{ t('admin.products.variants.size') }}</div>
         <div>{{ t('admin.products.variants.stock') }}</div>
         <div>{{ t('admin.products.variants.sku') }}</div>
+        <div v-if="footspotEnabled">{{ t('admin.products.variants.footspotSize') }}</div>
         <div></div>
       </div>
       <div
         v-for="(v, i) in modelValue"
         :key="v.id ?? `new-${i}`"
-        class="grid gap-2 items-center grid-cols-[0.5fr_140px_1fr_32px]"
+        class="grid gap-2 items-center"
+        :class="gridCols"
       >
         <input
           :value="v.size"
@@ -83,6 +99,15 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
           :placeholder="t('admin.products.variants.skuPlaceholder')"
           @input="setField(i, 'sku', ($event.target as HTMLInputElement).value || null)"
         />
+        <select
+          v-if="footspotEnabled"
+          :value="v.footspot_size ?? ''"
+          class="px-2 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none text-sm"
+          @change="setField(i, 'footspot_size', (($event.target as HTMLSelectElement).value || null) as FootspotSize | null)"
+        >
+          <option value="">{{ t('admin.products.variants.footspotNotSynced') }}</option>
+          <option v-for="s in FOOTSPOT_SIZES" :key="s" :value="s">{{ s }}</option>
+        </select>
         <button
           type="button"
           class="p-2 rounded-lg text-brand-secondary hover:bg-brand-secondary/10 justify-self-end"

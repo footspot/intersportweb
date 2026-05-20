@@ -30,6 +30,7 @@
     "checkout": "Checkout",
     "clear": "Clear cart",
     "promoApplied": "Code {code}",
+    "prepaidApplied": "Prepaid credit",
     "promo": {
       "placeholder": "Promo code",
       "apply": "Apply",
@@ -50,6 +51,42 @@
     }
   },
   "checkout": {
+    "footspot": {
+      "prepaid": {
+        "openLink": "I have a Footspot prepaid code",
+        "placeholder": "Prepaid code",
+        "apply": "Apply",
+        "remove": "Remove",
+        "bannerTitle": "Prepaid by {club}",
+        "bannerCredit": "Credit available: up to {cap}",
+        "bannerMember": "Member: {name}",
+        "errors": {
+          "empty": "Enter a code.",
+          "code_invalid": "Invalid code.",
+          "code_consumed": "This code has already been used.",
+          "code_expired": "This code has expired.",
+          "upstream_error": "Footspot is temporarily unavailable. Please retry.",
+          "not_configured": "Prepaid integration not configured.",
+          "unknown": "Code rejected."
+        }
+      },
+      "purchase": {
+        "question": "Are you a member of the club?",
+        "yes": "Yes",
+        "no": "No",
+        "placeholder": "H7K3 M9XP",
+        "applied": "Order linked to {name}",
+        "errors": {
+          "code_invalid": "Invalid code.",
+          "code_expired": "Expired code.",
+          "code_consumed": "Code already used.",
+          "wrong_club": "Code not valid for this club.",
+          "club_not_linked": "This club isn't linked to Footspot.",
+          "upstream_error": "Footspot is temporarily unavailable. Please retry.",
+          "unknown": "Code rejected."
+        }
+      }
+    },
     "title": "Checkout",
     "shipping": "Shipping address",
     "fullName": "Full name",
@@ -423,6 +460,20 @@
       "weightHint": "Used for Colissimo. 0 means not set.",
       "availableFrom": "Available from",
       "availableFromHint": "Planned restock date. When set, the product remains orderable at zero stock (backorder).",
+      "footspotCategory": "Footspot category",
+      "footspotCategoryHint": "When set, the product is synced to Footspot. Each size will need a Footspot size mapping.",
+      "footspotNotSynced": "Not synced",
+      "footspotCategories": {
+        "jersey": "Jersey",
+        "shorts": "Shorts",
+        "socks": "Socks",
+        "ball": "Ball",
+        "cone": "Cone",
+        "bib": "Bib",
+        "goalkeeper_gloves": "Goalkeeper gloves",
+        "training_vest": "Training vest",
+        "other": "Other"
+      },
       "visible": "Visible in shop",
       "hide": "Hide",
       "show": "Show",
@@ -480,7 +531,9 @@
         "stock": "Stock",
         "sku": "SKU (optional)",
         "sizePlaceholder": "S, M, 42…",
-        "skuPlaceholder": "XYZ-42"
+        "skuPlaceholder": "XYZ-42",
+        "footspotSize": "Footspot size",
+        "footspotNotSynced": "Not synced"
       },
       "flocking": {
         "title": "Flocking",
@@ -780,6 +833,93 @@
       },
       "name": "Name"
     },
+    "footspot": {
+      "title": "Footspot",
+      "subtitle": "Send an integration request to the Footspot owner (Flow 2 — when the director doesn't have a Footspot account yet).",
+      "form": {
+        "title": "New integration request",
+        "hint": "The club director must have phoned in first. Pick the matching Intersport club and provide their contact details.",
+        "submit": "Send request",
+        "sent": "Request sent to the Footspot owner."
+      },
+      "field": {
+        "club": "Intersport club",
+        "clubPick": "— Select a club —",
+        "clubEmpty": "No eligible clubs (already linked or pending recent request).",
+        "contactName": "Director name",
+        "contactEmail": "Director email",
+        "contactPhone": "Director phone"
+      },
+      "errors": {
+        "missingFields": "All fields are required.",
+        "invalidEmail": "Invalid email.",
+        "alreadyLinked": "This club is already linked to Footspot.",
+        "recentPending": "A recent request is already pending for this club."
+      },
+      "history": {
+        "title": "Request history",
+        "empty": "No requests sent yet."
+      },
+      "col": {
+        "club": "Club",
+        "contact": "Contact",
+        "sentAt": "Sent at",
+        "status": "Status"
+      },
+      "status": {
+        "sent": "Sent",
+        "completed": "Activated",
+        "failed": "Failed"
+      },
+      "linked": {
+        "title": "Linked clubs",
+        "empty": "No clubs linked to Footspot.",
+        "footspotId": "Footspot ID",
+        "linkedAt": "Linked at",
+        "unlink": "Unlink",
+        "unlinkTitle": "Unlink this club?",
+        "unlinkConfirm": "Unlink {club} from Footspot? Ongoing orders keep processing; only new event dispatch stops."
+      },
+      "events": {
+        "title": "Event log",
+        "empty": "No events sent yet.",
+        "type": "Type",
+        "attempts": "Attempts",
+        "resend": "Resend",
+        "status": {
+          "pending": "Pending",
+          "sent": "Sent",
+          "failed": "Failed",
+          "acknowledged": "Acknowledged"
+        }
+      }
+    },
+    "prepaidOrders": {
+      "title": "Prepaid orders",
+      "subtitle": "Orders settled with a Footspot prepaid code. The CSV export is the basis for monthly club invoicing.",
+      "exportCsv": "Export CSV",
+      "empty": "No prepaid orders yet.",
+      "totalPrepaid": "Total prepaid (period)",
+      "totalPaid": "Total paid by customers",
+      "filter": {
+        "club": "Club",
+        "allClubs": "All clubs",
+        "status": "Status",
+        "allStatuses": "All statuses",
+        "from": "From",
+        "to": "To"
+      },
+      "col": {
+        "order": "Order",
+        "member": "Member",
+        "club": "Club",
+        "prepaid": "Prepaid credit",
+        "paid": "Customer paid",
+        "status": "Status",
+        "paidAt": "Paid at",
+        "deliveredAt": "Delivered at"
+      }
+    },
     "notifications": {
       "title": "Notifications",
       "subtitle": "Back-office events (low-stock alerts, bundle component issues, etc.).",
@@ -810,6 +950,14 @@
         "product_released_from_bundle": {
           "title": "Product released from a bundle",
           "body": "{product_name} is no longer in any bundle — back to being sold individually."
+        },
+        "footspot_link_active": {
+          "title": "Footspot — club linked",
+          "body": "Club {club_name} is now linked to Footspot (Footspot id: {footspot_club_id})."
+        },
+        "footspot_event_failed": {
+          "title": "Footspot — event delivery failed",
+          "body": "Event {event_type} for order {order_number} failed after {attempts} attempts. Manual resend required."
         }
       }
     },

@@ -40,7 +40,13 @@ const isVisible = ref(true)
 const isOnClearance = ref(false)
 const weightGrams = ref(0)
 const availableFrom = ref<string>('')
+const footspotCategory = ref<string>('')
 const variants = ref<DraftVariant[]>([])
+
+const FOOTSPOT_CATEGORIES = [
+  'jersey', 'shorts', 'socks', 'ball', 'cone', 'bib',
+  'goalkeeper_gloves', 'training_vest', 'other',
+] as const
 const bundleComponents = ref<DraftBundleComponent[]>([])
 
 const saving = ref(false)
@@ -105,9 +111,10 @@ watch(
     isOnClearance.value = !!p?.is_on_clearance
     weightGrams.value = Number(p?.weight_grams ?? 0)
     availableFrom.value = p?.available_from ?? ''
+    footspotCategory.value = p?.footspot_category ?? ''
     variants.value = p?.variants?.length
-      ? p.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock, sku: v.sku }))
-      : [{ size: '', stock: 0, sku: null }]
+      ? p.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock, sku: v.sku, footspot_size: v.footspot_size }))
+      : [{ size: '', stock: 0, sku: null, footspot_size: null }]
     bundleComponents.value = (p?.bundle_components ?? []).map((bc) => ({
       component_product_id: bc.component_product_id,
       axis: bc.axis,
@@ -199,6 +206,7 @@ async function save() {
       is_on_clearance: isOnClearance.value,
       weight_grams: Math.max(0, Math.floor(Number(weightGrams.value) || 0)),
       available_from: availableFrom.value.trim() || null,
+      footspot_category: (footspotCategory.value.trim() || null) as ProductPayload['footspot_category'],
       sort_order: props.product?.sort_order ?? 0,
     }
 
@@ -218,6 +226,7 @@ async function save() {
             size: v.size.trim(),
             stock: v.stock,
             sku: v.sku,
+            footspot_size: v.footspot_size ?? null,
           })),
         }
 
@@ -329,6 +338,20 @@ async function save() {
           />
           <p class="text-xs text-gray-500 mt-1">{{ t('admin.products.availableFromHint') }}</p>
         </label>
+
+        <label class="block">
+          <span class="text-sm font-medium">{{ t('admin.products.footspotCategory') }}</span>
+          <select
+            v-model="footspotCategory"
+            class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+          >
+            <option value="">{{ t('admin.products.footspotNotSynced') }}</option>
+            <option v-for="c in FOOTSPOT_CATEGORIES" :key="c" :value="c">
+              {{ t(`admin.products.footspotCategories.${c}`) }}
+            </option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">{{ t('admin.products.footspotCategoryHint') }}</p>
+        </label>
       </div>
 
       <AdminProductsGalleryEditor
@@ -413,6 +436,7 @@ async function save() {
         <AdminProductsVariantStockEditor
           v-else
           v-model="variants"
+          :footspot-enabled="!!footspotCategory"
         />
       </div>
 

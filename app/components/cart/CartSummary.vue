@@ -6,12 +6,16 @@ interface Props {
   shipping?: number
   promoDiscount?: number
   promoCode?: string | null
+  prepaidCredit?: number
+  prepaidCode?: string | null
 }
 const props = withDefaults(defineProps<Props>(), {
   showShipping: false,
   shipping: 0,
   promoDiscount: 0,
   promoCode: null,
+  prepaidCredit: 0,
+  prepaidCode: null,
 })
 
 const { t } = useI18n()
@@ -22,7 +26,7 @@ function fmt(v: number) {
 }
 
 const total = computed(() => {
-  const t = cart.subtotal + (props.showShipping ? props.shipping : 0) - props.promoDiscount
+  const t = cart.subtotal + (props.showShipping ? props.shipping : 0) - props.promoDiscount - props.prepaidCredit
   return Math.max(0, t)
 })
 </script>
@@ -40,6 +44,10 @@ const total = computed(() => {
     <div v-if="promoDiscount > 0" class="flex justify-between text-brand-green">
       <span>{{ t('cart.promoApplied', { code: promoCode ?? '' }) }}</span>
       <span>-{{ fmt(promoDiscount) }}</span>
+    </div>
+    <div v-if="prepaidCredit > 0" class="flex justify-between text-brand-gold">
+      <span>{{ t('cart.prepaidApplied') }}</span>
+      <span>-{{ fmt(prepaidCredit) }}</span>
     </div>
     <div class="flex justify-between font-heading text-lg font-bold pt-1">
       <span>{{ t('cart.total') }}</span>

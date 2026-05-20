@@ -30,6 +30,7 @@
     "checkout": "Valider la commande",
     "clear": "Vider le panier",
     "promoApplied": "Code {code}",
+    "prepaidApplied": "Code prépayé",
     "promo": {
       "placeholder": "Code promo",
       "apply": "Appliquer",
@@ -50,6 +51,42 @@
     }
   },
   "checkout": {
+    "footspot": {
+      "prepaid": {
+        "openLink": "J'ai un code prépayé Footspot",
+        "placeholder": "Code prépayé",
+        "apply": "Appliquer",
+        "remove": "Retirer",
+        "bannerTitle": "Pris en charge par {club}",
+        "bannerCredit": "Crédit disponible : jusqu'à {cap}",
+        "bannerMember": "Compte : {name}",
+        "errors": {
+          "empty": "Saisissez un code.",
+          "code_invalid": "Code invalide.",
+          "code_consumed": "Ce code a déjà été utilisé.",
+          "code_expired": "Ce code a expiré.",
+          "upstream_error": "Footspot est temporairement indisponible. Réessayez.",
+          "not_configured": "Intégration prépayée non configurée.",
+          "unknown": "Code refusé."
+        }
+      },
+      "purchase": {
+        "question": "Êtes-vous adhérent du club ?",
+        "yes": "Oui",
+        "no": "Non",
+        "placeholder": "H7K3 M9XP",
+        "applied": "Achat lié à {name}",
+        "errors": {
+          "code_invalid": "Code invalide.",
+          "code_expired": "Code expiré.",
+          "code_consumed": "Code déjà utilisé.",
+          "wrong_club": "Code non valable pour ce club.",
+          "club_not_linked": "Ce club n'est pas lié à Footspot.",
+          "upstream_error": "Footspot est temporairement indisponible. Réessayez.",
+          "unknown": "Code refusé."
+        }
+      }
+    },
     "title": "Finaliser la commande",
     "shipping": "Adresse de livraison",
     "fullName": "Nom complet",
@@ -423,6 +460,20 @@
       "weightHint": "Pour Colissimo. 0 = non renseigné.",
       "availableFrom": "Disponible à partir du",
       "availableFromHint": "Date prévue de réapprovisionnement. Si renseignée, le produit reste commandable même à stock 0 (précommande).",
+      "footspotCategory": "Catégorie Footspot",
+      "footspotCategoryHint": "Si renseignée, le produit est synchronisé avec Footspot. Chaque taille devra recevoir une correspondance Footspot.",
+      "footspotNotSynced": "Non synchronisé",
+      "footspotCategories": {
+        "jersey": "Maillot",
+        "shorts": "Short",
+        "socks": "Chaussettes",
+        "ball": "Ballon",
+        "cone": "Plot",
+        "bib": "Chasuble",
+        "goalkeeper_gloves": "Gants de gardien",
+        "training_vest": "Veste d'entraînement",
+        "other": "Autre"
+      },
       "visible": "Visible sur la boutique",
       "hide": "Masquer",
       "show": "Afficher",
@@ -480,7 +531,9 @@
         "stock": "Stock",
         "sku": "SKU (optionnel)",
         "sizePlaceholder": "S, M, 42…",
-        "skuPlaceholder": "XYZ-42"
+        "skuPlaceholder": "XYZ-42",
+        "footspotSize": "Taille Footspot",
+        "footspotNotSynced": "Non synchronisée"
       },
       "flocking": {
         "title": "Flocage",
@@ -780,6 +833,93 @@
       },
       "name": "Nom"
     },
+    "footspot": {
+      "title": "Footspot",
+      "subtitle": "Envoyez une demande au PDG Footspot pour lier un club existant (Flow 2 — quand le directeur n'a pas encore son compte Footspot).",
+      "form": {
+        "title": "Nouvelle demande d'intégration",
+        "hint": "Le directeur du club doit vous avoir contacté par téléphone. Sélectionnez le club Intersport correspondant et fournissez ses coordonnées.",
+        "submit": "Envoyer la demande",
+        "sent": "Demande envoyée au PDG Footspot."
+      },
+      "field": {
+        "club": "Club Intersport",
+        "clubPick": "— Choisir un club —",
+        "clubEmpty": "Aucun club éligible (déjà lié ou demande récente en attente).",
+        "contactName": "Nom du directeur",
+        "contactEmail": "Email du directeur",
+        "contactPhone": "Téléphone du directeur"
+      },
+      "errors": {
+        "missingFields": "Tous les champs sont requis.",
+        "invalidEmail": "Email invalide.",
+        "alreadyLinked": "Ce club est déjà lié à Footspot.",
+        "recentPending": "Une demande récente est déjà en attente pour ce club."
+      },
+      "history": {
+        "title": "Historique des demandes",
+        "empty": "Aucune demande envoyée."
+      },
+      "col": {
+        "club": "Club",
+        "contact": "Contact",
+        "sentAt": "Envoyée le",
+        "status": "Statut"
+      },
+      "status": {
+        "sent": "Envoyée",
+        "completed": "Activée",
+        "failed": "Échec"
+      },
+      "linked": {
+        "title": "Clubs liés",
+        "empty": "Aucun club lié à Footspot.",
+        "footspotId": "ID Footspot",
+        "linkedAt": "Lié le",
+        "unlink": "Délier",
+        "unlinkTitle": "Délier ce club ?",
+        "unlinkConfirm": "Délier {club} de Footspot ? Les commandes en cours continuent leur traitement ; seul l'envoi de nouveaux événements s'arrête."
+      },
+      "events": {
+        "title": "Journal des événements",
+        "empty": "Aucun événement envoyé.",
+        "type": "Type",
+        "attempts": "Tentatives",
+        "resend": "Renvoyer",
+        "status": {
+          "pending": "En attente",
+          "sent": "Envoyé",
+          "failed": "Échec",
+          "acknowledged": "Confirmé"
+        }
+      }
+    },
+    "prepaidOrders": {
+      "title": "Commandes prépayées",
+      "subtitle": "Commandes réglées via un code prépayé Footspot. L'export CSV sert de base à la facturation mensuelle des clubs.",
+      "exportCsv": "Exporter CSV",
+      "empty": "Aucune commande prépayée.",
+      "totalPrepaid": "Total prépayé (période)",
+      "totalPaid": "Total réglé par les clients",
+      "filter": {
+        "club": "Club",
+        "allClubs": "Tous les clubs",
+        "status": "Statut",
+        "allStatuses": "Tous les statuts",
+        "from": "Du",
+        "to": "Au"
+      },
+      "col": {
+        "order": "Commande",
+        "member": "Adhérent",
+        "club": "Club",
+        "prepaid": "Crédit prépayé",
+        "paid": "Réglé client",
+        "status": "Statut",
+        "paidAt": "Payée le",
+        "deliveredAt": "Livrée le"
+      }
+    },
     "notifications": {
       "title": "Notifications",
       "subtitle": "Événements internes du back-office (alertes stock, ruptures de pack, etc.).",
@@ -810,6 +950,14 @@
         "product_released_from_bundle": {
           "title": "Produit libéré d'un pack",
           "body": "{product_name} n'est plus dans un pack — il est à nouveau vendu à l'unité."
+        },
+        "footspot_link_active": {
+          "title": "Footspot — club lié",
+          "body": "Le club {club_name} est maintenant lié à Footspot (id Footspot : {footspot_club_id})."
+        },
+        "footspot_event_failed": {
+          "title": "Footspot — échec d'envoi d'événement",
+          "body": "L'événement {event_type} de la commande {order_number} a échoué après {attempts} tentatives. Renvoi manuel requis."
         }
       }
     },

@@ -7,12 +7,20 @@ import type { DiscountSource } from '~/composables/usePricingPreview'
 export type FlockingKind = 'none' | 'members' | 'supporters'
 export type BundleAxis = 'primary' | 'secondary'
 
+export type FootspotSize =
+  | '4XS' | '3XS' | '2XS' | 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL' | '4XL'
+
+export type FootspotCategory =
+  | 'jersey' | 'shorts' | 'socks' | 'ball' | 'cone' | 'bib'
+  | 'goalkeeper_gloves' | 'training_vest' | 'other'
+
 export interface Variant {
   id: string
   product_id: string
   size: string
   stock: number
   sku: string | null
+  footspot_size: FootspotSize | null
 }
 
 export interface BundleComponent {
@@ -51,6 +59,7 @@ export interface Product {
   is_on_clearance: boolean
   weight_grams: number
   available_from: string | null
+  footspot_category: FootspotCategory | null
   sort_order: number
   created_at: string
   variants: Variant[]
@@ -65,7 +74,7 @@ export type ProductPayload = Omit<
   'id' | 'created_at' | 'variants' | 'bundle_components' | 'images'
 > & {
   id?: string
-  variants?: Array<Pick<Variant, 'size' | 'stock' | 'sku'> & { id?: string }>
+  variants?: Array<Pick<Variant, 'size' | 'stock' | 'sku' | 'footspot_size'> & { id?: string }>
   components?: Array<{ component_product_id: string; axis: BundleAxis; quantity: number }>
   image_slots?: ImageSlot[]
 }

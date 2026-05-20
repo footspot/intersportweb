@@ -85,6 +85,8 @@ const sections = computed<NavSection[]>(() => [
       { to: '/admin/carousel', label: t('admin.sidebar.carousel'), icon: 'i-lucide-images', adminOnly: true },
       { to: '/admin/home-sections', label: t('admin.sidebar.homeSections'), icon: 'i-lucide-layout-grid', adminOnly: true },
       { to: '/admin/contact', label: t('admin.sidebar.contact'), icon: 'i-lucide-mail', adminOnly: true },
+      { to: '/admin/footspot', label: t('admin.footspot.title'), icon: 'i-lucide-link-2', adminOnly: true },
+      { to: '/admin/prepaid-orders', label: t('admin.prepaidOrders.title'), icon: 'i-lucide-receipt', adminOnly: true },
       { to: '/admin/notifications', label: t('admin.notifications.title'), icon: 'i-lucide-bell' },
       { to: '/admin/settings', label: t('admin.sidebar.settings'), icon: 'i-lucide-settings', adminOnly: true },
       { to: '/', label: t('admin.sidebar.viewSite'), icon: 'i-lucide-external-link' },
