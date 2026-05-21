@@ -15,6 +15,7 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 const clubs = useClubsStore()
 const sports = useSportsStore()
+const client = useSupabaseClient()
 
 const name = ref('')
 const sportId = ref('')
@@ -27,8 +28,22 @@ const accentColorValue = ref('#3B82F6')
 const slogan = ref('')
 const saving = ref(false)
 const errorMsg = ref<string | null>(null)
+// * Phase 4 — read-only count of products this club discounts via Footspot.
+const discountCount = ref(0)
 
 const isEdit = computed(() => !!props.club)
+
+// * Footspot owns the per-product discounts; the admin panel only displays the
+// * tally (SHOP_PERSONALIZATION_GUIDE.md §Phase 4).
+async function loadDiscountCount(clubId: string) {
+  discountCount.value = 0
+  const { count } = await client
+    .from('product_discounts')
+    .select('id', { count: 'exact', head: true })
+    .eq('club_id', clubId)
+    .gt('discount_pct', 0)
+  discountCount.value = count ?? 0
+}
 const hasExistingPassword = computed(
   () => isEdit.value && !!props.club?.is_password_protected,
 )
@@ -47,6 +62,8 @@ watch(
     accentColorValue.value = props.club?.accent_color ?? '#3B82F6'
     slogan.value = props.club?.slogan ?? ''
     errorMsg.value = null
+    discountCount.value = 0
+    if (props.club?.footspot_linked) loadDiscountCount(props.club.id)
   },
   { immediate: true },
 )
@@ -172,6 +189,36 @@ async function save() {
           />
           <p class="text-xs text-gray-400 mt-1">{{ slogan.length }}/80</p>
         </label>
+
+        <!-- * Footspot shop — read-only. Footspot is the source of truth for
+             the per-product club discounts; the admin panel only shows the tally. -->
+        <div
+          v-if="isEdit && club?.footspot_linked"
+          class="rounded-lg border border-gray-200 dark:border-sidebar bg-gray-50 dark:bg-sidebar p-3 space-y-2"
+        >
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <UIcon name="i-lucide-link-2" class="w-4 h-4 text-brand-primary" />
+            {{ t('admin.clubs.footspotShop') }}
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-gray-500">{{ t('admin.clubs.shopStatus') }}</span>
+            <span
+              class="inline-flex items-center gap-1.5 font-medium"
+              :class="club?.shop_status === 'disconnected' ? 'text-brand-secondary' : 'text-brand-green'"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full"
+                :class="club?.shop_status === 'disconnected' ? 'bg-brand-secondary' : 'bg-brand-green'"
+              />
+              {{ club?.shop_status === 'disconnected' ? t('admin.clubs.shopDisconnected') : t('admin.clubs.shopActive') }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-gray-500">{{ t('admin.clubs.clubDiscounts') }}</span>
+            <span class="font-medium">{{ t('admin.clubs.discountCount', { n: discountCount }) }}</span>
+          </div>
+          <p class="text-[11px] text-gray-400">{{ t('admin.clubs.footspotShopHint') }}</p>
+        </div>
 
         <label class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-sidebar cursor-pointer">
           <input v-model="protectedFlag" type="checkbox" class="w-4 h-4 accent-brand-primary" />

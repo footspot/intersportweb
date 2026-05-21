@@ -53,3 +53,12 @@ export function computeUnitPricing(input: PricingInput): UnitPricing {
 export function usePricingPreview(input: Ref<PricingInput>) {
   return computed<UnitPricing>(() => computeUnitPricing(input.value))
 }
+
+// * Apply a Footspot club discount on top of an already-computed unit price.
+// * The reduction is absorbed entirely by the club's margin — Intersport's
+// * margin is never touched (SHOP_PERSONALIZATION_GUIDE.md §3.2). Mirror of
+// * applyClubDiscount() in supabase/functions/_shared/pricing.ts.
+export function applyClubDiscount(unitPrice: number, discountPct: number): number {
+  const pct = Math.max(0, Math.min(80, Number(discountPct) || 0))
+  return round2(Number(unitPrice) * (1 - pct / 100))
+}

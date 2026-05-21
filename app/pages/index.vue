@@ -10,7 +10,8 @@ import { useCarouselStore } from '~/stores/carousel'
 import { useHomeSectionsStore, type HomeSection } from '~/stores/homeSections'
 import { useClubAccessStore } from '~/stores/clubAccess'
 import { useSiteSettingsStore } from '~/stores/siteSettings'
-import { computeUnitPricing } from '~/composables/usePricingPreview'
+import { useProductDiscountsStore } from '~/stores/productDiscounts'
+import { computeUnitPricing, applyClubDiscount } from '~/composables/usePricingPreview'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -23,6 +24,7 @@ const carousel = useCarouselStore()
 const homeSections = useHomeSectionsStore()
 const access = useClubAccessStore()
 const siteSettings = useSiteSettingsStore()
+const productDiscounts = useProductDiscountsStore()
 const client = useSupabaseClient()
 
 await useAsyncData('home-bootstrap', async () => {
@@ -34,6 +36,7 @@ await useAsyncData('home-bootstrap', async () => {
     carousel.fetchAll(),
     homeSections.fetchAll(),
     siteSettings.fetchAll(),
+    productDiscounts.fetchAll(),
   ])
   return true
 })
@@ -226,7 +229,9 @@ const selectedClub = computed<Club | null>(() =>
   selectedClubId.value ? clubs.byId(selectedClubId.value) : null,
 )
 
-const accentCss = computed(() => selectedClub.value?.accent_color ?? 'transparent')
+// * Fall back to Intersport's brand red when the club set no accent colour
+// * (SHOP_PERSONALIZATION_GUIDE.md §3.1).
+const accentCss = computed(() => selectedClub.value?.accent_color ?? '#E2001A')
 
 function fmt(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v)
@@ -239,6 +244,20 @@ function pricingFor(p: Product) {
     discount_percent: Number(p.discount_percent ?? 0),
     discount_source: p.discount_source ?? null,
   })
+}
+
+// * Footspot per-club discount for a product (0 = none).
+function clubDiscountPct(p: Product): number {
+  return productDiscounts.pctFor(p.club_id, p.reference)
+}
+// * Final per-unit price the buyer pays — club discount on the catalogue price.
+function finalPrice(p: Product): number {
+  return applyClubDiscount(pricingFor(p).unit_price_paid, clubDiscountPct(p))
+}
+// * Badge %: the Footspot club discount when set, else the product's own.
+function displayDiscount(p: Product): number {
+  const fs = clubDiscountPct(p)
+  return fs > 0 ? fs : Number(p.discount_percent ?? 0)
 }
 
 function productSizes(p: Product): string[] {
@@ -785,10 +804,10 @@ function scrollToSelector(sel: string) {
               <UIcon v-else name="i-lucide-image" class="w-12 h-12 text-gray-300 opacity-40" />
 
               <span
-                v-if="p.discount_percent > 0"
+                v-if="displayDiscount(p) > 0"
                 class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-brand-secondary text-white"
               >
-                -{{ p.discount_percent }}%
+                -{{ displayDiscount(p) }}%
               </span>
             </div>
             <div class="p-2.5">
@@ -799,9 +818,9 @@ function scrollToSelector(sel: string) {
                 {{ p.name[locale as 'fr' | 'en'] ?? p.name.fr }}
               </div>
               <div class="font-heading font-extrabold text-sm text-brand-secondary">
-                {{ fmt(pricingFor(p).unit_price_paid) }}
+                {{ fmt(finalPrice(p)) }}
                 <span
-                  v-if="p.discount_percent > 0"
+                  v-if="displayDiscount(p) > 0"
                   class="line-through text-[10px] text-gray-400 font-normal ml-1"
                 >
                   {{ fmt(Number(p.selling_price)) }}
@@ -959,6 +978,7 @@ function scrollToSelector(sel: string) {
         v-if="mode === 'products'"
         data-home-products
         class="px-6 md:px-10 pb-16"
+        :style="{ '--accent': accentCss }"
       >
         <div class="mb-6 space-y-1">
           <!-- * Accent divider — inverse of the section gradient (color at the ends, fades through the middle) -->
@@ -997,6 +1017,7 @@ function scrollToSelector(sel: string) {
                   ? 'bg-brand-primary text-white border-brand-primary'
                   : 'bg-white dark:bg-sidebar-surface border-gray-200 dark:border-sidebar text-gray-500 hover:border-brand-primary hover:text-brand-primary'
               "
+              :style="activeCategory === null ? { background: accentCss, borderColor: accentCss } : undefined"
               @click="activeCategory = null"
             >
               {{ t('storefront.home.filterAll') }}
@@ -1011,6 +1032,7 @@ function scrollToSelector(sel: string) {
                   ? 'bg-brand-primary text-white border-brand-primary'
                   : 'bg-white dark:bg-sidebar-surface border-gray-200 dark:border-sidebar text-gray-500 hover:border-brand-primary hover:text-brand-primary'
               "
+              :style="activeCategory === c ? { background: accentCss, borderColor: accentCss } : undefined"
               @click="activeCategory = c"
             >
               {{ c }}
@@ -1053,10 +1075,10 @@ function scrollToSelector(sel: string) {
 
               <!-- Badges -->
               <span
-                v-if="p.discount_percent > 0"
+                v-if="displayDiscount(p) > 0"
                 class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-brand-secondary text-white"
               >
-                -{{ p.discount_percent }}%
+                -{{ displayDiscount(p) }}%
               </span>
               <span
                 v-else-if="p.flocking_kind !== 'none'"
@@ -1096,9 +1118,11 @@ function scrollToSelector(sel: string) {
               </div>
               <div class="flex items-center justify-between gap-1 flex-wrap">
                 <div class="font-heading font-extrabold text-sm">
-                  {{ fmt(pricingFor(p).unit_price_paid) }}
+                  <span :style="clubDiscountPct(p) > 0 ? { color: accentCss } : undefined">
+                    {{ fmt(finalPrice(p)) }}
+                  </span>
                   <span
-                    v-if="p.discount_percent > 0"
+                    v-if="displayDiscount(p) > 0"
                     class="line-through text-[10px] text-gray-400 font-normal ml-1"
                   >
                     {{ fmt(Number(p.selling_price)) }}

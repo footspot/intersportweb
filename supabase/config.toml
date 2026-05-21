@@ -36,3 +36,14 @@ verify_jwt = false
 # * footspot-retry-worker — pg_cron every 5 min. Same internal-call gate.
 [functions.footspot-retry-worker]
 verify_jwt = false
+
+# * Shop-personalization inbound endpoints — HMAC + per-club Bearer, no Supabase
+# * JWT. Footspot calls these to push shop config / discounts / disconnect.
+[functions.update-shop-config]
+verify_jwt = false
+
+[functions.update-product-discounts]
+verify_jwt = false
+
+[functions.footspot-disconnect]
+verify_jwt = false

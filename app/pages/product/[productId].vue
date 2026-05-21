@@ -5,7 +5,8 @@ import { useProductsStore, primaryImagePath } from '~/stores/products'
 import { useClubsStore } from '~/stores/clubs'
 import { useCartStore, type FlockingOptions } from '~/stores/cart'
 import { useClubAccessStore } from '~/stores/clubAccess'
-import { computeUnitPricing } from '~/composables/usePricingPreview'
+import { useProductDiscountsStore } from '~/stores/productDiscounts'
+import { computeUnitPricing, applyClubDiscount } from '~/composables/usePricingPreview'
 import { useBundleAvailability } from '~/composables/useBundleAvailability'
 
 const route = useRoute()
@@ -16,11 +17,12 @@ const products = useProductsStore()
 const clubs = useClubsStore()
 const cart = useCartStore()
 const access = useClubAccessStore()
+const productDiscounts = useProductDiscountsStore()
 const client = useSupabaseClient()
 const cartOpen = useState('customer:cart-open', () => false)
 
 await useAsyncData(`product-${productId.value}`, async () => {
-  await Promise.all([clubs.fetchAll(), products.fetchAll()])
+  await Promise.all([clubs.fetchAll(), products.fetchAll(), productDiscounts.fetchAll()])
   return true
 })
 
@@ -155,6 +157,20 @@ const pricing = computed(() =>
     : null,
 )
 
+// * Footspot club discount layered on top of the catalogue price.
+const footspotPct = computed(() =>
+  product.value ? productDiscounts.pctFor(product.value.club_id, product.value.reference) : 0,
+)
+// * Per-unit price the buyer pays, before the flocking add-on.
+const finalUnitPrice = computed(() =>
+  applyClubDiscount(pricing.value?.unit_price_paid ?? 0, footspotPct.value),
+)
+// * Badge shows the Footspot club discount when set, else the product's own.
+const displayDiscountPct = computed(() =>
+  footspotPct.value > 0 ? footspotPct.value : Number(product.value?.discount_percent ?? 0),
+)
+const hasDiscount = computed(() => displayDiscountPct.value > 0)
+
 function fmt(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v)
 }
@@ -219,6 +235,7 @@ function addToCart() {
       quantity: 1,
       flocking: flocking.value,
       flockingAddon: flockingAddon.value,
+      footspotDiscountPct: footspotPct.value,
     })
   } else {
     if (!selectedVariant.value) {
@@ -240,6 +257,7 @@ function addToCart() {
       quantity: 1,
       flocking: flocking.value,
       flockingAddon: flockingAddon.value,
+      footspotDiscountPct: footspotPct.value,
     })
   }
 
@@ -305,18 +323,18 @@ function addToCart() {
         </div>
 
         <div class="flex items-baseline gap-3">
-          <span class="font-heading text-3xl font-bold">{{ fmt((pricing?.unit_price_paid ?? 0) + flockingAddon) }}</span>
+          <span class="font-heading text-3xl font-bold">{{ fmt(finalUnitPrice + flockingAddon) }}</span>
           <span
-            v-if="product.discount_percent > 0"
+            v-if="hasDiscount"
             class="text-base text-gray-400 line-through"
           >
             {{ fmt(Number(product.selling_price)) }}
           </span>
           <span
-            v-if="product.discount_percent > 0"
+            v-if="hasDiscount"
             class="text-xs px-2 py-0.5 rounded-full bg-brand-secondary text-white font-bold"
           >
-            -{{ product.discount_percent }}%
+            -{{ displayDiscountPct }}%
           </span>
           <span v-if="flockingAddon > 0" class="text-xs text-brand-secondary">
             {{ t('storefront.product.flocking.addonNote', { amount: fmt(flockingAddon) }) }}

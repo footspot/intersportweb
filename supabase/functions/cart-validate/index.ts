@@ -3,7 +3,7 @@
 // * and check each component's stock against the picked (size, secondary_size) pair.
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { serviceClient } from '../_shared/supabase.ts'
-import { computeUnitPricing, type DiscountSource } from '../_shared/pricing.ts'
+import { computeUnitPricing, applyClubDiscount, type DiscountSource } from '../_shared/pricing.ts'
 
 interface CartLineIn {
   line_id: string
@@ -62,10 +62,31 @@ Deno.serve(async (req) => {
 
     const { data: products, error: pErr } = await sb
       .from('products')
-      .select('id, is_pack, buying_price, selling_price, discount_percent, discount_source, is_visible, available_from')
+      .select('id, reference, club_id, is_pack, buying_price, selling_price, discount_percent, discount_source, is_visible, available_from')
       .in('id', productIds)
     if (pErr) throw pErr
     const productMap = new Map((products ?? []).map((p: any) => [p.id, p]))
+
+    // * Footspot per-club discounts — must be folded into the price check, or a
+    // * discounted line (whose snapshot already includes the cut) would always
+    // * read back as price_changed. Keyed by `${club_id}|${reference}`.
+    const footspotDiscountMap = new Map<string, number>()
+    {
+      const refs = Array.from(new Set((products ?? []).map((p: any) => p.reference)))
+      if (refs.length) {
+        const { data: discs } = await sb
+          .from('product_discounts')
+          .select('club_id, product_reference, discount_pct')
+          .in('product_reference', refs)
+          .gt('discount_pct', 0)
+        for (const d of discs ?? []) {
+          footspotDiscountMap.set(
+            `${(d as any).club_id}|${(d as any).product_reference}`,
+            (d as any).discount_pct,
+          )
+        }
+      }
+    }
 
     const variantMap = new Map<string, any>()
     if (variantIds.length) {
@@ -121,6 +142,13 @@ Deno.serve(async (req) => {
         discount_source: product.discount_source ?? null,
       })
 
+      // * Layer the Footspot club discount on top, exactly as create-order does.
+      const footspotPct = footspotDiscountMap.get(`${product.club_id}|${product.reference}`) ?? 0
+      const unitPaid = applyClubDiscount(pricing.unit_price_paid, footspotPct)
+      const fundPerUnit = Number(
+        (pricing.club_fund_per_unit - (pricing.unit_price_paid - unitPaid)).toFixed(2),
+      )
+
       if (product.is_pack) {
         // * Resolve each component variant by size axis
         const comps = bundleCompMap.get(l.product_id) ?? []
@@ -155,11 +183,11 @@ Deno.serve(async (req) => {
             line_id: l.line_id,
             ok: false,
             reason: 'price_changed',
-            current_price: pricing.unit_price_paid,
+            current_price: unitPaid,
             current_buying: Number(product.buying_price),
             current_discount_percent: Number(product.discount_percent ?? 0),
             current_discount_source: product.discount_source ?? null,
-            current_fund_credit: pricing.club_fund_per_unit,
+            current_fund_credit: fundPerUnit,
           }
         }
 
@@ -167,11 +195,11 @@ Deno.serve(async (req) => {
           line_id: l.line_id,
           ok: true,
           available_stock: minAvailable === Infinity ? 0 : minAvailable,
-          current_price: pricing.unit_price_paid,
+          current_price: unitPaid,
           current_buying: Number(product.buying_price),
           current_discount_percent: Number(product.discount_percent ?? 0),
           current_discount_source: product.discount_source ?? null,
-          current_fund_credit: pricing.club_fund_per_unit,
+          current_fund_credit: fundPerUnit,
         }
       }
 
@@ -187,16 +215,16 @@ Deno.serve(async (req) => {
         return { line_id: l.line_id, ok: false, reason: 'out_of_stock', available_stock: variant.stock }
       }
 
-      if (Math.abs(pricing.unit_price_paid - Number(l.unit_price_paid)) > 0.005) {
+      if (Math.abs(unitPaid - Number(l.unit_price_paid)) > 0.005) {
         return {
           line_id: l.line_id,
           ok: false,
           reason: 'price_changed',
-          current_price: pricing.unit_price_paid,
+          current_price: unitPaid,
           current_buying: Number(product.buying_price),
           current_discount_percent: Number(product.discount_percent ?? 0),
           current_discount_source: product.discount_source ?? null,
-          current_fund_credit: pricing.club_fund_per_unit,
+          current_fund_credit: fundPerUnit,
         }
       }
 
@@ -204,11 +232,11 @@ Deno.serve(async (req) => {
         line_id: l.line_id,
         ok: true,
         available_stock: variant.stock,
-        current_price: pricing.unit_price_paid,
+        current_price: unitPaid,
         current_buying: Number(product.buying_price),
         current_discount_percent: Number(product.discount_percent ?? 0),
         current_discount_source: product.discount_source ?? null,
-        current_fund_credit: pricing.club_fund_per_unit,
+        current_fund_credit: fundPerUnit,
       }
     })
 

@@ -15,6 +15,7 @@ export interface Club {
   accent_color: string | null
   slogan: string | null
   footspot_linked: boolean
+  shop_status: 'active' | 'disconnected'
   product_count?: number
   order_count?: number
 }
@@ -67,7 +68,7 @@ export const useClubsStore = defineStore('clubs', () => {
       const { data: clubs, error: err } = await client
         .from('clubs')
         .select(
-          'id, sport_id, name, logo_path, is_password_protected, fund_balance, sort_order, created_at, accent_color, slogan, footspot_linked',
+          'id, sport_id, name, logo_path, is_password_protected, fund_balance, sort_order, created_at, accent_color, slogan, footspot_linked, shop_status',
         )
         .order('sort_order', { ascending: true })
       if (err) throw err

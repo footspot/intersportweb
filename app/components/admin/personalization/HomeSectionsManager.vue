@@ -1,10 +1,9 @@
 <script setup lang="ts">
-// * /admin/home-sections — admin-only. Manages the dynamic entry-row sections
-// * shown on slide 0 of the home carousel. Each section is a category card
-// * that opens a panel of URL links (managed under /admin/home-sections/[id]).
+// * Home sections manager — the dynamic entry-row sections shown on slide 0
+// * of the home carousel. Rendered as the "Home sections" tab of
+// * /admin/personalization. Each section is a category card that opens a panel
+// * of URL links (managed under /admin/home-sections/[id]).
 import { useHomeSectionsStore, type HomeSection } from '~/stores/homeSections'
-
-definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
 const sections = useHomeSectionsStore()
@@ -18,9 +17,8 @@ const deleting = ref<HomeSection | null>(null)
 const confirmBusy = ref(false)
 const togglingId = ref<string | null>(null)
 
-await useAsyncData('admin-home-sections-page', async () => {
-  await sections.fetchAll()
-  return true
+onMounted(() => {
+  sections.fetchAll()
 })
 
 function logoUrl(path: string | null) {
@@ -66,7 +64,7 @@ async function toggleVisible(section: HomeSection) {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="font-heading text-2xl font-bold">{{ t('admin.homeSections.title') }}</h1>
+        <h2 class="font-heading text-xl font-bold">{{ t('admin.homeSections.title') }}</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.homeSections.subtitle') }}</p>
       </div>
       <button

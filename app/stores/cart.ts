@@ -6,7 +6,7 @@
 // * variants happens at checkout / validation time based on (size, secondary_size).
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
-import { computeUnitPricing, type DiscountSource } from '~/composables/usePricingPreview'
+import { computeUnitPricing, applyClubDiscount, type DiscountSource } from '~/composables/usePricingPreview'
 import { primaryImagePath, type Product } from '~/stores/products'
 
 export interface FlockingOptions {
@@ -29,11 +29,12 @@ export interface CartLine {
   secondary_size: string | null      // * secondary size for bundles
   quantity: number
   max_stock: number
-  unit_price_paid: number
+  unit_price_paid: number             // * post-discount price the buyer pays (incl. flocking add-on)
   selling_price: number
   buying_price: number
   discount_percent: number
   discount_source: DiscountSource
+  footspot_discount_pct: number       // * Footspot club discount layered on top (0 = none)
   flocking: FlockingOptions
   flocking_addon: number
 }
@@ -70,6 +71,7 @@ export const useCartStore = defineStore('cart', () => {
     quantity: number
     flocking?: FlockingOptions
     flockingAddon?: number
+    footspotDiscountPct?: number           // * Footspot club discount for this product
   }) {
     const {
       product,
@@ -80,6 +82,7 @@ export const useCartStore = defineStore('cart', () => {
       quantity,
       flocking,
       flockingAddon = 0,
+      footspotDiscountPct = 0,
     } = opts
     const pricing = computeUnitPricing({
       buying_price: Number(product.buying_price),
@@ -87,6 +90,10 @@ export const useCartStore = defineStore('cart', () => {
       discount_percent: Number(product.discount_percent ?? 0),
       discount_source: product.discount_source ?? null,
     })
+    const footspotPct = Math.max(0, Math.min(80, Number(footspotDiscountPct) || 0))
+    // * The Footspot club discount applies to the product price, not the
+    // * flocking add-on. create-order recomputes this server-side identically.
+    const discountedUnit = applyClubDiscount(pricing.unit_price_paid, footspotPct)
     const addon = Math.max(0, Number(flockingAddon) || 0)
     // * Bundle lines don't have a single variantId, so include size axes in the key.
     const lineId = variantId
@@ -113,11 +120,12 @@ export const useCartStore = defineStore('cart', () => {
         secondary_size: secondarySize?.trim() || null,
         quantity: Math.max(1, Math.min(maxStock, quantity)),
         max_stock: maxStock,
-        unit_price_paid: pricing.unit_price_paid + addon,
+        unit_price_paid: discountedUnit + addon,
         selling_price: Number(product.selling_price),
         buying_price: Number(product.buying_price),
         discount_percent: Number(product.discount_percent ?? 0),
         discount_source: product.discount_source ?? null,
+        footspot_discount_pct: footspotPct,
         flocking: {
           name: flocking?.name?.trim() || null,
           initial: flocking?.initial?.trim() || null,

@@ -48,6 +48,7 @@ async function buildEnvelope(
     const { data: items } = await sb
       .from('order_items')
       .select('quantity, size, unit_price_paid, flocking_name, flocking_number, ' +
+              'footspot_discount_pct, fund_credit_snapshot, buying_price_snapshot, ' +
               'product:products(id, reference, name, image_path, is_pack, footspot_category), ' +
               'variant:product_variants(footspot_size)')
       .eq('order_id', order.id)
@@ -59,6 +60,15 @@ async function buildEnvelope(
       const footspotSize = (it as any).variant?.footspot_size ?? null
       // * Non-pack variants without a footspot_size are excluded.
       if (!isPack && !footspotSize) continue
+
+      // * Pricing breakdown (SHOP_PERSONALIZATION_GUIDE.md §3.3). unit_price_paid
+      // * is already the post-discount price; the original is reversed from the
+      // * locked discount %. Margins use the order_item snapshots: the club
+      // * fund credit is the club's margin, buying_price is Intersport's.
+      const unitPaid = Number((it as any).unit_price_paid)
+      const discountPct = Number((it as any).footspot_discount_pct ?? 0)
+      const originalPrice = discountPct > 0 ? unitPaid / (1 - discountPct / 100) : unitPaid
+
       mapped.push({
         product_id: p?.id,
         product_reference: p?.reference,
@@ -70,7 +80,12 @@ async function buildEnvelope(
         quantity: (it as any).quantity,
         flocking_name: (it as any).flocking_name ?? null,
         flocking_number: (it as any).flocking_number ?? null,
-        unit_price_paid: Number((it as any).unit_price_paid),
+        unit_price_paid: unitPaid,
+        original_price_cents: Math.round(originalPrice * 100),
+        price_cents: Math.round(unitPaid * 100),
+        discount_pct_applied: discountPct,
+        club_margin_cents: Math.round(Number((it as any).fund_credit_snapshot ?? 0) * 100),
+        intersport_margin_cents: Math.round(Number((it as any).buying_price_snapshot ?? 0) * 100),
         currency: 'EUR',
       })
     }

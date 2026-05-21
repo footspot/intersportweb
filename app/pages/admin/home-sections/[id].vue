@@ -62,7 +62,7 @@ async function doDelete() {
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div class="flex items-center gap-3 min-w-0">
         <NuxtLink
-          to="/admin/home-sections"
+          :to="{ path: '/admin/personalization', query: { tab: 'home-sections' } }"
           class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-brand-primary"
         >
           <UIcon name="i-lucide-arrow-left" class="w-4 h-4" />

@@ -1,11 +1,10 @@
 <script setup lang="ts">
-// * /admin/carousel — admin-only. Manages the home page hero carousel slides.
+// * Carousel manager — home page hero carousel slides.
+// * Rendered as the "Carousel" tab of /admin/personalization.
 import { useCarouselStore, type HomeSlide } from '~/stores/carousel'
 import { useClubsStore } from '~/stores/clubs'
 import { useProductsStore } from '~/stores/products'
 import { useSportsStore } from '~/stores/sports'
-
-definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
 const carousel = useCarouselStore()
@@ -28,14 +27,11 @@ const confirmOpen = ref(false)
 const deleting = ref<HomeSlide | null>(null)
 const confirmBusy = ref(false)
 
-await useAsyncData('admin-carousel-page', async () => {
-  await Promise.all([
-    carousel.fetchAll(),
-    clubs.fetchAll(),
-    products.fetchAll(),
-    sports.fetchAll(),
-  ])
-  return true
+onMounted(() => {
+  carousel.fetchAll()
+  clubs.fetchAll()
+  products.fetchAll()
+  sports.fetchAll()
 })
 
 function imageUrl(path: string | null) {
@@ -90,7 +86,7 @@ async function moveDown(slide: HomeSlide, index: number) {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="font-heading text-2xl font-bold">{{ t('admin.carousel.title') }}</h1>
+        <h2 class="font-heading text-xl font-bold">{{ t('admin.carousel.title') }}</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.carousel.subtitle') }}</p>
       </div>
       <button

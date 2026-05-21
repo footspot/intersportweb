@@ -360,6 +360,7 @@
       "fund": "Cagnottes",
       "stats": "Statistiques",
       "administration": "Administration",
+      "personalization": "Personnalisation",
       "users": "Utilisateurs",
       "catalog": "Catalogue",
       "promoCodes": "Codes promo",
@@ -428,6 +429,13 @@
       "accentColorHint": "Visible sur la boutique du club",
       "slogan": "Slogan",
       "sloganPlaceholder": "Ex : Ensemble, on va plus loin",
+      "footspotShop": "Boutique Footspot",
+      "shopStatus": "État de la boutique",
+      "shopActive": "Active",
+      "shopDisconnected": "Déconnectée",
+      "clubDiscounts": "Réductions club",
+      "discountCount": "{n} produit(s) en réduction",
+      "footspotShopHint": "Le slogan, la couleur d'accent et les réductions produits sont gérés par le club depuis Footspot.",
       "errors": {
         "nameRequired": "Le nom du club est requis.",
         "sportRequired": "Le sport est requis.",
@@ -1026,6 +1034,10 @@
       "addSocial": "Ajouter un réseau",
       "noSocial": "Aucun réseau ajouté.",
       "saved": "Modifications enregistrées."
+    },
+    "personalization": {
+      "title": "Personnalisation",
+      "subtitle": "Personnalisez la boutique : carrousel d'accueil, sections d'accueil et coordonnées."
     },
     "carousel": {
       "title": "Carrousel d'accueil",

@@ -49,6 +49,15 @@ export function computeUnitPricing(input: PricingInput): UnitPricing {
   }
 }
 
+// * Apply a Footspot club discount on top of an already-computed unit price.
+// * The reduction is absorbed entirely by the club's margin — Intersport's
+// * margin is never touched (SHOP_PERSONALIZATION_GUIDE.md §3.2). Mirror of
+// * applyClubDiscount() in app/composables/usePricingPreview.ts.
+export function applyClubDiscount(unitPrice: number, discountPct: number): number {
+  const pct = Math.max(0, Math.min(80, Number(discountPct) || 0))
+  return round2(Number(unitPrice) * (1 - pct / 100))
+}
+
 // * Validate pricing inputs for server-side integrity checks.
 export function validatePricing(input: PricingInput): string | null {
   if (!Number.isFinite(input.buying_price) || input.buying_price < 0) {

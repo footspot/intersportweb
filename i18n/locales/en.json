@@ -360,6 +360,7 @@
       "fund": "Club funds",
       "stats": "Statistics",
       "administration": "Administration",
+      "personalization": "Personalization",
       "users": "Users",
       "catalog": "Catalog",
       "promoCodes": "Promo codes",
@@ -428,6 +429,13 @@
       "accentColorHint": "Shown on the club shop page",
       "slogan": "Slogan",
       "sloganPlaceholder": "E.g. Together we go further",
+      "footspotShop": "Footspot shop",
+      "shopStatus": "Shop status",
+      "shopActive": "Active",
+      "shopDisconnected": "Disconnected",
+      "clubDiscounts": "Club discounts",
+      "discountCount": "{n} product(s) discounted",
+      "footspotShopHint": "Slogan, accent colour and product discounts are managed by the club from Footspot.",
       "errors": {
         "nameRequired": "Club name is required.",
         "sportRequired": "Sport is required.",
@@ -1026,6 +1034,10 @@
       "addSocial": "Add social link",
       "noSocial": "No social links yet.",
       "saved": "Changes saved."
+    },
+    "personalization": {
+      "title": "Personalization",
+      "subtitle": "Customize the storefront: home carousel, home sections and contact details."
     },
     "carousel": {
       "title": "Home carousel",

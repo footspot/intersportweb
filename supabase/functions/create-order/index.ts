@@ -19,7 +19,7 @@
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { serviceClient } from '../_shared/supabase.ts'
 import { postFootspot } from '../_shared/footspot/client.ts'
-import { computeUnitPricing, type DiscountSource } from '../_shared/pricing.ts'
+import { computeUnitPricing, applyClubDiscount, type DiscountSource } from '../_shared/pricing.ts'
 
 type DeliveryMethod = 'colissimo' | 'club_pickup' | 'shop_pickup'
 
@@ -219,6 +219,25 @@ Deno.serve(async (req) => {
       }
     }
 
+    // * Footspot per-club discounts (SHOP_PERSONALIZATION_GUIDE.md §3.3).
+    // * Keyed by `${club_id}|${reference}`. The buyer pays the discounted
+    // * price; the cut is absorbed entirely by the club's margin — Intersport's
+    // * margin (buying_price) is never touched.
+    const discountMap = new Map<string, number>()
+    {
+      const refs = Array.from(new Set((products ?? []).map((p: any) => p.reference)))
+      if (refs.length) {
+        const { data: discs } = await sb
+          .from('product_discounts')
+          .select('club_id, product_reference, discount_pct')
+          .in('product_reference', refs)
+          .gt('discount_pct', 0)
+        for (const d of discs ?? []) {
+          discountMap.set(`${(d as any).club_id}|${(d as any).product_reference}`, (d as any).discount_pct)
+        }
+      }
+    }
+
     interface PendingItem {
       productId: string
       variantId: string | null
@@ -227,6 +246,9 @@ Deno.serve(async (req) => {
       secondarySize: string | null
       pricing: ReturnType<typeof computeUnitPricing>
       buyingSnapshot: number
+      footspotPct: number
+      unitPaid: number          // * post-footspot-discount price the buyer pays
+      fundPerUnit: number       // * club fund credit per unit, post-discount
       product: any
       flocking: CartLineIn['flocking']
       bundleComponents?: Array<{
@@ -259,6 +281,14 @@ Deno.serve(async (req) => {
           ? Number(product.buying_price) -
             (Number(product.selling_price) * Number(product.discount_percent ?? 0)) / 100
           : Number(product.buying_price)
+
+      // * Layer the Footspot club discount on top of the catalogue price. The
+      // * reduction comes straight out of the club fund credit.
+      const footspotPct = discountMap.get(`${product.club_id}|${product.reference}`) ?? 0
+      const unitPaid = applyClubDiscount(pricing.unit_price_paid, footspotPct)
+      const fundPerUnit = Number(
+        (pricing.club_fund_per_unit - (pricing.unit_price_paid - unitPaid)).toFixed(2),
+      )
 
       if (product.is_pack) {
         const comps = bundleCompMap.get(line.product_id) ?? []
@@ -305,6 +335,9 @@ Deno.serve(async (req) => {
           secondarySize: line.secondary_size ?? null,
           pricing,
           buyingSnapshot,
+          footspotPct,
+          unitPaid,
+          fundPerUnit,
           product,
           flocking: line.flocking,
           bundleComponents: resolved,
@@ -331,12 +364,15 @@ Deno.serve(async (req) => {
           secondarySize: null,
           pricing,
           buyingSnapshot,
+          footspotPct,
+          unitPaid,
+          fundPerUnit,
           product,
           flocking: line.flocking,
         })
       }
 
-      subtotal += pricing.unit_price_paid * line.quantity
+      subtotal += unitPaid * line.quantity
 
       if (!clubId) clubId = product.club_id
       else if (clubId !== product.club_id) {
@@ -350,11 +386,16 @@ Deno.serve(async (req) => {
     // * resolved club. (club_id was discovered from the cart's products.)
     const { data: club, error: clubErr } = await sb
       .from('clubs')
-      .select('id, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
+      .select('id, shop_status, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
       .eq('id', clubId)
       .single()
     if (clubErr || !club) {
       return jsonResponse({ error: 'club_not_found' }, { status: 400 })
+    }
+    // * A club whose director unpaired the shop on Footspot refuses NEW orders.
+    // * Orders already in flight are unaffected (SHOP_PERSONALIZATION_GUIDE §2).
+    if (club.shop_status === 'disconnected') {
+      return jsonResponse({ error: 'shop_disconnected' }, { status: 409 })
     }
     const allowed =
       (body.delivery_method === 'colissimo' && club.delivery_colissimo_enabled) ||
@@ -543,10 +584,11 @@ Deno.serve(async (req) => {
           secondary_size: p.secondarySize,
           buying_price_snapshot: Number(p.buyingSnapshot.toFixed(2)),
           selling_price_snapshot: Number(p.product.selling_price),
-          unit_price_paid: p.pricing.unit_price_paid,
+          unit_price_paid: p.unitPaid,
           discount_source_snapshot:
             (p.product.discount_percent ?? 0) > 0 ? (p.product.discount_source as DiscountSource) : null,
-          fund_credit_snapshot: p.pricing.club_fund_per_unit,
+          fund_credit_snapshot: p.fundPerUnit,
+          footspot_discount_pct: p.footspotPct,
           status: 'ok',
           flocking_name: p.flocking?.name?.trim() || null,
           flocking_initial: p.flocking?.initial?.trim() || null,

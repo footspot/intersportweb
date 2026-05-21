@@ -1,8 +1,7 @@
 <script setup lang="ts">
-// * /admin/contact — singleton contact form. Admin only.
+// * Contact manager — singleton contact form (address, phone, social links…).
+// * Rendered as the "Contact" tab of /admin/personalization.
 import { useContactStore, type SocialLink } from '~/stores/contact'
-
-definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
 const contact = useContactStore()
@@ -17,7 +16,9 @@ const saving = ref(false)
 const saved = ref(false)
 const errorMsg = ref<string | null>(null)
 
-await useAsyncData('admin-contact-page', async () => { await contact.fetch(); return true })
+onMounted(() => {
+  contact.fetch()
+})
 
 watch(
   () => contact.info,
@@ -97,7 +98,7 @@ async function save() {
 <template>
   <div class="space-y-6 max-w-3xl">
     <div>
-      <h1 class="font-heading text-2xl font-bold">{{ t('admin.contact.title') }}</h1>
+      <h2 class="font-heading text-xl font-bold">{{ t('admin.contact.title') }}</h2>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.contact.subtitle') }}</p>
     </div>
 
