@@ -262,3 +262,116 @@ INTERSPORT_FOOTSPOT_SERVICE_TOKEN=<shop-level Bearer for outbound calls TO Foots
 - **Bulk discount by category**: not in v1. Director must set each product individually (UI bulk button is OK for sending many rows at once, but each product is still a discrete row).
 - **Sub-domain renaming**: out of scope. The shop URL is locked at pairing time. Sub-domain changes would require DNS + cert work.
 - **Shop password (private access)**: deferred to v1.1. The wireframe shows a "Visibilité boutique" toggle + a separate password card — both placeholders in v1.
+
+---
+
+## Update 2026-05-21 — TWO ENDPOINTS STILL TO BUILD
+
+> The Footspot side of Ma boutique + Statistiques is fully built and deployed
+> (`intersport-fetch-products`, `intersport-update-product-discounts`,
+> `intersport-fetch-stats`, `intersport-update-shop-config`). The three inbound
+> endpoints in Phase 2 above (`update-shop-config`, `update-product-discounts`,
+> `footspot-disconnect`) are done. **But two more inbound endpoints are called
+> by Footspot and were never specified in this guide — they must be added for
+> the discount editor and the Statistiques tab to populate.** Without them
+> those screens render an "unavailable" state (everything else works).
+>
+> Both follow the **same inbound pattern as `update-shop-config`**: HMAC
+> (`verifyFootspotHmac`) + per-club Bearer (decrypt → resolve `club_id`),
+> `verify_jwt = false` in `config.toml`, `intersport_club_id` must match the
+> Bearer's club (else 403 `forbidden_cross_club`).
+
+### `club-products` — POST  *(to build)*
+
+**Caller**: Footspot's `intersport-fetch-products` — populates the per-product
+discount editor in the "Ma boutique" tab.
+
+**Input**
+```json
+{ "intersport_club_id": "<uuid>" }
+```
+
+**Logic**
+1. Verify HMAC + Bearer; `intersport_club_id` must match the Bearer's club.
+2. List every product sold to this club.
+3. For each, return its reference, display name, category, current price in
+   cents, and the **club's** margin % (`club_margin_pct`, per §1.3 — the
+   editor clamps the discount input to this value), and an image URL.
+
+**Output**
+```json
+{
+  "products": [
+    {
+      "product_reference": "FZ9332-100FC93",
+      "name": "Maillot Domicile",
+      "category": "Maillot",
+      "price_cents": 6000,
+      "margin_pct": 25,
+      "image_url": "https://…"
+    }
+  ]
+}
+```
+- `product_reference` MUST be the same key used by `product_discounts.product_reference` (so Footspot can LEFT JOIN its discount cache).
+- `price_cents` is the pre-discount price.
+- `margin_pct` is the club's margin — NOT Intersport's. A discount may not exceed it (the `update-product-discounts` margin guard is authoritative; this just drives the UI clamp).
+
+### `club-stats` — POST  *(to build)*
+
+**Caller**: Footspot's `intersport-fetch-stats` — the "Statistiques" tab.
+Footspot relays this body **verbatim**; the shape below is exactly what the UI
+renders, so field names and units (`*_cents` = integer cents) must match.
+
+**Input**
+```json
+{
+  "intersport_club_id": "<uuid>",
+  "period": "current_week | current_month | current_season | all_time"
+}
+```
+
+**Logic**
+1. Verify HMAC + Bearer; `intersport_club_id` must match the Bearer's club.
+2. Reject 422 `invalid_period` if `period` is not one of the four values.
+3. Compute the club's sales stats over `period` and return the envelope below.
+
+**Output**
+```json
+{
+  "cagnotte_balance_cents": 124000,
+  "cagnotte_recent_delta_cents": 40000,
+  "cagnotte_transactions": [
+    { "date": "15 mars", "label": "Achat maillots (24 pcs)", "amount_cents": -68000 }
+  ],
+  "kpis": {
+    "sales_count": 87,
+    "revenue_cents": 452000,
+    "pending_orders_count": 3,
+    "gross_margin_cents": 182000
+  },
+  "weekly_chart": [
+    { "day": "Lun", "revenue_cents": 9800, "margin_cents": 4900 }
+  ],
+  "top_products": [
+    {
+      "product_reference": "NK-CH-FC93-006",
+      "name": "Chaussettes Football Nike",
+      "units_sold": 55,
+      "margin_cents": 55000,
+      "margin_pct": 61
+    }
+  ]
+}
+```
+- `weekly_chart`: 7 entries, one per day, `day` a short label (e.g. `Lun`…`Dim`). The Footspot tab draws revenue + margin bars from these.
+- `cagnotte_transactions[].date` is a display string; a negative `amount_cents` is a debit.
+- All `*_cents` fields are integers.
+
+### Implementation order addendum
+
+| Week | Task |
+|------|------|
+| 6    | `club-products` endpoint (HMAC + per-club Bearer, `verify_jwt = false`) |
+| 6    | `club-stats` endpoint (HMAC + per-club Bearer, `verify_jwt = false`) — compute KPIs / weekly chart / cagnotte / top products per `period` |
+| 6    | E2E: Footspot "Ma boutique" discount editor lists products; Footspot "Statistiques" tab renders KPIs + chart + cagnotte + top products |
