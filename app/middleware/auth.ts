@@ -7,4 +7,6 @@ export default defineNuxtRouteMiddleware(async () => {
   const auth = useAuthStore()
   if (!auth.profile) await auth.fetchProfile()
   if (!auth.profile) return navigateTo('/admin/login')
+  // * 2FA enrolled but not yet challenged → finish sign-in first.
+  if (await auth.needsMfa()) return navigateTo('/admin/login')
 })

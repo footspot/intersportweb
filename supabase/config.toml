@@ -56,3 +56,43 @@ verify_jwt = false
 
 [functions.club-stats]
 verify_jwt = false
+
+# * --- Guest-facing checkout chain --------------------------------------------
+# * Checkout is guest-only — there is no logged-in user, so the browser sends
+# * the publishable key (`sb_publishable_…`) as the Authorization Bearer. That
+# * key is NOT a JWT, so the gateway's verify_jwt rejects it with
+# * UNAUTHORIZED_INVALID_JWT_FORMAT before the function runs. Every function
+# * the storefront calls without a session must be listed here, or a redeploy
+# * silently reverts it to the verify_jwt = true default and breaks checkout.
+[functions.cart-validate]
+verify_jwt = false
+
+[functions.create-order]
+verify_jwt = false
+
+[functions.create-form-token]
+verify_jwt = false
+
+[functions.validate-payment-hash]
+verify_jwt = false
+
+[functions.validate-promo-code]
+verify_jwt = false
+
+[functions.validate-prepaid-code]
+verify_jwt = false
+
+[functions.footspot-validate-purchase-code]
+verify_jwt = false
+
+# * club-access — public storefront club-password gate. Guest, no Supabase JWT.
+[functions.club-access]
+verify_jwt = false
+
+# * send-order-email / generate-invoice — invoked internally by other functions
+# * (IPN, create-order) with the service-role key, which is not a JWT either.
+[functions.send-order-email]
+verify_jwt = false
+
+[functions.generate-invoice]
+verify_jwt = false

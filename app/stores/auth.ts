@@ -77,6 +77,20 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // * True when the caller has a verified 2FA factor but the current session
+    // * is still at AAL1 — i.e. they signed in with a password but have not yet
+    // * entered their authenticator code. Back-office middleware uses this to
+    // * bounce them to /admin/login, where the MFA challenge step resumes.
+    async needsMfa(): Promise<boolean> {
+      const client = useSupabaseClient()
+      try {
+        const { data } = await client.auth.mfa.getAuthenticatorAssuranceLevel()
+        return data?.currentLevel === 'aal1' && data?.nextLevel === 'aal2'
+      } catch {
+        return false
+      }
+    },
+
     async signOut() {
       const client = useSupabaseClient()
       await client.auth.signOut()

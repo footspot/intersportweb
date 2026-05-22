@@ -5,6 +5,7 @@
 // *   each admin/employee only sees their own rows. New rows prepend to the
 // *   in-memory list; updates (read_at flip) refresh the matching row.
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { useAuthStore } from '~/stores/auth'
 
 export interface NotificationRow {
   id: string
@@ -26,17 +27,21 @@ export function useNotifications() {
   const unreadCount = computed(() => items.value.filter((n) => !n.read_at).length)
 
   const client = useSupabaseClient()
-  const user = useSupabaseUser()
+  // * Source the uid from the auth store (single source of truth) — the
+  // * useSupabaseUser() ref is unreliable on reload and can yield a partial
+  // * object whose `.id` is undefined, producing `user_id=eq.undefined`.
+  const auth = useAuthStore()
+  const userId = computed<string | null>(() => auth.profile?.id ?? null)
 
   async function fetch(limit = PAGE_SIZE) {
-    if (!user.value) return
+    if (!userId.value) return
     loading.value = true
     error.value = null
     try {
       const { data, error: err } = await client
         .from('notifications')
         .select('*')
-        .eq('user_id', user.value.id)
+        .eq('user_id', userId.value)
         .order('created_at', { ascending: false })
         .limit(limit)
       if (err) throw err
@@ -49,7 +54,7 @@ export function useNotifications() {
   }
 
   async function markRead(id: string) {
-    if (!user.value) return
+    if (!userId.value) return
     const target = items.value.find((n) => n.id === id)
     if (!target || target.read_at) return
     target.read_at = new Date().toISOString()
@@ -57,7 +62,7 @@ export function useNotifications() {
       .from('notifications')
       .update({ read_at: target.read_at })
       .eq('id', id)
-      .eq('user_id', user.value.id)
+      .eq('user_id', userId.value)
     if (err) {
       target.read_at = null
       console.error('[useNotifications] markRead failed', err)
@@ -65,7 +70,7 @@ export function useNotifications() {
   }
 
   async function markAllRead() {
-    if (!user.value) return
+    if (!userId.value) return
     const now = new Date().toISOString()
     const unread = items.value.filter((n) => !n.read_at)
     if (unread.length === 0) return
@@ -75,7 +80,7 @@ export function useNotifications() {
       .from('notifications')
       .update({ read_at: now })
       .in('id', ids)
-      .eq('user_id', user.value.id)
+      .eq('user_id', userId.value)
     if (err) {
       for (const n of unread) n.read_at = null
       console.error('[useNotifications] markAllRead failed', err)
@@ -84,16 +89,17 @@ export function useNotifications() {
 
   let channel: RealtimeChannel | null = null
   function subscribe() {
-    if (subscribed.value || !user.value) return
+    if (subscribed.value || !userId.value) return
+    const uid = userId.value
     channel = client
-      .channel(`admin-notifications:${user.value.id}`)
+      .channel(`admin-notifications:${uid}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.value.id}`,
+          filter: `user_id=eq.${uid}`,
         },
         (payload) => {
           const row = payload.new as NotificationRow
@@ -108,7 +114,7 @@ export function useNotifications() {
           event: 'UPDATE',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.value.id}`,
+          filter: `user_id=eq.${uid}`,
         },
         (payload) => {
           const row = payload.new as NotificationRow

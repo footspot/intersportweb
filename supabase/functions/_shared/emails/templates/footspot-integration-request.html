@@ -8,25 +8,33 @@
 
     <p style="margin:0 0 16px">
       Un club existant côté Intersport souhaite être lié à Footspot. Voici les
-      informations à recopier pour créer le club dans votre application :
+      informations à recopier dans votre application :
     </p>
 
-    <pre style="background:#f4f6ff;border-left:4px solid #0331f9;padding:14px 16px;border-radius:6px;font-size:13px;white-space:pre-wrap;font-family:Menlo,Consolas,monospace">
-Club : {{club_name}}
+    <p style="margin:16px 0 4px;font-weight:700;font-size:13px;color:#0331f9">Club à créer et lier</p>
+    <pre style="background:#f4f6ff;border-left:4px solid #0331f9;padding:14px 16px;border-radius:6px;font-size:13px;white-space:pre-wrap;font-family:Menlo,Consolas,monospace">Club : {{club_name}}
 Intersport club id : {{intersport_club_id}}
+Page boutique du club : {{shop_url}}
 Directeur : {{contact_name}}
 Email : {{contact_email}}
 Téléphone : {{contact_phone}}
 Reçu le : {{sent_at}}
-ID demande : {{request_id}}
-    </pre>
+ID demande : {{request_id}}</pre>
+
+    <p style="margin:18px 0 4px;font-weight:700;font-size:13px;color:#0331f9">Partenaire Intersport — écran « Add partner »</p>
+    <p style="margin:0 0 6px;color:#666;font-size:12px">
+      À utiliser uniquement si cette région Intersport n'existe pas encore comme
+      partenaire dans votre application.
+    </p>
+    <pre style="background:#f4f6ff;border-left:4px solid #0331f9;padding:14px 16px;border-radius:6px;font-size:13px;white-space:pre-wrap;font-family:Menlo,Consolas,monospace">Partner id : {{partner_id}}
+Base URL : {{partner_base_url}}
+Shop URL prefix : {{shop_url_prefix}}</pre>
 
     <p style="margin:16px 0 0;color:#666;font-size:13px">
-      Une fois le club créé côté Footspot, appelez l'endpoint
-      <code>footspot-pairing-complete</code> avec
-      <code>intersport_club_id</code>, <code>footspot_club_id</code> et
-      <code>api_token</code> pour activer le lien. La demande sera automatiquement
-      marquée comme « completed ».
+      Une fois le club créé côté Footspot, l'application appelle
+      <code>footspot-pairing-complete</code> avec <code>intersport_club_id</code>,
+      <code>footspot_club_id</code> et <code>api_token</code> pour activer le lien.
+      La demande sera automatiquement marquée « completed ».
     </p>
 
     <p style="margin-top:24px;color:#888;font-size:12px">— L'équipe Intersport Club IDF</p>

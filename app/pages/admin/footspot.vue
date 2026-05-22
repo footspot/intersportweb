@@ -149,12 +149,14 @@ const contactPhone = ref('')
 const submitBusy = ref(false)
 const submitError = ref<string | null>(null)
 const submitOk = ref(false)
+const submitWarning = ref<string | null>(null)
 
 const selectedClub = computed(() => clubs.items.find((c) => c.id === selectedClubId.value) ?? null)
 
 async function submit() {
   submitError.value = null
   submitOk.value = false
+  submitWarning.value = null
   if (!selectedClubId.value || !contactName.value.trim() || !contactEmail.value.trim() || !contactPhone.value.trim()) {
     submitError.value = t('admin.footspot.errors.missingFields')
     return
@@ -166,20 +168,34 @@ async function submit() {
   submitBusy.value = true
   try {
     const club = selectedClub.value
-    const { error: err } = await invokeEdge('footspot-send-new-club-request', {
-      method: 'POST',
-      body: {
-        club_id: selectedClubId.value,
-        club_name: club?.name ?? '',
-        contact_name: contactName.value.trim(),
-        contact_email: contactEmail.value.trim(),
-        contact_phone: contactPhone.value.trim(),
+    const { data, error: err } = await invokeEdge<{ email_sent: boolean; email_error: string | null }>(
+      'footspot-send-new-club-request',
+      {
+        method: 'POST',
+        body: {
+          club_id: selectedClubId.value,
+          club_name: club?.name ?? '',
+          contact_name: contactName.value.trim(),
+          contact_email: contactEmail.value.trim(),
+          contact_phone: contactPhone.value.trim(),
+        },
       },
-    })
+    )
     if (err) {
       if (err.code === 'club_already_linked') submitError.value = t('admin.footspot.errors.alreadyLinked')
       else if (err.code === 'recent_request_pending') submitError.value = t('admin.footspot.errors.recentPending')
       else submitError.value = err.message
+      return
+    }
+    await loadRequests()
+    // * The audit row was created — but Flow 2 only works if the PDG email
+    // * actually went out. On a send failure, warn and keep the form filled
+    // * so the admin can fix the config and resend without re-typing.
+    if (data?.email_sent === false) {
+      submitWarning.value =
+        data.email_error === 'owner_email_not_configured'
+          ? t('admin.footspot.form.emailNotConfigured')
+          : t('admin.footspot.form.emailFailed')
       return
     }
     submitOk.value = true
@@ -187,7 +203,6 @@ async function submit() {
     contactName.value = ''
     contactEmail.value = ''
     contactPhone.value = ''
-    await loadRequests()
   } finally {
     submitBusy.value = false
   }
@@ -270,6 +285,10 @@ function eventStatusClass(s: EventLogRow['status']) {
       </label>
 
       <p v-if="submitError" class="text-sm text-brand-secondary">{{ submitError }}</p>
+      <p v-if="submitWarning" class="text-sm text-brand-gold">
+        <UIcon name="i-lucide-alert-triangle" class="w-4 h-4 inline" />
+        {{ submitWarning }}
+      </p>
       <p v-if="submitOk" class="text-sm text-brand-green">
         <UIcon name="i-lucide-check-circle-2" class="w-4 h-4 inline" />
         {{ t('admin.footspot.form.sent') }}

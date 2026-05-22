@@ -4,19 +4,29 @@
 // *   notifications are informational only — there's nowhere to navigate by
 // *   default. The full /admin/notifications page handles pagination + filters.
 import { useNotifications, type NotificationRow } from '~/composables/useNotifications'
+import { useAuthStore } from '~/stores/auth'
 
 const { t, locale } = useI18n()
 const notif = useNotifications()
-const user = useSupabaseUser()
+const auth = useAuthStore()
 
 const open = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 
-onMounted(async () => {
-  if (!user.value) return
-  await notif.fetch()
-  notif.subscribe()
-})
+// * Wait for the auth store to expose the uid before fetching — the profile
+// * is usually loaded by the backoffice middleware before mount, but watch
+// * immediately so a slow load still triggers the fetch once it lands.
+let started = false
+watch(
+  () => auth.profile?.id,
+  async (uid) => {
+    if (!uid || started) return
+    started = true
+    await notif.fetch()
+    notif.subscribe()
+  },
+  { immediate: true },
+)
 
 onBeforeUnmount(() => {
   notif.unsubscribe()

@@ -102,8 +102,8 @@
     "securityHint": "Paiement sécurisé. Vos informations ne sont pas stockées sur nos serveurs.",
     "payment": {
       "title": "Mode de paiement",
-      "card": "Carte bancaire / PayPal / wallets",
-      "cardHint": "Saisie sécurisée via SystemPay. Toutes les méthodes activées sur le contrat bancaire.",
+      "card": "Carte bancaire",
+      "cardHint": "Saisie sécurisée via SystemPay.",
       "paypal": "PayPal",
       "paypalHint": "Via votre compte PayPal."
     },
@@ -307,6 +307,14 @@
       "subtitle": "Réservé aux comptes administrateur et employé.",
       "customerHint": "Vous êtes client ?",
       "customerLink": "Connexion boutique"
+    },
+    "mfa": {
+      "title": "Authentification à deux facteurs",
+      "subtitle": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+      "code": "Code d'authentification",
+      "verify": "Vérifier",
+      "useAnother": "Se connecter avec un autre compte",
+      "invalidCode": "Code invalide ou expiré. Réessayez."
     }
   },
   "admin": {
@@ -776,8 +784,53 @@
     },
     "settings": {
       "title": "Paramètres",
-      "subtitle": "Paramètres généraux de l'application.",
-      "comingSoon": "Cette section arrive bientôt."
+      "subtitle": "Gérez votre compte et sa sécurité.",
+      "wrongPassword": "Le mot de passe actuel est incorrect.",
+      "genericError": "Une erreur est survenue. Réessayez.",
+      "profile": {
+        "title": "Profil",
+        "desc": "Votre nom tel qu'il apparaît dans le back-office.",
+        "saved": "Profil mis à jour."
+      },
+      "email": {
+        "title": "Adresse email",
+        "desc": "L'adresse utilisée pour vous connecter au back-office.",
+        "current": "Email actuel",
+        "new": "Nouvel email",
+        "invalid": "Saisissez une adresse email valide.",
+        "taken": "Cette adresse email est déjà utilisée.",
+        "saved": "Adresse email mise à jour."
+      },
+      "password": {
+        "title": "Mot de passe",
+        "desc": "Utilisez au moins 8 caractères non réutilisés ailleurs.",
+        "current": "Mot de passe actuel",
+        "new": "Nouveau mot de passe",
+        "confirm": "Confirmer le nouveau mot de passe",
+        "tooShort": "Le mot de passe doit contenir au moins 8 caractères.",
+        "mismatch": "Les nouveaux mots de passe ne correspondent pas.",
+        "saved": "Mot de passe mis à jour."
+      },
+      "twoFactor": {
+        "title": "Authentification à deux facteurs",
+        "desc": "Exigez un code à usage unique d'une application d'authentification lors de la connexion.",
+        "statusOn": "Activée",
+        "statusOff": "Désactivée",
+        "enabledNote": "Votre compte est protégé par une application d'authentification.",
+        "disabledNote": "Ajoutez une couche de sécurité avec une application comme Google Authenticator, Authy ou 1Password — toutes fonctionnent.",
+        "enable": "Activer la 2FA",
+        "disable": "Désactiver la 2FA",
+        "step1": "1. Scannez le QR code",
+        "step1desc": "Ouvrez votre application d'authentification et scannez le code ci-dessous.",
+        "manualKey": "Impossible de scanner ? Saisissez cette clé manuellement :",
+        "step2": "2. Saisissez le code à 6 chiffres",
+        "verify": "Vérifier et activer",
+        "enabled": "L'authentification à deux facteurs est maintenant activée.",
+        "disabled": "L'authentification à deux facteurs a été désactivée.",
+        "disableConfirm": "Saisissez un code actuel de votre application pour désactiver la 2FA.",
+        "invalidCode": "Code invalide ou expiré. Réessayez.",
+        "genericError": "Une erreur est survenue. Réessayez."
+      }
     },
     "users": {
       "title": "Utilisateurs",
@@ -848,7 +901,9 @@
         "title": "Nouvelle demande d'intégration",
         "hint": "Le directeur du club doit vous avoir contacté par téléphone. Sélectionnez le club Intersport correspondant et fournissez ses coordonnées.",
         "submit": "Envoyer la demande",
-        "sent": "Demande envoyée au PDG Footspot."
+        "sent": "Demande envoyée au PDG Footspot.",
+        "emailNotConfigured": "Demande enregistrée, mais le PDG n'a PAS été notifié : son adresse e-mail n'est pas configurée. Corrigez la configuration, puis renvoyez.",
+        "emailFailed": "Demande enregistrée, mais l'e-mail au PDG a échoué. Vérifiez la configuration e-mail, puis renvoyez."
       },
       "field": {
         "club": "Club Intersport",

@@ -9,6 +9,10 @@ export default defineNuxtRouteMiddleware(async () => {
   if (!auth.profile) {
     return navigateTo('/admin/login')
   }
+  // * 2FA enrolled but not yet challenged → finish sign-in first.
+  if (await auth.needsMfa()) {
+    return navigateTo('/admin/login')
+  }
   if (!auth.isAdmin) {
     return abortNavigation({ statusCode: 403, message: 'Admin access required' })
   }

@@ -79,30 +79,69 @@ Deno.serve(async (req) => {
       .single()
     if (error) throw error
 
-    // * Email the PDG with a copyable plain-text block.
+    // * Email the PDG with a copyable plain-text block. The send result is
+    // * returned so the admin form can warn instead of falsely confirming.
+    let emailSent = false
+    let emailError: string | null = null
     const ownerEmail = Deno.env.get('FOOTSPOT_OWNER_EMAIL')
-    if (ownerEmail) {
+    if (!ownerEmail) {
+      emailError = 'owner_email_not_configured'
+      console.error('[footspot-send-new-club-request] FOOTSPOT_OWNER_EMAIL not set — PDG not notified', { request_id: row.id })
+    } else {
+      // * Partner-level identity of this Intersport instance — the PDG copies
+      // * these into the fs_sa "Add partner" screen. base_url is derived from
+      // * the project URL; shop_url_prefix + partner id come from env, set once
+      // * per deployment. shop_url is the prefix + the club id concatenated
+      // * as-is — the prefix carries its own separator (club pages are served
+      // * at ".../?club=<uuid>", so INTERSPORT_SHOP_URL_PREFIX ends with "?club=").
+      const supabaseUrl = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')
+      const shopUrlPrefix = Deno.env.get('INTERSPORT_SHOP_URL_PREFIX')?.trim()
+      const partnerBaseUrl = supabaseUrl
+        ? `${supabaseUrl}/functions/v1`
+        : '(SUPABASE_URL absent)'
+      const shopUrl = shopUrlPrefix
+        ? `${shopUrlPrefix}${row.club_id}`
+        : '(INTERSPORT_SHOP_URL_PREFIX absent)'
       try {
         await sendOrderEmail({
           to: { email: ownerEmail },
           template: 'footspot-integration-request',
           data: {
-            club_name:        row.club_name,
+            club_name:          row.club_name,
             intersport_club_id: row.club_id,
-            contact_name:     row.contact_name,
-            contact_email:    row.contact_email,
-            contact_phone:    row.contact_phone,
-            request_id:       row.id,
-            sent_at:          row.sent_at,
+            contact_name:       row.contact_name,
+            contact_email:      row.contact_email,
+            contact_phone:      row.contact_phone,
+            request_id:         row.id,
+            sent_at:            row.sent_at,
+            partner_id:         Deno.env.get('INTERSPORT_PARTNER_ID')?.trim() ?? '(INTERSPORT_PARTNER_ID absent)',
+            partner_base_url:   partnerBaseUrl,
+            shop_url_prefix:    shopUrlPrefix ?? '(INTERSPORT_SHOP_URL_PREFIX absent)',
+            shop_url:           shopUrl,
           },
         })
+        emailSent = true
       } catch (e) {
+        emailError = 'send_failed'
         const detail = e instanceof Error ? `${e.message}\n${e.stack ?? ''}` : String(e)
         console.error('[footspot-send-new-club-request] email FAILED', { request_id: row.id, error: detail })
       }
     }
 
-    return jsonResponse({ request_id: row.id }, { status: 201 })
+    // * Notifying the PDG is the whole point of Flow 2 — if the email did not
+    // * go out, flip the audit row to 'failed' so it shows red in the history
+    // * and is excluded from the 7-day cooldown (the admin can retry at once).
+    if (!emailSent) {
+      await sb
+        .from('footspot_integration_requests')
+        .update({ status: 'failed' })
+        .eq('id', row.id)
+    }
+
+    return jsonResponse(
+      { request_id: row.id, email_sent: emailSent, email_error: emailError },
+      { status: 201 },
+    )
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[footspot-send-new-club-request]', msg)

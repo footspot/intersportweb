@@ -101,13 +101,13 @@ function clear() {
         v-model="codeInput"
         type="text"
         :placeholder="t('cart.promo.placeholder')"
-        class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm font-mono uppercase focus:ring-2 focus:ring-brand-primary focus:outline-none"
+        class="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm font-mono uppercase focus:ring-2 focus:ring-brand-primary focus:outline-none"
         @keyup.enter="apply"
       />
       <button
         type="button"
         :disabled="checking || !codeInput.trim()"
-        class="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary-dark disabled:opacity-60"
+        class="shrink-0 whitespace-nowrap px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary-dark disabled:opacity-60"
         @click="apply"
       >
         {{ checking ? t('common.loading') : t('cart.promo.apply') }}

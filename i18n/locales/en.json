@@ -102,8 +102,8 @@
     "securityHint": "Secure payment. Your details are not stored on our servers.",
     "payment": {
       "title": "Payment method",
-      "card": "Card / PayPal / wallets",
-      "cardHint": "Secure entry via SystemPay. All methods enabled on the bank contract.",
+      "card": "Card",
+      "cardHint": "Secure entry via SystemPay.",
       "paypal": "PayPal",
       "paypalHint": "Pay with your PayPal account."
     },
@@ -307,6 +307,14 @@
       "subtitle": "Admin and employee accounts only.",
       "customerHint": "Are you a customer?",
       "customerLink": "Shop sign-in"
+    },
+    "mfa": {
+      "title": "Two-factor authentication",
+      "subtitle": "Enter the 6-digit code from your authenticator app.",
+      "code": "Authentication code",
+      "verify": "Verify",
+      "useAnother": "Sign in with a different account",
+      "invalidCode": "Invalid or expired code. Try again."
     }
   },
   "admin": {
@@ -776,8 +784,53 @@
     },
     "settings": {
       "title": "Settings",
-      "subtitle": "App-wide settings.",
-      "comingSoon": "This section is coming soon."
+      "subtitle": "Manage your account and security.",
+      "wrongPassword": "Current password is incorrect.",
+      "genericError": "Something went wrong. Try again.",
+      "profile": {
+        "title": "Profile",
+        "desc": "Your name as shown across the back office.",
+        "saved": "Profile updated."
+      },
+      "email": {
+        "title": "Email address",
+        "desc": "The address you use to sign in to the back office.",
+        "current": "Current email",
+        "new": "New email",
+        "invalid": "Enter a valid email address.",
+        "taken": "This email address is already in use.",
+        "saved": "Email address updated."
+      },
+      "password": {
+        "title": "Password",
+        "desc": "Use at least 8 characters you don't reuse elsewhere.",
+        "current": "Current password",
+        "new": "New password",
+        "confirm": "Confirm new password",
+        "tooShort": "Password must be at least 8 characters.",
+        "mismatch": "The new passwords don't match.",
+        "saved": "Password updated."
+      },
+      "twoFactor": {
+        "title": "Two-factor authentication",
+        "desc": "Require a one-time code from an authenticator app when you sign in.",
+        "statusOn": "Enabled",
+        "statusOff": "Disabled",
+        "enabledNote": "Your account is protected by an authenticator app.",
+        "disabledNote": "Add an extra layer of security with an app such as Google Authenticator, Authy or 1Password — any of them works.",
+        "enable": "Enable 2FA",
+        "disable": "Disable 2FA",
+        "step1": "1. Scan the QR code",
+        "step1desc": "Open your authenticator app and scan the code below.",
+        "manualKey": "Can't scan? Enter this key manually:",
+        "step2": "2. Enter the 6-digit code",
+        "verify": "Verify & enable",
+        "enabled": "Two-factor authentication is now enabled.",
+        "disabled": "Two-factor authentication has been disabled.",
+        "disableConfirm": "Enter a current code from your app to turn off 2FA.",
+        "invalidCode": "Invalid or expired code. Try again.",
+        "genericError": "Something went wrong. Try again."
+      }
     },
     "users": {
       "title": "Users",
@@ -848,7 +901,9 @@
         "title": "New integration request",
         "hint": "The club director must have phoned in first. Pick the matching Intersport club and provide their contact details.",
         "submit": "Send request",
-        "sent": "Request sent to the Footspot owner."
+        "sent": "Request sent to the Footspot owner.",
+        "emailNotConfigured": "Request saved, but the owner was NOT notified: their email address is not configured. Fix the configuration, then resend.",
+        "emailFailed": "Request saved, but the email to the owner failed. Check the email configuration, then resend."
       },
       "field": {
         "club": "Intersport club",
