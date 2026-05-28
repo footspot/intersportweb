@@ -45,49 +45,198 @@ async function buildEnvelope(
   }
 
   if (eventType === 'order.created') {
-    const { data: items } = await sb
+    // * Two-step fetch:
+    // *   1. order_items + the row's product + (for non-packs) its variant.
+    // *   2. order_item_components for every pack item, joined to component
+    // *      product + component variant — keyed back to order_items by
+    // *      order_item_id.
+    // * We avoid one deeply-nested PostgREST select because relationship
+    // * resolution becomes ambiguous when the same parent table (products,
+    // * product_variants) is embedded twice via different FKs; the embed
+    // * silently returns null for the inner relations and the items[] array
+    // * ends up empty. Splitting also lets us log any select error rather
+    // * than swallowing it via destructuring.
+    // * Images live in product_images, not on products directly. Embed the
+    // * gallery and pick the primary (lowest position) at mapping time.
+    const { data: items, error: itemsErr } = await sb
       .from('order_items')
-      .select('quantity, size, unit_price_paid, flocking_name, flocking_number, ' +
+      .select('id, quantity, size, unit_price_paid, flocking_name, flocking_number, ' +
               'footspot_discount_pct, fund_credit_snapshot, buying_price_snapshot, ' +
-              'product:products(id, reference, name, image_path, is_pack, footspot_category), ' +
+              'product:products(id, reference, name, is_pack, footspot_category, ' +
+                'images:product_images(image_path, position)' +
+              '), ' +
               'variant:product_variants(footspot_size)')
       .eq('order_id', order.id)
+    if (itemsErr) console.error('[footspot-push-event] order_items select', itemsErr)
+
+    // * Pack items only — fetch their resolved components in one round trip
+    // * keyed by the parent order_item_id.
+    const packItemIds = (items ?? [])
+      .filter((it: any) => !!it.product?.is_pack)
+      .map((it: any) => it.id as string)
+    const componentsByItem = new Map<string, any[]>()
+    if (packItemIds.length > 0) {
+      const { data: comps, error: compsErr } = await sb
+        .from('order_item_components')
+        .select('order_item_id, axis, quantity_per_unit, unit_buying_price_snapshot, ' +
+                'component_product:products!order_item_components_component_product_id_fkey(' +
+                  'id, reference, name, footspot_category, ' +
+                  'images:product_images(image_path, position)' +
+                '), ' +
+                'component_variant:product_variants!order_item_components_component_variant_id_fkey(footspot_size)')
+        .in('order_item_id', packItemIds)
+      if (compsErr) console.error('[footspot-push-event] order_item_components select', compsErr)
+      for (const c of comps ?? []) {
+        const k = (c as any).order_item_id as string
+        const list = componentsByItem.get(k) ?? []
+        list.push(c)
+        componentsByItem.set(k, list)
+      }
+    }
+
+    // * Helper: pick the primary image_path from an embedded images array
+    // * (product_images is ordered by `position`, 0 = primary).
+    const primaryImage = (imgs: Array<{ image_path: string; position: number }> | null | undefined): string | null => {
+      if (!imgs || imgs.length === 0) return null
+      const sorted = [...imgs].sort((a, b) => a.position - b.position)
+      return sorted[0]?.image_path ?? null
+    }
 
     const mapped: Record<string, unknown>[] = []
     for (const it of items ?? []) {
       const p = (it as any).product
       const isPack = !!p?.is_pack
-      const footspotSize = (it as any).variant?.footspot_size ?? null
-      // * Non-pack variants without a footspot_size are excluded.
-      if (!isPack && !footspotSize) continue
-
-      // * Pricing breakdown (SHOP_PERSONALIZATION_GUIDE.md §3.3). unit_price_paid
-      // * is already the post-discount price; the original is reversed from the
-      // * locked discount %. Margins use the order_item snapshots: the club
-      // * fund credit is the club's margin, buying_price is Intersport's.
       const unitPaid = Number((it as any).unit_price_paid)
       const discountPct = Number((it as any).footspot_discount_pct ?? 0)
+      // * unit_price_paid is already post-discount; the original is reversed
+      // * from the locked discount %.
       const originalPrice = discountPct > 0 ? unitPaid / (1 - discountPct / 100) : unitPaid
+      const clubMargin = Number((it as any).fund_credit_snapshot ?? 0)
+      const intersportMargin = Number((it as any).buying_price_snapshot ?? 0)
 
-      mapped.push({
-        product_id: p?.id,
-        product_reference: p?.reference,
-        product_name: p?.name?.fr ?? p?.name ?? '',
-        footspot_category: p?.footspot_category ?? null,
-        image_path: p?.image_path ?? null,
-        is_pack: isPack,
-        footspot_size: isPack ? ((it as any).size ?? null) : footspotSize,
-        quantity: (it as any).quantity,
-        flocking_name: (it as any).flocking_name ?? null,
-        flocking_number: (it as any).flocking_number ?? null,
-        unit_price_paid: unitPaid,
-        original_price_cents: Math.round(originalPrice * 100),
-        price_cents: Math.round(unitPaid * 100),
-        discount_pct_applied: discountPct,
-        club_margin_cents: Math.round(Number((it as any).fund_credit_snapshot ?? 0) * 100),
-        intersport_margin_cents: Math.round(Number((it as any).buying_price_snapshot ?? 0) * 100),
-        currency: 'EUR',
-      })
+      if (!isPack) {
+        const footspotSize = (it as any).variant?.footspot_size ?? null
+        // * Non-pack variants without a footspot_size are silently excluded.
+        if (!footspotSize) continue
+        mapped.push({
+          product_id: p?.id,
+          product_reference: p?.reference,
+          product_name: p?.name?.fr ?? p?.name ?? '',
+          footspot_category: p?.footspot_category ?? null,
+          image_path: primaryImage(p?.images),
+          is_pack: false,
+          footspot_size: footspotSize,
+          quantity: (it as any).quantity,
+          flocking_name: (it as any).flocking_name ?? null,
+          flocking_number: (it as any).flocking_number ?? null,
+          unit_price_paid: unitPaid,
+          original_price_cents: Math.round(originalPrice * 100),
+          price_cents: Math.round(unitPaid * 100),
+          discount_pct_applied: discountPct,
+          club_margin_cents: Math.round(clubMargin * 100),
+          intersport_margin_cents: Math.round(intersportMargin * 100),
+          currency: 'EUR',
+        })
+        continue
+      }
+
+      // * Pack expansion. Drop components whose variant has no footspot_size
+      // * mapping; if every component is unmapped, the whole pack disappears
+      // * from the event (same rule as non-pack lines, applied per-component).
+      const allComps = (componentsByItem.get((it as any).id) ?? []) as Array<{
+        axis: 'primary' | 'secondary'
+        quantity_per_unit: number
+        unit_buying_price_snapshot: number
+        component_product: {
+          id: string
+          reference: string
+          name: { fr?: string } | string
+          footspot_category: string | null
+          images: Array<{ image_path: string; position: number }> | null
+        } | null
+        component_variant: { footspot_size: string | null } | null
+      }>
+      const comps = allComps.filter((c) => c.component_variant?.footspot_size)
+      if (comps.length === 0) continue
+
+      // * Allocate the pack's per-unit price / margin across kept components
+      // * by weight = unit_buying_price_snapshot × quantity_per_unit. The
+      // * rounding residual is absorbed by the primary axis so the cents
+      // * sum matches the pack total exactly. We allocate in cents (then
+      // * divide by quantity_per_unit) to avoid float drift.
+      const weights = comps.map((c) => Number(c.unit_buying_price_snapshot) * Number(c.quantity_per_unit))
+      const totalWeight = weights.reduce((a, b) => a + b, 0)
+      // * Index of the primary component within `comps`; falls back to first
+      // * kept component when all axes are secondary (shouldn't happen — the
+      // * editor requires a primary — but stay defensive).
+      const primaryIdx = Math.max(0, comps.findIndex((c) => c.axis === 'primary'))
+
+      const splitCents = (totalCentsPerPack: number): number[] => {
+        if (totalWeight <= 0) {
+          // * Degenerate case: every component has 0 buying price. Split
+          // * evenly, leftover to primary.
+          const even = Math.floor(totalCentsPerPack / comps.length)
+          const out = comps.map(() => even)
+          out[primaryIdx] += totalCentsPerPack - even * comps.length
+          return out
+        }
+        const out = weights.map((w) => Math.floor((totalCentsPerPack * w) / totalWeight))
+        out[primaryIdx] += totalCentsPerPack - out.reduce((a, b) => a + b, 0)
+        return out
+      }
+
+      const paidPerPack = splitCents(Math.round(unitPaid * 100))
+      const originalPerPack = splitCents(Math.round(originalPrice * 100))
+      const clubMarginPerPack = splitCents(Math.round(clubMargin * 100))
+      const intersportMarginPerPack = splitCents(Math.round(intersportMargin * 100))
+
+      const packQty = Number((it as any).quantity)
+      for (let i = 0; i < comps.length; i++) {
+        const c = comps[i]!
+        const cp = c.component_product
+        const cv = c.component_variant
+        const qPerUnit = Number(c.quantity_per_unit)
+        // * Footspot's `price_cents` is per unit of the line's `quantity`,
+        // * so per-component-unit = per-pack-share / quantity_per_unit. Any
+        // * sub-cent remainder here is absorbed by adding it back via the
+        // * primary's already-rounded share (handled above at pack level);
+        // * residual at the per-unit divide is negligible (≤ qPerUnit cents
+        // * per pack) and consistent with how Footspot rounds elsewhere.
+        const pricePerUnit = Math.round(paidPerPack[i]! / qPerUnit)
+        const originalPerUnit = Math.round(originalPerPack[i]! / qPerUnit)
+        const clubPerUnit = Math.round(clubMarginPerPack[i]! / qPerUnit)
+        const intersportPerUnit = Math.round(intersportMarginPerPack[i]! / qPerUnit)
+        const isPrimary = c.axis === 'primary'
+        mapped.push({
+          product_id: cp?.id,
+          product_reference: cp?.reference,
+          product_name: (cp?.name as any)?.fr ?? cp?.name ?? '',
+          footspot_category: cp?.footspot_category ?? null,
+          image_path: primaryImage(cp?.images),
+          is_pack: false,
+          footspot_size: cv?.footspot_size ?? null,
+          quantity: packQty * qPerUnit,
+          // * Flocking lives on the primary axis only (e.g. name+number on
+          // * the jersey, not the shorts).
+          flocking_name: isPrimary ? ((it as any).flocking_name ?? null) : null,
+          flocking_number: isPrimary ? ((it as any).flocking_number ?? null) : null,
+          unit_price_paid: pricePerUnit / 100,
+          original_price_cents: originalPerUnit,
+          price_cents: pricePerUnit,
+          discount_pct_applied: discountPct,
+          club_margin_cents: clubPerUnit,
+          intersport_margin_cents: intersportPerUnit,
+          currency: 'EUR',
+          // * Lets Footspot show "part of <pack>" in its UI without changing
+          // * the SKU model. Absent on non-pack items.
+          from_pack: {
+            product_id: p?.id,
+            product_reference: p?.reference,
+            product_name: p?.name?.fr ?? p?.name ?? '',
+            axis: c.axis,
+          },
+        })
+      }
     }
 
     const buyerName = [order.guest_first_name, order.guest_last_name].filter(Boolean).join(' ')

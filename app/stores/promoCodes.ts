@@ -2,6 +2,11 @@
 // *
 // *   Codes are single-use globally. The atomic claim happens at payment
 // *   success (IPN); admin actions here only configure the code.
+// *
+// *   `batches` carries the aggregated batch list (codes auto-generated
+// *   together). Individual codes inside a batch are loaded on demand via
+// *   `fetchBatchCodes()` — typically only when the admin re-downloads the
+// *   PDF, so we don't keep them in memory.
 import { defineStore } from 'pinia'
 import { invokeEdge } from '~/composables/useEdgeFunction'
 
@@ -19,6 +24,22 @@ export interface PromoCode {
   used_by_order_id: string | null
   used_by_email: string | null
   note: string | null
+  club_id: string | null
+  batch_id: string | null
+  created_at: string
+}
+
+export interface PromoBatch {
+  batch_id: string
+  count: number
+  used_count: number
+  amount: number
+  min_subtotal: number | null
+  absorbs_by: PromoAbsorbsBy
+  valid_from: string | null
+  valid_until: string | null
+  note: string | null
+  club_id: string | null
   created_at: string
 }
 
@@ -31,11 +52,35 @@ export interface PromoCodeInput {
   valid_from?: string | null
   valid_until?: string | null
   note?: string | null
+  club_id?: string | null
+}
+
+export interface PromoBatchInput {
+  count: number
+  prefix: string
+  amount: number
+  min_subtotal: number | null
+  absorbs_by: PromoAbsorbsBy
+  valid_from: string | null
+  valid_until: string | null
+  note: string | null
+  club_id: string | null
+}
+
+export interface PromoBatchCreated {
+  batch_id: string
+  count: number
+  items: PromoCode[]
 }
 
 export const usePromoCodesStore = defineStore('promoCodes', () => {
+  // * `items` only holds single (non-batch) codes — batches are surfaced via
+  // * `batches`. Keeps the main list short on screens with thousands of
+  // * batch-generated codes.
   const items = ref<PromoCode[]>([])
+  const batches = ref<PromoBatch[]>([])
   const loading = ref(false)
+  const loadingBatches = ref(false)
   const error = ref<string | null>(null)
 
   function status(p: PromoCode): 'used' | 'expired' | 'scheduled' | 'active' {
@@ -43,6 +88,15 @@ export const usePromoCodesStore = defineStore('promoCodes', () => {
     const now = Date.now()
     if (p.valid_until && new Date(p.valid_until).getTime() < now) return 'expired'
     if (p.valid_from && new Date(p.valid_from).getTime() > now) return 'scheduled'
+    return 'active'
+  }
+
+  function batchStatus(b: PromoBatch): 'used_up' | 'partially_used' | 'expired' | 'scheduled' | 'active' {
+    if (b.used_count >= b.count) return 'used_up'
+    const now = Date.now()
+    if (b.valid_until && new Date(b.valid_until).getTime() < now) return 'expired'
+    if (b.valid_from && new Date(b.valid_from).getTime() > now) return 'scheduled'
+    if (b.used_count > 0) return 'partially_used'
     return 'active'
   }
 
@@ -62,6 +116,31 @@ export const usePromoCodesStore = defineStore('promoCodes', () => {
     }
   }
 
+  async function fetchBatches() {
+    loadingBatches.value = true
+    try {
+      const { data, error: err } = await invokeEdge<{ items: PromoBatch[] }>(
+        'admin-promo-codes/batches',
+        { method: 'GET' },
+      )
+      if (err) throw new Error(err.message)
+      batches.value = data?.items ?? []
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Failed to load batches'
+    } finally {
+      loadingBatches.value = false
+    }
+  }
+
+  async function fetchBatchCodes(batchId: string): Promise<PromoCode[]> {
+    const { data, error: err } = await invokeEdge<{ items: PromoCode[] }>(
+      'admin-promo-codes/batch',
+      { method: 'GET', query: { id: batchId } },
+    )
+    if (err) throw new Error(err.message)
+    return data?.items ?? []
+  }
+
   async function create(payload: PromoCodeInput) {
     const { data, error: err } = await invokeEdge<{ promo: PromoCode }>('admin-promo-codes', {
       method: 'POST',
@@ -73,6 +152,30 @@ export const usePromoCodesStore = defineStore('promoCodes', () => {
     }
     if (data?.promo) items.value.unshift(data.promo)
     return data?.promo
+  }
+
+  async function createBatch(payload: PromoBatchInput): Promise<PromoBatchCreated> {
+    const { data, error: err } = await invokeEdge<PromoBatchCreated>(
+      'admin-promo-codes/batch',
+      { method: 'POST', body: payload },
+    )
+    if (err) throw new Error(err.message)
+    if (!data) throw new Error('empty_response')
+    // * Optimistically push to local batches list so the UI updates right away.
+    batches.value.unshift({
+      batch_id: data.batch_id,
+      count: data.count,
+      used_count: 0,
+      amount: payload.amount,
+      min_subtotal: payload.min_subtotal,
+      absorbs_by: payload.absorbs_by,
+      valid_from: payload.valid_from,
+      valid_until: payload.valid_until,
+      note: payload.note,
+      club_id: payload.club_id,
+      created_at: new Date().toISOString(),
+    })
+    return data
   }
 
   async function update(payload: PromoCodeInput & { id: string }) {
@@ -98,5 +201,30 @@ export const usePromoCodesStore = defineStore('promoCodes', () => {
     items.value = items.value.filter((x) => x.id !== id)
   }
 
-  return { items, loading, error, status, fetchAll, create, update, remove }
+  async function removeBatch(batchId: string) {
+    const { error: err } = await invokeEdge<{ ok: true }>('admin-promo-codes/batch', {
+      method: 'DELETE',
+      query: { id: batchId },
+    })
+    if (err) throw new Error(err.message)
+    batches.value = batches.value.filter((b) => b.batch_id !== batchId)
+  }
+
+  return {
+    items,
+    batches,
+    loading,
+    loadingBatches,
+    error,
+    status,
+    batchStatus,
+    fetchAll,
+    fetchBatches,
+    fetchBatchCodes,
+    create,
+    createBatch,
+    update,
+    remove,
+    removeBatch,
+  }
 })

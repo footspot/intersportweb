@@ -463,6 +463,7 @@
       "name": "Nom",
       "category": "Catégorie",
       "categoryPlaceholder": "maillot, training, accessoire, lifestyle…",
+      "categoryHint": "Réutilisez une catégorie existante pour regrouper les produits (partagée entre les clubs).",
       "image": "Images du produit",
       "gallery": {
         "primary": "Principale",
@@ -1072,6 +1073,70 @@
         "invalidCode": "Code invalide (3–32 caractères, lettres/chiffres/_/-).",
         "invalidAmount": "Montant invalide.",
         "invalidMin": "Le panier minimum doit être supérieur ou égal au montant de la remise."
+      },
+      "tabs": {
+        "single": "Codes uniques",
+        "batches": "Lots générés"
+      },
+      "newBatch": "Générer un lot",
+      "batch": {
+        "createTitle": "Générer un lot de codes",
+        "createSubtitle": "Les codes sont auto-générés ({prefix}-XXXXXX). Un PDF est téléchargé après création.",
+        "count": "Nombre de codes",
+        "countHint": "Maximum 1000 codes par lot.",
+        "prefix": "Préfixe (optionnel)",
+        "prefixHint": "Ajouté au début de chaque code, séparé par un tiret. Laissez vide pour des codes purement aléatoires.",
+        "club": "Lier à un club (optionnel)",
+        "clubHint": "Affiche le logo du club sur le PDF. N'empêche pas l'utilisation du code sur d'autres clubs.",
+        "noClub": "Aucun club",
+        "submit": "Générer et télécharger",
+        "submitting": "Génération…",
+        "downloadPdf": "Télécharger le PDF",
+        "preview": "Exemple : {sample}",
+        "empty": "Aucun lot généré.",
+        "col": {
+          "createdAt": "Créé le",
+          "count": "Codes",
+          "amount": "Montant",
+          "club": "Club",
+          "window": "Validité",
+          "status": "Statut",
+          "actions": "Actions"
+        },
+        "status": {
+          "active": "Actif",
+          "scheduled": "Planifié",
+          "partially_used": "Partiellement utilisé",
+          "used_up": "Épuisé",
+          "expired": "Expiré"
+        },
+        "deleteTitle": "Supprimer ce lot ?",
+        "deleteConfirm": "Supprimer les {count} codes de ce lot ? Cette action est définitive.",
+        "errors": {
+          "invalidCount": "Nombre invalide (1 à 1000).",
+          "invalidPrefix": "Préfixe invalide (lettres/chiffres/_/- uniquement, max 16 caractères).",
+          "batchHasUsed": "Impossible de supprimer : certains codes du lot ont déjà été utilisés.",
+          "collisionRetry": "Trop de collisions de codes. Réessayez."
+        },
+        "fileName": "codes-promo-{date}.pdf"
+      },
+      "pdf": {
+        "coverTitle": "Lot de codes promo",
+        "coverCount": "Nombre de codes",
+        "coverAmount": "Valeur par code",
+        "coverMin": "Panier minimum",
+        "coverFrom": "Valide à partir du",
+        "coverUntil": "Expire le",
+        "coverAbsorbs": "Pris en charge par",
+        "coverNote": "Note interne",
+        "coverUnlimited": "Sans date d'expiration",
+        "voucherTitle": "Bon d'achat",
+        "voucherAmount": "Valeur",
+        "voucherMin": "Panier min. :",
+        "voucherUntil": "Valable jusqu'au",
+        "voucherNoExpiry": "Sans date d'expiration",
+        "voucherSingleUse": "Code à usage unique",
+        "voucherClubFor": "Pour le club {club}"
       }
     },
     "contact": {

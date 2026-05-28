@@ -463,6 +463,7 @@
       "name": "Name",
       "category": "Category",
       "categoryPlaceholder": "jersey, training, accessory, lifestyle…",
+      "categoryHint": "Reuse an existing category to group products (shared across clubs).",
       "image": "Product images",
       "gallery": {
         "primary": "Primary",
@@ -1072,6 +1073,70 @@
         "invalidCode": "Invalid code (3–32 chars, letters/digits/_/-).",
         "invalidAmount": "Invalid amount.",
         "invalidMin": "Minimum cart must be greater than or equal to the discount amount."
+      },
+      "tabs": {
+        "single": "Single codes",
+        "batches": "Batches"
+      },
+      "newBatch": "Generate batch",
+      "batch": {
+        "createTitle": "Generate a batch of codes",
+        "createSubtitle": "Codes are auto-generated ({prefix}-XXXXXX). A PDF is downloaded after creation.",
+        "count": "Number of codes",
+        "countHint": "Max 1000 codes per batch.",
+        "prefix": "Prefix (optional)",
+        "prefixHint": "Prepended to each code with a dash. Leave empty for purely random codes.",
+        "club": "Link to a club (optional)",
+        "clubHint": "Adds the club's logo to the PDF. Does not restrict redemption to that club.",
+        "noClub": "No club",
+        "submit": "Generate and download",
+        "submitting": "Generating…",
+        "downloadPdf": "Download PDF",
+        "preview": "Sample: {sample}",
+        "empty": "No batches generated yet.",
+        "col": {
+          "createdAt": "Created",
+          "count": "Codes",
+          "amount": "Amount",
+          "club": "Club",
+          "window": "Window",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "status": {
+          "active": "Active",
+          "scheduled": "Scheduled",
+          "partially_used": "Partially used",
+          "used_up": "Used up",
+          "expired": "Expired"
+        },
+        "deleteTitle": "Delete this batch?",
+        "deleteConfirm": "Delete the {count} codes in this batch? This cannot be undone.",
+        "errors": {
+          "invalidCount": "Invalid count (1–1000).",
+          "invalidPrefix": "Invalid prefix (letters/digits/_/- only, max 16 chars).",
+          "batchHasUsed": "Cannot delete: some codes in this batch have already been used.",
+          "collisionRetry": "Too many code collisions. Try again."
+        },
+        "fileName": "promo-codes-{date}.pdf"
+      },
+      "pdf": {
+        "coverTitle": "Promo code batch",
+        "coverCount": "Number of codes",
+        "coverAmount": "Value per code",
+        "coverMin": "Minimum cart",
+        "coverFrom": "Valid from",
+        "coverUntil": "Expires on",
+        "coverAbsorbs": "Absorbed by",
+        "coverNote": "Internal note",
+        "coverUnlimited": "No expiry date",
+        "voucherTitle": "Voucher",
+        "voucherAmount": "Value",
+        "voucherMin": "Min cart:",
+        "voucherUntil": "Valid until",
+        "voucherNoExpiry": "No expiry date",
+        "voucherSingleUse": "Single-use code",
+        "voucherClubFor": "For club {club}"
       }
     },
     "contact": {

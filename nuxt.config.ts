@@ -15,6 +15,15 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode',
   ],
 
+  // * Back-office is client-only. Admin pages mutate local refs inside
+  // *   useAsyncData (loading/requests/eventLog/...) which Nuxt doesn't
+  // *   serialize, so SSR vs hydration drift caused hydration mismatches and
+  // *   stuck loading states. `ssr: false` in definePageMeta is NOT a real
+  // *   Nuxt option — routeRules is. Storefront keeps SSR for SEO.
+  routeRules: {
+    '/admin/**': { ssr: false },
+  },
+
   css: ['~/assets/css/main.css'],
 
   supabase: {

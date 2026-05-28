@@ -102,8 +102,63 @@ jersey  shorts  socks  ball  cone  bib  goalkeeper_gloves  training_vest  other
 
 > **Member purchase**: `footspot_member_id` is set (resolved at checkout via code validation). Footspot consumes the active purchase code for that member on receipt and pre-assigns the resulting `user_sku` to them. The code itself is never sent in events — it stays on Footspot's side.
 > **Non-member purchase**: `footspot_member_id` is `null`. Footspot records the buyer in its outsider field using a per-club sentinel user.
-> **Packs** (`is_pack = true`): one item entry for the pack as a whole — components are NOT expanded.
-> **Variants without `footspot_size`** are silently excluded from the items array.
+> **Variants without `footspot_size`** are silently excluded from the items array (Intersport-side admin chose "Ne pas synchroniser").
+
+#### Packs are expanded into component items
+
+Pack products (`products.is_pack = true`) carry no `footspot_size` of their own — the customer-chosen pack size is a free-text string that may not match Footspot's SKU enum (`4XS`..`4XL`). Instead, each pack line is **expanded** into one item per resolved bundle component (axes `primary` / `secondary`), and each emitted item is itself a normal SKU stock movement (`is_pack: false`).
+
+- **`footspot_category` / `footspot_size`**: taken from the **component product** and the **component variant**, never from the pack.
+- **`quantity`**: `pack_line.quantity × component.quantity_per_unit`.
+- **`flocking_name` / `flocking_number`**: attached to the **primary** axis only (e.g. name + number on the jersey, not the shorts).
+- **Per-component filter**: a component whose variant has no `footspot_size` is silently dropped. If every component is unmapped, the pack disappears from the event entirely — same rule as a non-pack line, applied per axis.
+- **Pricing split**: the pack's per-unit `price_cents` / `original_price_cents` / `club_margin_cents` / `intersport_margin_cents` are split across kept components by weight = `unit_buying_price_snapshot × quantity_per_unit`. Rounding residual is absorbed by the primary axis so the per-pack cents sum is exact. `discount_pct_applied` is identical across components.
+- **`from_pack`**: each expanded item carries `{ product_id, product_reference, product_name, axis }` pointing back to the originating pack — Footspot can render "part of *Kit Domicile*" in its UI without changing its SKU model. Absent on items that did not come from a pack.
+
+Worked example. Pack *Kit Domicile* = 1× jersey (buying €30) + 1× shorts (buying €20) + 2× socks (buying €5 each); pack sells at €100 with 0% discount; customer buys 2 packs with flocking `DUPONT` / `10`.
+
+```json
+"items": [
+  {
+    "product_reference": "JERSEY-HOME",
+    "footspot_category": "jersey",
+    "is_pack": false,
+    "footspot_size": "L",
+    "quantity": 2,
+    "flocking_name": "DUPONT",
+    "flocking_number": "10",
+    "unit_price_paid": 50.01,
+    "price_cents": 5001,
+    "from_pack": { "product_reference": "KIT-HOME", "axis": "primary", "...": "..." }
+  },
+  {
+    "product_reference": "SHORTS-HOME",
+    "footspot_category": "shorts",
+    "is_pack": false,
+    "footspot_size": "M",
+    "quantity": 2,
+    "flocking_name": null,
+    "flocking_number": null,
+    "unit_price_paid": 33.33,
+    "price_cents": 3333,
+    "from_pack": { "product_reference": "KIT-HOME", "axis": "secondary", "...": "..." }
+  },
+  {
+    "product_reference": "SOCKS-WHITE",
+    "footspot_category": "socks",
+    "is_pack": false,
+    "footspot_size": "M",
+    "quantity": 4,
+    "flocking_name": null,
+    "flocking_number": null,
+    "unit_price_paid": 8.33,
+    "price_cents": 833,
+    "from_pack": { "product_reference": "KIT-HOME", "axis": "secondary", "...": "..." }
+  }
+]
+```
+
+Sum across items: `2×5001 + 2×3333 + 4×833 = 20 000 ¢ = 2 × €100`, matching the customer's payment for the pack line.
 
 ### `order.status_changed` data payload
 ```json

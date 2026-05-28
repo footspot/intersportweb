@@ -17,6 +17,10 @@ const STALE_HOURS = 2
 
 const TERMINAL_DELIVERED = new Set(['DR1', 'MD2', 'LV1'])
 const TERMINAL_RETURN = new Set(['RE1'])
+// * "Out for delivery" — courier has the parcel for today's round. Notify
+// * once on the transition; subsequent polls still showing TA1 must not
+// * re-send (dedup via the order's previously stored tracking_status).
+const OUT_FOR_DELIVERY = 'TA1'
 
 function buildMagicLink(token: string): string {
   const base = (Deno.env.get('SITE_URL') ?? 'https://intesport-web.netlify.app').replace(/\/$/, '')
@@ -56,7 +60,7 @@ Deno.serve(async (req) => {
 
   const { data: orders, error } = await sb
     .from('orders')
-    .select('id, order_number, shipping_tracking, access_token, status, guest_email, guest_first_name')
+    .select('id, order_number, shipping_tracking, access_token, status, guest_email, guest_first_name, tracking_status')
     .eq('status', 'shipped')
     .not('shipping_tracking', 'is', null)
     .or(`tracking_checked_at.is.null,tracking_checked_at.lt.${cutoff}`)
@@ -148,10 +152,29 @@ Deno.serve(async (req) => {
         }
         out.push({ order_id: order.id, code, status: 'cancelled' })
       } else {
+        const isFirstOutForDelivery =
+          code === OUT_FOR_DELIVERY && order.tracking_status !== OUT_FOR_DELIVERY
         await sb
           .from('orders')
           .update({ tracking_status: code, tracking_checked_at: new Date().toISOString() })
           .eq('id', order.id)
+        if (isFirstOutForDelivery && order.guest_email) {
+          try {
+            await sendOrderEmail({
+              to: { email: order.guest_email, name: order.guest_first_name ?? undefined },
+              template: 'out-for-delivery',
+              data: {
+                customer_name: order.guest_first_name ?? '',
+                order_number: order.order_number,
+                tracking_number: tracking,
+                tracking_url: `https://www.laposte.fr/outils/suivre-vos-envois?code=${encodeURIComponent(tracking)}`,
+                magic_link: buildMagicLink(order.access_token),
+              },
+            })
+          } catch (_) {
+            /* non-fatal */
+          }
+        }
         out.push({ order_id: order.id, code, status: 'shipped' })
       }
     } catch (e) {

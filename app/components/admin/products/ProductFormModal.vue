@@ -62,6 +62,16 @@ const lockedInBundles = computed(() => {
   return products.bundlesUsing(props.product.id)
 })
 
+// * Suggestions for the free-text category input — deduplicated across all
+// * clubs, since the same category string is intentionally shared (the
+// * storefront filter buckets by exact string match). Helps avoid duplicates
+// * from typos like "maillot" vs "Maillot".
+const knownCategories = computed(() =>
+  Array.from(
+    new Set(products.items.map((p) => p.category).filter(Boolean) as string[]),
+  ).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
+)
+
 const pricingInput = computed(() => ({
   buying_price: Number(buyingPrice.value) || 0,
   selling_price: Number(sellingPrice.value) || 0,
@@ -309,9 +319,17 @@ async function save() {
           <input
             v-model="category"
             type="text"
+            list="product-category-options"
+            autocomplete="off"
             :placeholder="t('admin.products.categoryPlaceholder')"
             class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
           />
+          <!-- * Native browser autocomplete from already-used categories
+               (shared across all clubs). Typing a new value is still allowed. -->
+          <datalist id="product-category-options">
+            <option v-for="c in knownCategories" :key="c" :value="c" />
+          </datalist>
+          <p class="text-xs text-gray-500 mt-1">{{ t('admin.products.categoryHint') }}</p>
         </label>
 
         <label class="block">
