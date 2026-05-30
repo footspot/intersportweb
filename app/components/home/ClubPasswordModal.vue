@@ -79,10 +79,13 @@ async function submit() {
   try {
     const res = await access.unlock(props.club.id, password.value)
     if (!res.ok) {
+      // * Only the wrong-password case gets a specific message; every other
+      // * failure (network, edge function, status code) shows a generic
+      // * line so the visitor never sees raw technical errors.
       errorMsg.value =
         res.error === 'invalid_password'
           ? t('storefront.password.invalid')
-          : res.error ?? t('auth.errors.generic')
+          : t('storefront.password.error')
       triggerShake()
       return
     }
@@ -92,8 +95,8 @@ async function submit() {
       emit('unlocked')
       emit('update:modelValue', false)
     }, 520)
-  } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+  } catch {
+    errorMsg.value = t('storefront.password.error')
     triggerShake()
   } finally {
     submitting.value = false

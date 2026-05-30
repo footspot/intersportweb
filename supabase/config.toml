@@ -57,6 +57,14 @@ verify_jwt = false
 [functions.club-stats]
 verify_jwt = false
 
+[functions.update-shop-access]
+verify_jwt = false
+
+# * adjust-cagnotte — Footspot club directors credit/debit their own cagnotte
+# * from the "Statistiques" tab. Same HMAC + per-club Bearer pipeline, no JWT.
+[functions.adjust-cagnotte]
+verify_jwt = false
+
 # * --- Guest-facing checkout chain --------------------------------------------
 # * Checkout is guest-only — there is no logged-in user, so the browser sends
 # * the publishable key (`sb_publishable_…`) as the Authorization Bearer. That
@@ -95,4 +103,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-invoice]
+verify_jwt = false
+
+# * instagram-sync — pg_cron every 30 min (+ manual admin runs). Self-gated via
+# * X-Internal-Call; the service-role key is not a JWT, so disable the gateway
+# * check here or the cron POST gets rejected before the function runs.
+[functions.instagram-sync]
 verify_jwt = false

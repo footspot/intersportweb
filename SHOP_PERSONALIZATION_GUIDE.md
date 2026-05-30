@@ -375,3 +375,83 @@ renders, so field names and units (`*_cents` = integer cents) must match.
 | 6    | `club-products` endpoint (HMAC + per-club Bearer, `verify_jwt = false`) |
 | 6    | `club-stats` endpoint (HMAC + per-club Bearer, `verify_jwt = false`) — compute KPIs / weekly chart / cagnotte / top products per `period` |
 | 6    | E2E: Footspot "Ma boutique" discount editor lists products; Footspot "Statistiques" tab renders KPIs + chart + cagnotte + top products |
+
+---
+
+## Update 2026-05-30 — ONE ENDPOINT STILL TO BUILD: `update-shop-access`
+
+> The **"Accès & Sécurité"** card in Footspot's "Ma boutique" tab is now **fully
+> built and wired on the Footspot side** (`IntersportShopAccessCard.vue` →
+> `intersport.controller.updateShopAccess` → Footspot edge function
+> `intersport-update-shop-access`). It lets a club director password-protect (or
+> un-protect) his shop **without leaving Footspot** — the v1.1 follow-up to the
+> "Shop password (private access)" item that was deferred in §Open questions.
+>
+> Footspot's edge function already signs and POSTs to the partner's
+> **`update-shop-access`** endpoint, **but that endpoint does not exist on the
+> Intersport side yet** — it must be added before the card works end-to-end.
+> Until then the director's save returns the Intersport error verbatim (a 404)
+> and Footspot leaves its cache untouched (no half-state), exactly as the other
+> outbound saves behave.
+
+### What already exists on the Intersport side (do NOT rebuild)
+
+- `clubs.is_password_protected` (boolean) + `clubs.access_password_hash` (bcrypt)
+  — `20260419000002_tables.sql`. **No migration needed.**
+- `admin-clubs` `/reset-password` — same set/clear logic, but **admin-panel only**
+  (Intersport operator). Reuse its `hashPassword()` / clear behaviour verbatim.
+- `club-access` — the **public buyer** unlock endpoint (verifies the password,
+  returns the 12 h HMAC token). Unchanged by this feature; it simply starts
+  seeing clubs that Footspot directors protect.
+
+### `update-shop-access` — POST  *(to build)*
+
+**Caller**: Footspot's `intersport-update-shop-access` edge function.
+**Auth**: **same inbound pattern as `update-shop-config`** — HMAC
+(`verifyFootspotHmac`) + per-club Bearer (decrypt → resolve `club_id`),
+`verify_jwt = false` in `config.toml`, `X-Timestamp` ±300 s, `X-Idempotency-Key`
+logged. `intersport_club_id` MUST match the Bearer's club (else 403
+`forbidden_cross_club`).
+
+**Input**
+```json
+{
+  "intersport_club_id": "<uuid>",
+  "is_password_protected": true,
+  "password": "raptors93"
+}
+```
+
+- `is_password_protected` — **required boolean**.
+- `password` — **raw password, present only when setting/replacing it.** Footspot
+  never stores or hashes it; hashing happens here (bcrypt, like
+  `admin-clubs`). Footspot omits this field when the director re-enables
+  protection without typing a new password (keep the existing hash).
+
+**Logic** — mirror `admin-clubs` `/reset-password`:
+1. Verify HMAC + Bearer; `intersport_club_id` must match the Bearer's club (403
+   `forbidden_cross_club` otherwise).
+2. **`is_password_protected === false`** → `UPDATE clubs SET
+   is_password_protected = false, access_password_hash = NULL WHERE id = $club`.
+   Ignore any `password` in the body.
+3. **`is_password_protected === true` + `password` present** → validate
+   `password.length >= 4` (reject 422 `password_too_short`), then `UPDATE clubs
+   SET is_password_protected = true, access_password_hash = hashPassword($pw)`.
+4. **`is_password_protected === true` + `password` omitted** → keep the existing
+   hash, just ensure `is_password_protected = true`. If `access_password_hash IS
+   NULL` (never set), reject 422 `password_required` — there's nothing to keep.
+5. Return `{ ok: true, synced_at: now() }`.
+
+**Errors** (standard envelope `{ ok:false, error, message }`): 403
+`forbidden_cross_club`, 422 `password_too_short`, 422 `password_required`, 404
+`club_not_found`.
+
+**Idempotency**: re-applying the same protection state is a no-op UPDATE — safe
+to retry. `X-Idempotency-Key` logged for audit, not required for correctness.
+
+### Implementation order addendum
+
+| Week | Task |
+|------|------|
+| 7    | `update-shop-access` endpoint (HMAC + per-club Bearer, `verify_jwt = false`) — set/clear `clubs.is_password_protected` + `clubs.access_password_hash`, reusing `admin-clubs` hash/clear logic |
+| 7    | E2E: Footspot director toggles "Boutique privée" + sets a password → `clubs.is_password_protected = true` → a buyer hitting the public shop is prompted and `club-access` unlocks with that password; director toggles off → shop public again |

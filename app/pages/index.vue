@@ -11,6 +11,7 @@ import { useHomeSectionsStore, type HomeSection } from '~/stores/homeSections'
 import { useClubAccessStore } from '~/stores/clubAccess'
 import { useSiteSettingsStore } from '~/stores/siteSettings'
 import { useProductDiscountsStore } from '~/stores/productDiscounts'
+import { useInstagramStore } from '~/stores/instagram'
 import { computeUnitPricing, applyClubDiscount } from '~/composables/usePricingPreview'
 
 const { t, locale } = useI18n()
@@ -25,6 +26,7 @@ const homeSections = useHomeSectionsStore()
 const access = useClubAccessStore()
 const siteSettings = useSiteSettingsStore()
 const productDiscounts = useProductDiscountsStore()
+const instagram = useInstagramStore()
 const client = useSupabaseClient()
 
 await useAsyncData('home-bootstrap', async () => {
@@ -37,6 +39,7 @@ await useAsyncData('home-bootstrap', async () => {
     homeSections.fetchAll(),
     siteSettings.fetchAll(),
     productDiscounts.fetchAll(),
+    instagram.fetchAll(),
   ])
   return true
 })
@@ -1143,6 +1146,9 @@ function scrollToSelector(sel: string) {
         </div>
       </section>
     </Transition>
+
+    <!-- * Latest official Instagram post — renders only when the worker has cached one -->
+    <HomeInstagramLatest />
 
     <HomeClubPasswordModal
       v-model="pwOpen"

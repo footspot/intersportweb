@@ -189,6 +189,11 @@
     "productsCount": "{n} products",
     "productsAvailable": "products available",
     "protected": "Protected",
+    "instagram": {
+      "title": "On Instagram",
+      "subtitle": "Our latest post",
+      "cta": "View on Instagram"
+    },
     "home": {
       "heroEyebrow": "New 2026 site",
       "heroTitlePre": "Kit",
@@ -239,6 +244,7 @@
       "hint": "Enter the password provided by your club to see products.",
       "required": "Password is required.",
       "invalid": "Incorrect password.",
+      "error": "Something went wrong. Please try again.",
       "unlock": "Unlock",
       "unlocked": "Unlocked"
     },
