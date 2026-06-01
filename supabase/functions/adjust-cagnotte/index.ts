@@ -42,6 +42,12 @@ function toCents(eur: number): number {
   return Math.round(Number(eur) * 100)
 }
 
+// * Human-readable euro string for the backoffice notification body, e.g.
+// * "1290,00 €" — fr style (comma decimal), app default locale.
+function eur(cents: number): string {
+  return `${(cents / 100).toFixed(2).replace('.', ',')} €`
+}
+
 // * Build the success envelope from a stored fund_transactions row + balance.
 // * tx.amount is already signed (negative for a debit), so transaction.amount_cents
 // * carries the same sign convention as club-stats.cagnotte_transactions[].amount_cents.
@@ -126,7 +132,7 @@ Deno.serve(async (req) => {
   // * Bearer's club row exists.
   const { data: clubBefore, error: cErr } = await sb
     .from('clubs')
-    .select('fund_balance')
+    .select('name, fund_balance')
     .eq('id', auth.clubId)
     .maybeSingle()
   if (cErr) {
@@ -189,6 +195,26 @@ Deno.serve(async (req) => {
     .select('fund_balance')
     .eq('id', auth.clubId)
     .maybeSingle()
+  const balanceAfter = Number(clubAfter?.fund_balance ?? balanceBefore + signedEur)
 
-  return ok(tx, Number(clubAfter?.fund_balance ?? balanceBefore + signedEur))
+  // * Alert the backoffice live (bell + toast) that a director moved the
+  // * cagnotte from Footspot. Only on a genuinely new insert — an idempotent
+  // * replay above returns early and never re-notifies. Best-effort: a failed
+  // * notification must not fail the (already-committed) movement.
+  try {
+    await sb.rpc('notify_backoffice', {
+      p_kind: direction === 'credit' ? 'footspot_cagnotte_credited' : 'footspot_cagnotte_debited',
+      p_payload: {
+        club_id: auth.clubId,
+        club_name: clubBefore.name,
+        amount: eur(amountCents),
+        balance: eur(toCents(balanceAfter)),
+        label,
+      },
+    })
+  } catch (notifyErr) {
+    console.error('[adjust-cagnotte] notify_backoffice', notifyErr)
+  }
+
+  return ok(tx, balanceAfter)
 })

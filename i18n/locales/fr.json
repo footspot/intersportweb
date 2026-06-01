@@ -1028,6 +1028,14 @@
         "footspot_event_failed": {
           "title": "Footspot — échec d'envoi d'événement",
           "body": "L'événement {event_type} de la commande {order_number} a échoué après {attempts} tentatives. Renvoi manuel requis."
+        },
+        "footspot_cagnotte_credited": {
+          "title": "Footspot — cagnotte créditée",
+          "body": "{club_name} : +{amount} ajoutés à la cagnotte ({label}). Nouveau solde : {balance}."
+        },
+        "footspot_cagnotte_debited": {
+          "title": "Footspot — cagnotte débitée",
+          "body": "{club_name} : −{amount} retirés de la cagnotte ({label}). Nouveau solde : {balance}."
         }
       }
     },

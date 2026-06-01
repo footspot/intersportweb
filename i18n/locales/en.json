@@ -1028,6 +1028,14 @@
         "footspot_event_failed": {
           "title": "Footspot — event delivery failed",
           "body": "Event {event_type} for order {order_number} failed after {attempts} attempts. Manual resend required."
+        },
+        "footspot_cagnotte_credited": {
+          "title": "Footspot — cagnotte credited",
+          "body": "{club_name}: +{amount} added to the cagnotte ({label}). New balance: {balance}."
+        },
+        "footspot_cagnotte_debited": {
+          "title": "Footspot — cagnotte debited",
+          "body": "{club_name}: −{amount} withdrawn from the cagnotte ({label}). New balance: {balance}."
         }
       }
     },

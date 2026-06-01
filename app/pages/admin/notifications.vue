@@ -41,6 +41,8 @@ function iconFor(kind: string): string {
     case 'bundle_component_oos_at_sale': return 'i-lucide-alert-octagon'
     case 'product_locked_into_bundle': return 'i-lucide-lock'
     case 'product_released_from_bundle': return 'i-lucide-unlock'
+    case 'footspot_cagnotte_credited': return 'i-lucide-piggy-bank'
+    case 'footspot_cagnotte_debited': return 'i-lucide-banknote-arrow-down'
     default: return 'i-lucide-bell'
   }
 }
@@ -50,6 +52,8 @@ function colorFor(kind: string): string {
     case 'bundle_component_oos_at_sale': return 'text-brand-secondary'
     case 'product_locked_into_bundle': return 'text-brand-primary'
     case 'product_released_from_bundle': return 'text-brand-green'
+    case 'footspot_cagnotte_credited': return 'text-brand-green'
+    case 'footspot_cagnotte_debited': return 'text-brand-gold'
     default: return 'text-gray-500'
   }
 }

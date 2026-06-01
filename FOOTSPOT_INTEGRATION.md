@@ -465,7 +465,9 @@ After any `orders.status` update, call `footspot-push-event` when:
 |------------------------|-------------------------|
 | `paid`                 | `order.created`         |
 | `shipped`              | `order.status_changed`  |
+| `awaiting_pickup`      | `order.status_changed`  |
 | `delivered`            | `shipment.delivered`    |
+| `picked_up`            | `shipment.delivered`    |
 | `refunded`             | `order.refunded`        |
 | `partially_refunded`   | `order.refunded`        |
 | `cancelled`            | `order.status_changed`  |
