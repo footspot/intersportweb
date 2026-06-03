@@ -25,6 +25,8 @@ export interface SendOpts {
   cc?: { email: string; name?: string }[]
   // * If set, will replace the default Brevo sender. Defaults to BREVO_SENDER_EMAIL.
   fromOverride?: { email: string; name?: string }
+  // * Optional Reply-To (e.g. a contact-form submitter so staff can reply directly).
+  replyTo?: { email: string; name?: string }
 }
 
 export async function sendOrderEmail(opts: SendOpts): Promise<{ ok: true; messageId: string | null }> {
@@ -47,6 +49,7 @@ export async function sendOrderEmail(opts: SendOpts): Promise<{ ok: true; messag
       sender: { email: senderEmail, name: opts.fromOverride?.name ?? SENDER_NAME },
       to: [{ email: opts.to.email, name: opts.to.name }],
       cc: opts.cc,
+      replyTo: opts.replyTo,
       subject,
       htmlContent: html,
     }),

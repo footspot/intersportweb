@@ -18,6 +18,20 @@
     "language": "Langue",
     "toggleDark": "Mode sombre"
   },
+  "legal": {
+    "delivery": "Livraison et retour",
+    "cgvLong": "Conditions générales de vente",
+    "privacy": "Politique de confidentialité"
+  },
+  "footer": {
+    "contactTitle": "Contactez-nous",
+    "hoursTitle": "Horaires d'ouverture",
+    "infoTitle": "Informations",
+    "weekdays": "Lundi au vendredi",
+    "saturday": "Samedi",
+    "byAppointment": "Sur rendez-vous",
+    "copyright": "par INTERSPORT CLUB IDF"
+  },
   "cart": {
     "title": "Mon panier",
     "open": "Ouvrir le panier",
@@ -174,7 +188,22 @@
     "callNow": "Appeler",
     "writeUs": "Écrire",
     "hours": "Ouvert",
-    "findUs": "Nous trouver"
+    "findUs": "Nous trouver",
+    "form": {
+      "title": "Formulaire de contact",
+      "subtitle": "Une question ? Écrivez-nous.",
+      "name": "Nom",
+      "email": "Email",
+      "subject": "Sujet",
+      "message": "Message",
+      "send": "Envoyer",
+      "sending": "Envoi…",
+      "success": "Votre message a bien été envoyé. Nous vous répondrons rapidement.",
+      "required": "Le nom et l'email sont requis.",
+      "invalidEmail": "Adresse email invalide.",
+      "rateLimited": "Trop de messages envoyés. Veuillez réessayer plus tard.",
+      "error": "Une erreur est survenue. Veuillez réessayer."
+    }
   },
   "storefront": {
     "pickSport": "Choisissez votre sport",
@@ -194,15 +223,34 @@
       "subtitle": "Notre dernière publication",
       "cta": "Voir sur Instagram"
     },
+    "search": {
+      "allSports": "Tous les sports",
+      "noResults": "Aucun résultat",
+      "results": "{n} résultats",
+      "page": "{x}/{n}"
+    },
     "home": {
-      "heroEyebrow": "Nouveau site 2026",
+      "heroEyebrow": "Équipements officiels",
       "heroTitlePre": "Équipez",
       "heroTitleAccent": "votre club",
       "heroTitlePost": "avec style.",
-      "heroSubtitle": "Trouvez les tenues officielles de votre club sportif. Sélectionnez votre sport, choisissez votre club, et commandez en quelques clics.",
+      "heroSubtitle": "Équipez votre club en quelques clics. Sélectionnez vos tenues officielles, gérez vos commandes groupées et offrez à vos joueurs un équipement à la hauteur de leurs ambitions.",
       "statsClubs": "Clubs partenaires",
       "statsProducts": "Produits",
       "statsSports": "Sports",
+      "topbarPromo": "Découvrez nos packs multisports et multimarques au meilleur prix",
+      "topbarPromoLink": "En savoir plus",
+      "searchPlaceholder": "Rechercher un produit",
+      "heroButton": "Je m'équipe",
+      "supportTitle": "Comment pouvons-nous vous accompagner ?",
+      "supportHint": "Choisissez une option",
+      "aboutTitle": "Qui sommes-nous ?",
+      "aboutCol1Title": "Intersport Club IDF",
+      "aboutCol1Text": "La plateforme dédiée aux clubs sportifs d'Île-de-France. Un écosystème 360° au service du bonheur complet du sportif.",
+      "aboutCol2Title": "À votre écoute",
+      "aboutCol2Text": "Commandez en toute sérénité. Notre équipe de spécialistes répond à toutes vos questions par téléphone, mail et chat.",
+      "aboutCol3Title": "Une expérience premium",
+      "aboutCol3Text": "Un site intuitif et rapide. Commandez en toute sécurité et recevez vos articles rapidement.",
       "stepEntryTitle": "Comment souhaitez-vous commander ?",
       "stepEntryHint": "Choisissez une option",
       "stepSportsTitle": "Choisissez votre sport",
@@ -363,6 +411,7 @@
       "noData": "Aucune donnée"
     },
     "sidebar": {
+      "banner": "Bandeau",
       "main": "Principal",
       "dashboard": "Tableau de bord",
       "sportsClubs": "Sports & Clubs",
@@ -1036,6 +1085,10 @@
         "footspot_cagnotte_debited": {
           "title": "Footspot — cagnotte débitée",
           "body": "{club_name} : −{amount} retirés de la cagnotte ({label}). Nouveau solde : {balance}."
+        },
+        "footspot_shop_disconnected": {
+          "title": "Footspot — boutique déconnectée",
+          "body": "Le club {club_name} a déconnecté sa boutique de Footspot."
         }
       }
     },
@@ -1152,6 +1205,16 @@
         "voucherSingleUse": "Code à usage unique",
         "voucherClubFor": "Pour le club {club}"
       }
+    },
+    "banner": {
+      "title": "Bandeau supérieur",
+      "subtitle": "Le bandeau promo affiché au-dessus de l’en-tête sur toutes les pages.",
+      "active": "Afficher le bandeau",
+      "text": "Texte du bandeau",
+      "textHint": "Laissez vide pour utiliser le message par défaut.",
+      "url": "Lien « En savoir plus »",
+      "urlHint": "Destination du bouton — un chemin interne (ex. /?step=catalog) ou une URL complète.",
+      "saved": "Bandeau enregistré."
     },
     "contact": {
       "title": "Contact",

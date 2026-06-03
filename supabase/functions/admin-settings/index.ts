@@ -7,6 +7,9 @@ import { serviceClient } from '../_shared/supabase.ts'
 
 interface SettingsPayload {
   clearance_active?: boolean
+  promo_banner_text?: string | null
+  promo_banner_url?: string | null
+  promo_banner_active?: boolean
 }
 
 Deno.serve(async (req) => {
@@ -27,6 +30,14 @@ Deno.serve(async (req) => {
 
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (body.clearance_active !== undefined) patch.clearance_active = !!body.clearance_active
+    // * Promo banner: trim text/url to null so an empty field falls back to the i18n default.
+    if (body.promo_banner_text !== undefined) {
+      patch.promo_banner_text = body.promo_banner_text?.trim() || null
+    }
+    if (body.promo_banner_url !== undefined) {
+      patch.promo_banner_url = body.promo_banner_url?.trim() || null
+    }
+    if (body.promo_banner_active !== undefined) patch.promo_banner_active = !!body.promo_banner_active
 
     const { data: existing } = await sb
       .from('site_settings')

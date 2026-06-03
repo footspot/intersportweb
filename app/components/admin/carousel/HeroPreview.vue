@@ -28,56 +28,55 @@ const { t } = useI18n()
     </div>
 
     <div class="rounded-card overflow-hidden border border-gray-200 dark:border-sidebar shadow-card-sm pointer-events-none select-none">
-      <div class="hero relative overflow-hidden min-h-[400px] lg:min-h-[480px] flex items-center px-6 md:px-10 py-14 md:py-20 bg-[#0a0e27] text-white border-y-2 border-[#7b9fff]">
-        <div class="hero-grid absolute inset-0 pointer-events-none"></div>
-        <div class="hero-radial absolute inset-0 pointer-events-none"></div>
-
-        <div class="relative z-[2] max-w-[600px]">
-          <h1 class="font-heading text-4xl md:text-5xl lg:text-[52px] font-black leading-[1.1] tracking-[-1.5px] mb-4">
+      <div class="hero relative flex flex-col lg:flex-row items-stretch min-h-[360px] overflow-hidden">
+        <!-- Left panel -->
+        <div class="flex-1 bg-ink text-white px-6 md:px-10 py-12 flex flex-col justify-center">
+          <div class="hero-eyebrow flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase text-white/55 mb-3.5">
+            {{ t('storefront.home.heroEyebrow') }}
+          </div>
+          <h1 class="font-heading text-4xl md:text-5xl lg:text-[52px] font-extrabold leading-[1.0] uppercase mb-[18px]">
             {{ t('storefront.home.heroTitlePre') }}
-            <span class="bg-gradient-to-br from-[#3a5fff] to-[#7b9fff] bg-clip-text text-transparent">
-              {{ t('storefront.home.heroTitleAccent') }}
-            </span>
+            <em class="not-italic text-accent">{{ t('storefront.home.heroTitleAccent') }}</em>
             {{ t('storefront.home.heroTitlePost') }}
           </h1>
-          <p class="text-white/60 text-base leading-[1.7] mb-8 max-w-lg">
+          <p class="text-white/70 text-[15px] leading-[1.65] mb-8 max-w-[400px]">
             {{ t('storefront.home.heroSubtitle') }}
           </p>
 
-          <div class="flex gap-10">
+          <div class="flex gap-10 pt-[26px] border-t border-white/15">
             <div>
-              <div class="font-heading text-2xl md:text-[28px] font-extrabold">
-                {{ statsClubs }}<span class="text-[#3a5fff]">+</span>
+              <div class="font-heading text-[30px] font-extrabold leading-none">
+                {{ statsClubs }}<span class="text-accent">+</span>
               </div>
-              <div class="text-[11px] text-white/40 uppercase tracking-[1px] mt-1">
+              <div class="text-[10px] text-white/45 uppercase tracking-[0.1em] mt-1.5 font-semibold">
                 {{ t('storefront.home.statsClubs') }}
               </div>
             </div>
             <div>
-              <div class="font-heading text-2xl md:text-[28px] font-extrabold">
-                {{ statsProducts }}<span class="text-[#3a5fff]">+</span>
+              <div class="font-heading text-[30px] font-extrabold leading-none">
+                {{ statsProducts }}<span class="text-accent">+</span>
               </div>
-              <div class="text-[11px] text-white/40 uppercase tracking-[1px] mt-1">
+              <div class="text-[10px] text-white/45 uppercase tracking-[0.1em] mt-1.5 font-semibold">
                 {{ t('storefront.home.statsProducts') }}
               </div>
             </div>
             <div>
-              <div class="font-heading text-2xl md:text-[28px] font-extrabold">
+              <div class="font-heading text-[30px] font-extrabold leading-none">
                 {{ statsSports }}
               </div>
-              <div class="text-[11px] text-white/40 uppercase tracking-[1px] mt-1">
+              <div class="text-[10px] text-white/45 uppercase tracking-[0.1em] mt-1.5 font-semibold">
                 {{ t('storefront.home.statsSports') }}
               </div>
             </div>
           </div>
         </div>
 
-        <HomeHeroCarousel v-if="slides.length" :slides="slides" />
-        <div
-          v-else
-          class="hidden lg:flex absolute right-10 top-1/2 -translate-y-1/2 w-[500px] h-[400px] rounded-2xl border border-dashed border-white/15 items-center justify-center text-white/40 text-sm"
-        >
-          {{ t('admin.carousel.preview.empty') }}
+        <!-- Right panel — #0f1a40, carousel sits inside as a square -->
+        <div class="relative flex-shrink-0 w-full lg:w-[500px] min-h-[300px] lg:min-h-0 bg-ink overflow-hidden flex items-center justify-center p-5 md:p-6">
+          <HomeHeroCarousel v-if="slides.length" :slides="slides" />
+          <div v-else class="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
+            {{ t('admin.carousel.preview.empty') }}
+          </div>
         </div>
       </div>
     </div>
@@ -85,15 +84,11 @@ const { t } = useI18n()
 </template>
 
 <style scoped>
-.hero-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-}
-.hero-radial {
-  background:
-    radial-gradient(ellipse 600px 400px at 20% 50%, rgba(3, 49, 249, 0.25), transparent),
-    radial-gradient(ellipse 400px 300px at 80% 30%, rgba(227, 11, 12, 0.15), transparent);
+.hero-eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 2px;
+  background: #e8251f;
+  display: inline-block;
 }
 </style>

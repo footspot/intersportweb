@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intersport Club IDF — Accueil</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Barlow', sans-serif; background: #f4f4f2; color: #1a1a1a; }
+
+    /* TOPBAR */
+    .topbar { background: #1b2a6b; color: rgba(255,255,255,0.85); font-size: 12px; text-align: center; padding: 8px; letter-spacing: 0.04em; }
+    .topbar a { color: #fff; font-weight: 700; text-decoration: underline; }
+
+    /* NAV NIVEAU 1 */
+    .nav-top { background: #fff; display: flex; align-items: center; gap: 20px; padding: 14px 40px; border-bottom: 1px solid #eee; }
+    .logo-wrap { flex-shrink: 0; line-height: 1; }
+    .logo-inter { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; color: #e8251f; }
+    .logo-sport { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; color: #1b2a6b; }
+    .logo-sub { font-size: 9px; font-weight: 700; color: #1b2a6b; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+    .nav-search { flex: 1; display: flex; align-items: center; gap: 10px; background: #f2f2f2; border-radius: 8px; padding: 10px 16px; }
+    .nav-search i { font-size: 17px; color: #999; }
+    .nav-search input { border: none; background: transparent; outline: none; font-family: 'Barlow', sans-serif; font-size: 14px; color: #333; width: 100%; }
+    .nav-search input::placeholder { color: #aaa; }
+    .nav-icons { display: flex; gap: 8px; flex-shrink: 0; }
+    .nav-icon-btn { width: 38px; height: 38px; border-radius: 8px; border: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #fff; }
+    .nav-icon-btn i { font-size: 19px; color: #555; }
+
+    /* NAV NIVEAU 2 */
+    .nav-cats { background: #fff; border-bottom: 2px solid #e8251f; display: flex; align-items: center; justify-content: center; padding: 0 40px; }
+    .nav-cats a { display: block; font-size: 14px; font-weight: 600; color: #1b2a6b; text-decoration: none; padding: 14px 28px; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: color 0.15s, border-color 0.15s; }
+    .nav-cats a:hover { color: #e8251f; border-bottom-color: #e8251f; }
+    .nav-cats a.active { color: #e8251f; border-bottom-color: #e8251f; font-weight: 700; }
+
+    /* HERO */
+    .hero { background: #1b2a6b; min-height: 400px; display: flex; align-items: stretch; overflow: hidden; }
+    .hero-left { flex: 1; padding: 56px 48px; display: flex; flex-direction: column; justify-content: center; }
+    .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; color: rgba(255,255,255,0.55); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .hero-eyebrow::before { content: ''; width: 24px; height: 2px; background: #e8251f; display: inline-block; }
+    .hero-title { font-family: 'Barlow Condensed', sans-serif; font-size: 56px; font-weight: 800; line-height: 1.0; color: #fff; text-transform: uppercase; margin-bottom: 18px; }
+    .hero-title em { font-style: normal; color: #e8251f; }
+    .hero-desc { font-size: 15px; color: rgba(255,255,255,0.7); line-height: 1.65; max-width: 400px; margin-bottom: 32px; }
+    .hero-btn { display: inline-flex; align-items: center; gap: 10px; background: #e8251f; color: #fff; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: 0.05em; padding: 13px 28px; border-radius: 8px; text-decoration: none; width: fit-content; }
+    .hero-stats { display: flex; gap: 40px; margin-top: 44px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 26px; }
+    .stat-num { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; color: #fff; }
+    .stat-num span { color: #e8251f; }
+    .stat-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: rgba(255,255,255,0.45); text-transform: uppercase; }
+
+    .hero-right { flex: 0 0 500px; background: #0f1a40; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 44px 48px; position: relative; overflow: hidden; }
+    .hero-stripe { position: absolute; top: 0; right: 0; width: 5px; height: 100%; background: repeating-linear-gradient(180deg, #e8251f 0, #e8251f 16px, transparent 16px, transparent 24px); }
+    .hero-stripe2 { position: absolute; top: 0; right: 9px; width: 3px; height: 100%; background: repeating-linear-gradient(180deg, #e8251f 0, #e8251f 16px, transparent 16px, transparent 24px); opacity: 0.3; }
+    .banner-tagline { font-family: 'Barlow Condensed', sans-serif; font-size: 50px; font-weight: 800; color: #fff; text-transform: uppercase; line-height: 1.05; margin-bottom: 14px; }
+    .banner-tagline em { font-style: normal; color: #e8251f; display: block; }
+    .banner-sub { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 28px; }
+    .banner-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+    .pill { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 7px 13px; color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .pill i { font-size: 15px; color: #e8251f; }
+
+    /* SECTION COMMANDER */
+    .section-order { background: #fff; padding: 40px 48px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+    .section-header-left { display: flex; align-items: center; gap: 12px; }
+    .section-icon { width: 36px; height: 36px; background: #e8251f; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .section-icon i { font-size: 19px; color: #fff; }
+    .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #1b2a6b; }
+    .section-hint { font-size: 13px; color: #aaa; font-style: italic; }
+    .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .order-card { border: 1.5px solid #e8e8e8; border-radius: 12px; padding: 28px 24px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; position: relative; overflow: hidden; }
+    .order-card:hover { transform: translateY(-2px); }
+    .card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+    .card-icon { margin-bottom: 12px; }
+    .card-icon i { font-size: 30px; }
+    .card-name { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 6px; }
+    .card-desc { font-size: 13px; color: #777; line-height: 1.5; margin-bottom: 18px; }
+    .card-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; }
+    .card-link i { font-size: 14px; }
+
+    /* QUI SOMMES-NOUS */
+    .section-about { margin: 0 48px 48px; background: #2d3591; border-radius: 12px; padding: 56px 56px; position: relative; overflow: hidden; }
+    .section-about::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.03) 18px, rgba(255,255,255,0.03) 20px); pointer-events: none; }
+    .about-header { display: flex; align-items: center; gap: 14px; margin-bottom: 48px; }
+    .about-title { font-family: 'Barlow', sans-serif; font-size: 28px; font-weight: 700; color: #fff; }
+    .about-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; position: relative; z-index: 1; }
+    .about-col-icon { width: 56px; height: 56px; border: 1.5px solid rgba(255,255,255,0.35); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .about-col-icon i { font-size: 26px; color: rgba(255,255,255,0.9); }
+    .about-col-name { font-family: 'Barlow', sans-serif; font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+    .about-col-text { font-size: 14px; color: rgba(255,255,255,0.62); line-height: 1.65; }
+
+    /* FOOTER */
+    footer { background: #0f1a40; color: rgba(255,255,255,0.55); padding: 22px 48px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .foot-logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; color: #fff; font-size: 15px; }
+    .foot-logo span { color: #e8251f; margin-left: 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; }
+    .foot-links { display: flex; gap: 20px; }
+    .foot-links a { color: rgba(255,255,255,0.45); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    Découvrez nos packs multisports et multimarques au meilleur prix &rarr; <a href="#">En savoir plus</a>
+  </div>
+
+  <!-- Nav niveau 1 -->
+  <div class="nav-top">
+    <div class="logo-wrap">
+      <div><span class="logo-inter">INTER</span><span class="logo-sport">SPORT</span></div>
+      <div class="logo-sub">Club IDF</div>
+    </div>
+    <div class="nav-search">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Rechercher un produit" />
+    </div>
+    <div class="nav-icons">
+      <div class="nav-icon-btn"><i class="ti ti-user"></i></div>
+      <div class="nav-icon-btn"><i class="ti ti-shopping-cart"></i></div>
+    </div>
+  </div>
+
+  <!-- Nav niveau 2 -->
+  <nav class="nav-cats">
+    <a href="#" class="active">Accueil</a>
+    <a href="#">Catalogue</a>
+    <a href="#">Boutique</a>
+    <a href="#">Contact</a>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Équipements officiels</div>
+      <h1 class="hero-title">Équipez <em>votre club</em> avec style.</h1>
+      <p class="hero-desc">Équipez votre club en quelques clics. Sélectionnez vos tenues officielles, gérez vos commandes groupées et offrez à vos joueurs un équipement à la hauteur de leurs ambitions.</p>
+      <a href="#" class="hero-btn"><i class="ti ti-arrow-right"></i> Je m'équipe</a>
+      <div class="hero-stats">
+        <div><div class="stat-num">3<span>+</span></div><div class="stat-lbl">Clubs partenaires</div></div>
+        <div><div class="stat-num">4<span>+</span></div><div class="stat-lbl">Produits</div></div>
+        <div><div class="stat-num">3</div><div class="stat-lbl">Sports</div></div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-stripe"></div>
+      <div class="hero-stripe2"></div>
+      <div class="banner-tagline">Train.<br><em>Perform.</em>Exceed.</div>
+      <div class="banner-sub">Équipement, conseils &amp; programmes pour atteindre vos objectifs.</div>
+      <div class="banner-pills">
+        <div class="pill"><i class="ti ti-barbell"></i> Équipement</div>
+        <div class="pill"><i class="ti ti-trending-up"></i> Performance</div>
+        <div class="pill"><i class="ti ti-shield-check"></i> Résultats</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment pouvons-nous vous accompagner -->
+  <div class="section-order">
+    <div class="section-header">
+      <div class="section-header-left">
+        <div class="section-icon"><i class="ti ti-heart-handshake"></i></div>
+        <div class="section-title">Comment pouvons-nous vous accompagner ?</div>
+      </div>
+      <div class="section-hint">Choisissez une option</div>
+    </div>
+    <div class="cards-grid">
+      <div class="order-card">
+        <div class="card-accent" style="background:#1b2a6b;"></div>
+        <div class="card-icon"><i class="ti ti-book" style="color:#1b2a6b;"></i></div>
+        <div class="card-name" style="color:#1b2a6b;">Catalogues</div>
+        <div class="card-desc">Consultez les catalogues de vos marques préférées et composez votre commande groupée.</div>
+        <a href="#" class="card-link" style="color:#1b2a6b;">Explorer <i class="ti ti-arrow-right"></i></a>
+      </div>
+      <div class="order-card">
+        <div class="card-accent" style="background:#e8251f;"></div>
+        <div class="card-icon"><i class="ti ti-shopping-bag" style="color:#e8251f;"></i></div>
+        <div class="card-name" style="color:#e8251f;">Boutique Club</div>
+        <div class="card-desc">Commandez directement les articles référencés pour votre club avec livraison rapide.</div>
+        <a href="#" class="card-link" style="color:#e8251f;">Commander <i class="ti ti-arrow-right"></i></a>
+      </div>
+      <div class="order-card">
+        <div class="card-accent" style="background:#e8251f;"></div>
+        <div class="card-icon"><i class="ti ti-tag" style="color:#e8251f;"></i></div>
+        <div class="card-name" style="color:#e8251f;">Soldes &amp; Déstockage</div>
+        <div class="card-desc">Profitez des meilleures offres sur les équipements en fin de collection à prix réduits.</div>
+        <a href="#" class="card-link" style="color:#e8251f;">Voir les offres <i class="ti ti-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Qui sommes-nous -->
+  <div class="section-about">
+    <div class="about-header">
+      <div class="about-title">Qui sommes-nous ?</div>
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 3L5 7.5V15C5 21.5 9.8 27.4 16 29C22.2 27.4 27 21.5 27 15V7.5L16 3Z" stroke="white" stroke-width="1.5" fill="none" opacity="0.8"/>
+        <path d="M12 16L15 19L20 13" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="about-grid">
+      <div>
+        <div class="about-col-icon"><i class="ti ti-refresh"></i></div>
+        <div class="about-col-name">Intersport Club IDF</div>
+        <div class="about-col-text">Intersport Club IDF est la plateforme dédiée aux clubs sportifs d'Île-de-France. Nous formons un écosystème 360° visant au bonheur complet du sportif.</div>
+      </div>
+      <div>
+        <div class="about-col-icon"><i class="ti ti-headset"></i></div>
+        <div class="about-col-name">À votre écoute</div>
+        <div class="about-col-text">Commandez en toute sérénité. Notre équipe de spécialistes répond à toutes vos questions par téléphone, mail et chat.</div>
+      </div>
+      <div>
+        <div class="about-col-icon"><i class="ti ti-crown"></i></div>
+        <div class="about-col-name">Une expérience premium</div>
+        <div class="about-col-text">Parce que votre temps est précieux, notre site se doit d'être intuitif et rapide. Commandez en toute sécurité. Recevez vos articles rapidement.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="foot-logo">INTERSPORT <span>CLUB IDF</span></div>
+    <div class="foot-links">
+      <a href="#">Mentions légales</a>
+      <a href="#">CGV</a>
+      <a href="#">Politique de confidentialité</a>
+      <a href="#">Contact</a>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);">© 2026 Intersport Club IDF</div>
+  </footer>
+
+</body>
+</html>

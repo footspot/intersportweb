@@ -17,8 +17,18 @@
   --color-sidebar-surface: #0f1428;
   --color-sidebar-bg: #07091a;
 
-  --font-heading: Outfit, ui-sans-serif, system-ui, sans-serif;
-  --font-body: Sora, ui-sans-serif, system-ui, sans-serif;
+  /* * Official Intersport palette — blue #164194 + red #e30613.
+   * Drives the storefront home, global header/footer and topbar. The brand-*
+   * tokens above are left untouched so the back-office keeps its current look.
+   * ink-deep / ink-mid are darker/lighter shades of the official blue. */
+  --color-ink: #164194;
+  --color-ink-deep: #0e2a60;
+  --color-ink-mid: #1e51a8;
+  --color-accent: #e30613;
+  --color-page: #f4f4f2;
+
+  --font-heading: 'Barlow Condensed', ui-sans-serif, system-ui, sans-serif;
+  --font-body: Barlow, ui-sans-serif, system-ui, sans-serif;
 
   --radius-card: 14px;
 
@@ -65,4 +75,47 @@
 }
 .scrollbar-brand::-webkit-scrollbar-thumb:hover {
   background-color: #b40809;
+}
+
+/* * ── Storefront home shared utilities ──
+ * Used across the split home section components (panels reveal/leave, product
+ * grids, horizontal scrollers). Kept global so each section stays presentational. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.panel-enter-active {
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.panel-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.panel-enter-from {
+  opacity: 0;
+  transform: translateY(-40px);
+}
+.panel-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+.home-product-card {
+  animation: homeCardIn 0.5s ease-out both;
+}
+@keyframes homeCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-product-card {
+    animation: none;
+  }
 }

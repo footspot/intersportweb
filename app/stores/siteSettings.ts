@@ -6,6 +6,9 @@ import { invokeEdge } from '~/composables/useEdgeFunction'
 export interface SiteSettings {
   id: string
   clearance_active: boolean
+  promo_banner_text: string | null
+  promo_banner_url: string | null
+  promo_banner_active: boolean
   updated_at: string
 }
 
@@ -15,6 +18,10 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
   const error = ref<string | null>(null)
 
   const clearanceActive = computed(() => !!settings.value?.clearance_active)
+  // * Banner defaults to visible when the row predates the feature (null → true).
+  const promoBannerActive = computed(() => settings.value?.promo_banner_active !== false)
+  const promoBannerText = computed(() => settings.value?.promo_banner_text ?? null)
+  const promoBannerUrl = computed(() => settings.value?.promo_banner_url ?? null)
 
   async function fetchAll() {
     loading.value = true
@@ -36,7 +43,11 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     }
   }
 
-  async function update(patch: Partial<Pick<SiteSettings, 'clearance_active'>>) {
+  async function update(
+    patch: Partial<
+      Pick<SiteSettings, 'clearance_active' | 'promo_banner_text' | 'promo_banner_url' | 'promo_banner_active'>
+    >,
+  ) {
     const { data, error: err } = await invokeEdge<{ settings: SiteSettings }>(
       'admin-settings',
       { method: 'PUT', body: patch },
@@ -50,5 +61,16 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     return update({ clearance_active: !clearanceActive.value })
   }
 
-  return { settings, loading, error, clearanceActive, fetchAll, update, toggleClearance }
+  return {
+    settings,
+    loading,
+    error,
+    clearanceActive,
+    promoBannerActive,
+    promoBannerText,
+    promoBannerUrl,
+    fetchAll,
+    update,
+    toggleClearance,
+  }
 })

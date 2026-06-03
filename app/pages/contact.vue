@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // * /contact — public contact page. Data comes from the singleton contact_info.
 import { useContactStore } from '~/stores/contact'
+import { invokeEdge } from '~/composables/useEdgeFunction'
 
 const { t } = useI18n()
 const contact = useContactStore()
@@ -8,6 +9,49 @@ const contact = useContactStore()
 await useAsyncData('public-contact', async () => { await contact.fetch(); return true })
 
 const info = computed(() => contact.info)
+
+// * Contact form — posts to the rate-limited `contact-message` edge function.
+const form = reactive({ name: '', email: '', subject: '', message: '' })
+const sending = ref(false)
+const sent = ref(false)
+const formError = ref('')
+
+const inputClass =
+  'w-full rounded-lg border border-gray-200 dark:border-sidebar bg-gray-50 dark:bg-sidebar px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition'
+
+function validEmail(e: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
+}
+
+async function submitForm() {
+  formError.value = ''
+  if (!form.name.trim() || !form.email.trim()) {
+    formError.value = t('contactPage.form.required')
+    return
+  }
+  if (!validEmail(form.email)) {
+    formError.value = t('contactPage.form.invalidEmail')
+    return
+  }
+  sending.value = true
+  const { error } = await invokeEdge('contact-message', {
+    method: 'POST',
+    body: { name: form.name, email: form.email, subject: form.subject, message: form.message },
+  })
+  sending.value = false
+  if (error) {
+    formError.value =
+      error.code === 'rate_limited'
+        ? t('contactPage.form.rateLimited')
+        : t('contactPage.form.error')
+    return
+  }
+  sent.value = true
+  form.name = ''
+  form.email = ''
+  form.subject = ''
+  form.message = ''
+}
 
 // * Build a Google Maps directions URL from the stored address so the
 // * "Itinéraire" button always opens the user's chosen maps app.
@@ -18,7 +62,7 @@ const directionsHref = computed(() => {
 })
 
 const hasAnyContact = computed(
-  () => !!(info.value?.address || info.value?.phone || info.value?.email),
+  () => !!(info.value?.address || info.value?.phone),
 )
 </script>
 
@@ -59,7 +103,7 @@ const hasAnyContact = computed(
 
     <section class="max-w-6xl mx-auto px-6 -mt-16 md:-mt-20 relative z-10 pb-20 space-y-10">
       <!-- * Action cards — float over the hero edge. Hover lift + accent corner. -->
-      <div v-if="hasAnyContact" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+      <div v-if="hasAnyContact" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
         <a
           v-if="info?.address"
           :href="directionsHref ?? undefined"
@@ -100,28 +144,78 @@ const hasAnyContact = computed(
           </div>
         </a>
 
-        <a
-          v-if="info?.email"
-          :href="`mailto:${info.email}`"
-          class="group relative overflow-hidden rounded-card bg-white dark:bg-sidebar-surface border border-gray-100 dark:border-sidebar shadow-card-md hover:shadow-card-lg hover:-translate-y-1 transition-all duration-300 p-6"
-        >
-          <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-brand-secondary/10 group-hover:bg-brand-secondary/20 transition-colors" />
-          <div class="relative">
-            <div class="w-11 h-11 rounded-xl bg-brand-secondary/10 text-brand-secondary flex items-center justify-center mb-4 group-hover:bg-brand-secondary group-hover:text-white transition-colors">
-              <UIcon name="i-lucide-mail" class="w-5 h-5" />
-            </div>
-            <h3 class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">{{ t('contactPage.email') }}</h3>
-            <p class="font-medium text-gray-900 dark:text-white truncate">{{ info.email }}</p>
-            <span class="inline-flex items-center gap-1 mt-3 text-sm font-medium text-brand-secondary group-hover:gap-2 transition-all">
-              {{ t('contactPage.writeUs') }}
-              <UIcon name="i-lucide-arrow-up-right" class="w-4 h-4" />
-            </span>
-          </div>
-        </a>
       </div>
 
       <div v-else class="rounded-card bg-gray-50 dark:bg-sidebar-surface border border-gray-100 dark:border-sidebar p-10 text-center text-gray-500">
         {{ t('contactPage.empty') }}
+      </div>
+
+      <!-- * Contact form — rate-limited submission to the business inbox. -->
+      <div class="rounded-card bg-white dark:bg-sidebar-surface border border-gray-100 dark:border-sidebar shadow-card-md p-6 md:p-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center">
+            <UIcon name="i-lucide-send" class="w-5 h-5" />
+          </div>
+          <div>
+            <h2 class="font-heading text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+              {{ t('contactPage.form.title') }}
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('contactPage.form.subtitle') }}</p>
+          </div>
+        </div>
+
+        <div
+          v-if="sent"
+          class="rounded-xl bg-brand-green/10 border border-brand-green/30 text-brand-green px-4 py-3 text-sm flex items-center gap-2 mb-5"
+        >
+          <UIcon name="i-lucide-circle-check" class="w-5 h-5 shrink-0" />
+          {{ t('contactPage.form.success') }}
+        </div>
+
+        <form class="space-y-4" @submit.prevent="submitForm">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                {{ t('contactPage.form.name') }} <span class="text-brand-secondary">*</span>
+              </label>
+              <input v-model="form.name" type="text" maxlength="120" :class="inputClass" :placeholder="t('contactPage.form.name')">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                {{ t('contactPage.form.email') }} <span class="text-brand-secondary">*</span>
+              </label>
+              <input v-model="form.email" type="email" :class="inputClass" placeholder="email@exemple.fr">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              {{ t('contactPage.form.subject') }}
+            </label>
+            <input v-model="form.subject" type="text" maxlength="200" :class="inputClass" :placeholder="t('contactPage.form.subject')">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              {{ t('contactPage.form.message') }}
+            </label>
+            <textarea v-model="form.message" rows="5" maxlength="5000" :class="[inputClass, 'resize-y']" :placeholder="t('contactPage.form.message')" />
+          </div>
+
+          <p v-if="formError" class="text-sm text-brand-secondary flex items-center gap-1.5">
+            <UIcon name="i-lucide-circle-alert" class="w-4 h-4 shrink-0" />
+            {{ formError }}
+          </p>
+
+          <div class="flex justify-end">
+            <button
+              type="submit"
+              :disabled="sending"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-primary-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <UIcon :name="sending ? 'i-lucide-loader-circle' : 'i-lucide-send'" :class="['w-4 h-4', sending && 'animate-spin']" />
+              {{ sending ? t('contactPage.form.sending') : t('contactPage.form.send') }}
+            </button>
+          </div>
+        </form>
       </div>
 
       <!-- * "Qui sommes-nous ?" — editorial card with red accent bar + oversized quote glyph. -->

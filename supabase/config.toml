@@ -97,6 +97,17 @@ verify_jwt = false
 [functions.club-access]
 verify_jwt = false
 
+# * search-products — public storefront product search. Guest, no Supabase JWT.
+# * Runs server-side with the service role specifically so restricted-club
+# * products can be excluded confidentially (the browser can't be trusted to).
+[functions.search-products]
+verify_jwt = false
+
+# * contact-message — public contact form → Brevo email. Guest, no Supabase JWT.
+# * Rate-limited server-side (per email + per IP) to prevent email flooding.
+[functions.contact-message]
+verify_jwt = false
+
 # * send-order-email / generate-invoice — invoked internally by other functions
 # * (IPN, create-order) with the service-role key, which is not a JWT either.
 [functions.send-order-email]

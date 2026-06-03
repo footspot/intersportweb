@@ -18,6 +18,20 @@
     "language": "Language",
     "toggleDark": "Dark mode"
   },
+  "legal": {
+    "delivery": "Delivery & returns",
+    "cgvLong": "Terms and conditions of sale",
+    "privacy": "Privacy policy"
+  },
+  "footer": {
+    "contactTitle": "Contact us",
+    "hoursTitle": "Opening hours",
+    "infoTitle": "Information",
+    "weekdays": "Monday to Friday",
+    "saturday": "Saturday",
+    "byAppointment": "By appointment",
+    "copyright": "by INTERSPORT CLUB IDF"
+  },
   "cart": {
     "title": "My cart",
     "open": "Open cart",
@@ -174,7 +188,22 @@
     "callNow": "Call",
     "writeUs": "Email",
     "hours": "Open",
-    "findUs": "Find us"
+    "findUs": "Find us",
+    "form": {
+      "title": "Contact form",
+      "subtitle": "A question? Write to us.",
+      "name": "Name",
+      "email": "Email",
+      "subject": "Subject",
+      "message": "Message",
+      "send": "Send",
+      "sending": "Sending…",
+      "success": "Your message has been sent. We'll get back to you shortly.",
+      "required": "Name and email are required.",
+      "invalidEmail": "Invalid email address.",
+      "rateLimited": "Too many messages sent. Please try again later.",
+      "error": "Something went wrong. Please try again."
+    }
   },
   "storefront": {
     "pickSport": "Pick your sport",
@@ -194,15 +223,34 @@
       "subtitle": "Our latest post",
       "cta": "View on Instagram"
     },
+    "search": {
+      "allSports": "All sports",
+      "noResults": "No results",
+      "results": "{n} results",
+      "page": "{x}/{n}"
+    },
     "home": {
-      "heroEyebrow": "New 2026 site",
+      "heroEyebrow": "Official gear",
       "heroTitlePre": "Kit",
       "heroTitleAccent": "your club",
       "heroTitlePost": "in style.",
-      "heroSubtitle": "Find the official gear of your sports club. Pick your sport, choose your club, and order in a few clicks.",
+      "heroSubtitle": "Kit your club in just a few clicks. Pick your official outfits, manage your group orders and give your players gear worthy of their ambitions.",
       "statsClubs": "Partner clubs",
       "statsProducts": "Products",
       "statsSports": "Sports",
+      "topbarPromo": "Discover our multi-sport, multi-brand packs at the best price",
+      "topbarPromoLink": "Learn more",
+      "searchPlaceholder": "Search for a product",
+      "heroButton": "Gear up",
+      "supportTitle": "How can we help you?",
+      "supportHint": "Pick an option",
+      "aboutTitle": "Who are we?",
+      "aboutCol1Title": "Intersport Club IDF",
+      "aboutCol1Text": "The platform dedicated to sports clubs across Île-de-France. A 360° ecosystem serving every athlete.",
+      "aboutCol2Title": "Here to help",
+      "aboutCol2Text": "Order with peace of mind. Our team of specialists answers all your questions by phone, email and chat.",
+      "aboutCol3Title": "A premium experience",
+      "aboutCol3Text": "An intuitive, fast site. Order securely and receive your items quickly.",
       "stepEntryTitle": "How would you like to shop?",
       "stepEntryHint": "Pick an option",
       "stepSportsTitle": "Choose your sport",
@@ -363,6 +411,7 @@
       "noData": "No data"
     },
     "sidebar": {
+      "banner": "Banner",
       "main": "Main",
       "dashboard": "Dashboard",
       "sportsClubs": "Sports & Clubs",
@@ -1036,6 +1085,10 @@
         "footspot_cagnotte_debited": {
           "title": "Footspot — cagnotte debited",
           "body": "{club_name}: −{amount} withdrawn from the cagnotte ({label}). New balance: {balance}."
+        },
+        "footspot_shop_disconnected": {
+          "title": "Footspot — shop disconnected",
+          "body": "Club {club_name} disconnected its shop from Footspot."
         }
       }
     },
@@ -1152,6 +1205,16 @@
         "voucherSingleUse": "Single-use code",
         "voucherClubFor": "For club {club}"
       }
+    },
+    "banner": {
+      "title": "Top banner",
+      "subtitle": "The promo strip shown above the header on every page.",
+      "active": "Show the banner",
+      "text": "Banner text",
+      "textHint": "Leave empty to use the default message.",
+      "url": "\"Learn more\" link",
+      "urlHint": "Where the button points — an internal path (e.g. /?step=catalog) or a full URL.",
+      "saved": "Banner saved."
     },
     "contact": {
       "title": "Contact",
