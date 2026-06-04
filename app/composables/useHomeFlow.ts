@@ -168,10 +168,18 @@ export function useHomeFlow() {
   }
 
   // * ── Navigation / actions ──
+  // * Scroll a target section just below the sticky header. We compute the
+  // * position manually (rather than scrollIntoView) and subtract the live
+  // * header height so the section lands under it instead of behind it — and so
+  // * page height (e.g. the footer) can't change where we land.
   function scrollToSelector(sel: string) {
     setTimeout(() => {
       const el = document.querySelector(sel) as HTMLElement | null
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (!el) return
+      const header = document.querySelector('header') as HTMLElement | null
+      const offset = (header?.offsetHeight ?? 0) + 12
+      const top = el.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     }, 280)
   }
 
