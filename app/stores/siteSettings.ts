@@ -9,6 +9,7 @@ export interface SiteSettings {
   promo_banner_text: string | null
   promo_banner_url: string | null
   promo_banner_active: boolean
+  carousel_autoplay_seconds: number
   updated_at: string
 }
 
@@ -22,6 +23,8 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
   const promoBannerActive = computed(() => settings.value?.promo_banner_active !== false)
   const promoBannerText = computed(() => settings.value?.promo_banner_text ?? null)
   const promoBannerUrl = computed(() => settings.value?.promo_banner_url ?? null)
+  // * Carousel dwell time in seconds; falls back to 3 when the row predates the feature.
+  const carouselAutoplaySeconds = computed(() => settings.value?.carousel_autoplay_seconds ?? 3)
 
   async function fetchAll() {
     loading.value = true
@@ -45,7 +48,14 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
 
   async function update(
     patch: Partial<
-      Pick<SiteSettings, 'clearance_active' | 'promo_banner_text' | 'promo_banner_url' | 'promo_banner_active'>
+      Pick<
+        SiteSettings,
+        | 'clearance_active'
+        | 'promo_banner_text'
+        | 'promo_banner_url'
+        | 'promo_banner_active'
+        | 'carousel_autoplay_seconds'
+      >
     >,
   ) {
     const { data, error: err } = await invokeEdge<{ settings: SiteSettings }>(
@@ -69,6 +79,7 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     promoBannerActive,
     promoBannerText,
     promoBannerUrl,
+    carouselAutoplaySeconds,
     fetchAll,
     update,
     toggleClearance,

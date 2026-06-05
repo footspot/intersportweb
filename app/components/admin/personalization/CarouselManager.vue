@@ -5,13 +5,37 @@ import { useCarouselStore, type HomeSlide } from '~/stores/carousel'
 import { useClubsStore } from '~/stores/clubs'
 import { useProductsStore } from '~/stores/products'
 import { useSportsStore } from '~/stores/sports'
+import { useSiteSettingsStore } from '~/stores/siteSettings'
 
 const { t } = useI18n()
 const carousel = useCarouselStore()
 const clubs = useClubsStore()
 const products = useProductsStore()
 const sports = useSportsStore()
+const siteSettings = useSiteSettingsStore()
 const client = useSupabaseClient()
+
+// * Autoplay dwell time (seconds per slide), saved on the singleton site_settings row.
+const autoplaySeconds = ref(3)
+const savingInterval = ref(false)
+watch(
+  () => siteSettings.carouselAutoplaySeconds,
+  (v) => {
+    autoplaySeconds.value = v
+  },
+  { immediate: true },
+)
+
+async function saveInterval() {
+  savingInterval.value = true
+  try {
+    const n = Math.min(60, Math.max(1, Math.round(Number(autoplaySeconds.value) || 3)))
+    autoplaySeconds.value = n
+    await siteSettings.update({ carousel_autoplay_seconds: n })
+  } finally {
+    savingInterval.value = false
+  }
+}
 
 // * Stats shown in the hero preview — match the live computation in pages/index.vue.
 const previewStats = computed(() => ({
@@ -32,6 +56,7 @@ onMounted(() => {
   clubs.fetchAll()
   products.fetchAll()
   sports.fetchAll()
+  siteSettings.fetchAll()
 })
 
 function imageUrl(path: string | null) {
@@ -104,7 +129,34 @@ async function moveDown(slide: HomeSlide, index: number) {
       :stats-clubs="previewStats.clubs"
       :stats-products="previewStats.products"
       :stats-sports="previewStats.sports"
+      :interval="autoplaySeconds"
     />
+
+    <!-- * Autoplay dwell time — global carousel setting. -->
+    <div class="bg-white dark:bg-sidebar-surface rounded-card shadow-card-sm p-4 flex flex-wrap items-end gap-4">
+      <label class="block">
+        <span class="text-sm font-medium">{{ t('admin.carousel.autoplayLabel') }}</span>
+        <div class="mt-1 flex items-center gap-2">
+          <input
+            v-model.number="autoplaySeconds"
+            type="number"
+            min="1"
+            max="60"
+            class="w-24 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+          />
+          <span class="text-sm text-gray-500">{{ t('admin.carousel.autoplayUnit') }}</span>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">{{ t('admin.carousel.autoplayHint') }}</p>
+      </label>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-60"
+        :disabled="savingInterval"
+        @click="saveInterval"
+      >
+        {{ savingInterval ? t('common.loading') : t('common.save') }}
+      </button>
+    </div>
 
     <div class="bg-white dark:bg-sidebar-surface rounded-card shadow-card-sm overflow-hidden">
       <div v-if="carousel.loading" class="p-10 text-center text-gray-500">

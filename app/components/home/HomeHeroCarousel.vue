@@ -6,8 +6,10 @@ import type { HomeSlide } from '~/stores/carousel'
 
 interface Props {
   slides: HomeSlide[]
+  // * Dwell time per slide, in seconds (admin-configurable). Defaults to 3s.
+  interval?: number
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { interval: 3 })
 
 const client = useSupabaseClient()
 const index = ref(0)
@@ -30,10 +32,11 @@ function go(i: number) {
 function start() {
   stop()
   if (props.slides.length <= 1) return
-  // * 3s per image, per the spec.
+  // * Admin-configured dwell time (seconds → ms), clamped to a sane floor.
+  const ms = Math.max(1, props.interval || 3) * 1000
   timer = setInterval(() => {
     if (!paused.value) next()
-  }, 3000)
+  }, ms)
 }
 function stop() {
   if (timer) {
@@ -52,6 +55,8 @@ watch(
     start()
   },
 )
+// * Restart the timer when the admin changes the dwell time (live preview).
+watch(() => props.interval, start)
 </script>
 
 <template>
@@ -61,18 +66,22 @@ watch(
     @mouseenter="paused = true"
     @mouseleave="paused = false"
   >
-    <!-- * Keyed image re-runs the zoom-settle keyframe on every slide change. -->
+    <!-- * Keyed wrapper re-runs the per-slide entrance keyframe on every change. -->
     <Transition name="hc-fade">
-      <div :key="index" class="absolute inset-0">
-        <img
-          v-if="imageUrl(slides[index].image_path)"
-          :src="imageUrl(slides[index].image_path)!"
-          :alt="slides[index].title ?? ''"
-          class="hc-img w-full h-full object-cover"
-        >
+      <div :key="index" class="absolute inset-0" :class="`hc-mode-${slides[index].animation ?? 'zoom'}`">
+        <!-- * Wrapper carries the horizontal axis; the img carries vertical + clip.
+             Two independent easings = a smooth curved trajectory (no stutter). -->
+        <div class="hc-ballx absolute inset-0">
+          <img
+            v-if="imageUrl(slides[index].image_path)"
+            :src="imageUrl(slides[index].image_path)!"
+            :alt="slides[index].title ?? ''"
+            class="hc-img w-full h-full object-cover"
+          >
+        </div>
         <div
           v-if="slides[index].title"
-          class="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/80 to-transparent"
+          class="hc-caption absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/80 to-transparent"
         >
           <div class="font-heading font-bold text-white text-xl leading-tight uppercase tracking-wide">
             {{ slides[index].title }}
@@ -99,11 +108,18 @@ watch(
 </template>
 
 <style scoped>
-/* * "Dive in" reveal: constant-speed zoom-out (linear) that stops dead at rest —
- * the image falls straight in and halts net, with no ease-in/out glide. */
 .hc-img {
-  animation: hcZoomSettle 0.25s linear both;
   transform-origin: center;
+  will-change: transform, clip-path;
+}
+.hc-ballx {
+  will-change: transform;
+}
+
+/* * ── Mode: zoom (default) ──
+ * "Dive in" reveal: constant-speed zoom-out (linear) that stops dead at rest. */
+.hc-mode-zoom .hc-img {
+  animation: hcZoomSettle 0.25s linear both;
 }
 @keyframes hcZoomSettle {
   from {
@@ -114,7 +130,112 @@ watch(
   }
 }
 
-/* * Cross-fade between slides so the zoom isn't a hard cut. */
+/* * ── Mode: soccer ──
+ * Smooth arc from the bottom-left to dead-centre. Horizontal travel (wrapper)
+ * and vertical travel (img) use DIFFERENT easings, so the combined path is a
+ * genuine curve — not a straight diagonal and not a stuttering polyline. The
+ * image stays upright (no spin) and keeps a centred crop. The clip circle starts
+ * tiny, grows to ~20% as the ball reaches the target, then blooms to full size. */
+.hc-mode-soccer .hc-ballx {
+  /* * Both axes accelerate the whole way (ease-in) — faster and faster to the
+     target, then bloom. Different curves on the two axes keep the path bowed. */
+  animation: hcSoccerX 1.05s cubic-bezier(0.5, 0.12, 1, 0.4) both;
+}
+.hc-mode-soccer .hc-img {
+  animation: hcSoccerY 1.05s cubic-bezier(0.33, 0.18, 0.85, 0.4) both;
+}
+@keyframes hcSoccerX {
+  0% {
+    transform: translateX(-95%);
+  }
+  64%,
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes hcSoccerY {
+  0% {
+    transform: translateY(95%);
+    clip-path: circle(3% at 50% 50%);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  64% {
+    transform: translateY(0);
+    clip-path: circle(20% at 50% 50%);
+    /* * Bloom starts the instant the ball lands — snappy ease-out, no lingering. */
+    animation-timing-function: cubic-bezier(0.16, 0.9, 0.3, 1);
+  }
+  100% {
+    transform: translateY(0);
+    clip-path: circle(78% at 50% 50%);
+  }
+}
+
+/* * ── Mode: basketball ──
+ * Smooth arc from the bottom-right up to the target (horizontally centred, 25%
+ * down from the top). Same two-axis technique. The ball touches the target at
+ * ~20% size, then blooms to full while settling down into place. */
+.hc-mode-basketball .hc-ballx {
+  /* * Both axes accelerate the whole way (ease-in) — faster and faster to the
+     target, then bloom. Different curves on the two axes keep the path bowed. */
+  animation: hcBasketX 1.15s cubic-bezier(0.5, 0.12, 1, 0.4) both;
+}
+.hc-mode-basketball .hc-img {
+  animation: hcBasketY 1.15s cubic-bezier(0.33, 0.18, 0.85, 0.4) both;
+}
+@keyframes hcBasketX {
+  0% {
+    transform: translateX(95%);
+  }
+  64%,
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes hcBasketY {
+  0% {
+    /* * Start off the top-right corner (paired with hcBasketX's +95%). */
+    transform: translateY(-95%);
+    clip-path: circle(3% at 50% 50%);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  64% {
+    /* * Land just above the centre, then bloom. */
+    transform: translateY(-15%);
+    clip-path: circle(20% at 50% 50%);
+    /* * Bloom starts the instant the ball reaches the target — snappy ease-out. */
+    animation-timing-function: cubic-bezier(0.16, 0.9, 0.3, 1);
+  }
+  100% {
+    transform: translateY(0);
+    clip-path: circle(78% at 50% 50%);
+  }
+}
+
+/* * For the ball modes, hold the caption back until the image has settled. */
+.hc-mode-soccer .hc-caption,
+.hc-mode-basketball .hc-caption {
+  animation: hcCaptionIn 0.4s ease both;
+  animation-delay: 1s;
+}
+@keyframes hcCaptionIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* * Cross-fade between slides so the entrance isn't a hard cut. */
 .hc-fade-enter-active,
 .hc-fade-leave-active {
   transition: opacity 0.6s ease;
@@ -129,7 +250,9 @@ watch(
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hc-img {
+  .hc-ballx,
+  .hc-img,
+  .hc-caption {
     animation: none;
   }
   .hc-fade-enter-active,

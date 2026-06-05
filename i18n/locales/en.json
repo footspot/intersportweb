@@ -1301,7 +1301,17 @@
       "titleLabel": "Title (optional)",
       "titlePlaceholder": "e.g. New 2026 collection",
       "titleHint": "Overlaid on the image. Leave blank for no text.",
+      "animationLabel": "Entrance animation",
+      "animationHint": "Effect played when the image appears in the carousel.",
+      "animations": {
+        "zoom": "Zoom",
+        "soccer": "Soccer shot",
+        "basketball": "Basketball shot"
+      },
       "noTitle": "(no title)",
+      "autoplayLabel": "Time per slide",
+      "autoplayUnit": "seconds",
+      "autoplayHint": "How long each image shows before advancing (1–60 s).",
       "position": "Position",
       "moveUp": "Move up",
       "moveDown": "Move down",

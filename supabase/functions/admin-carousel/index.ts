@@ -7,10 +7,18 @@ import { parseMultipart, uploadImage, removeImage } from '../_shared/multipart.t
 
 const BUCKET = 'home-carousel'
 
+// * Allowed entrance animations; anything else falls back to 'zoom'.
+const ANIMATIONS = ['zoom', 'soccer', 'basketball']
+function normalizeAnimation(v: unknown): string {
+  const s = typeof v === 'string' ? v : ''
+  return ANIMATIONS.includes(s) ? s : 'zoom'
+}
+
 interface SlideData {
   id?: string
   title?: string | null
   sort_order?: number
+  animation?: string
 }
 
 Deno.serve(async (req) => {
@@ -41,6 +49,7 @@ Deno.serve(async (req) => {
           image_path: imagePath,
           title: data?.title?.toString().trim() || null,
           sort_order: data?.sort_order ?? 0,
+          animation: normalizeAnimation(data?.animation),
         })
         .select()
         .single()
@@ -69,6 +78,7 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = {}
       if (data.title !== undefined) patch.title = data.title?.toString().trim() || null
       if (data.sort_order !== undefined) patch.sort_order = data.sort_order
+      if (data.animation !== undefined) patch.animation = normalizeAnimation(data.animation)
 
       let newImagePath: string | null = null
       if (file) {

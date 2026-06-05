@@ -9,8 +9,9 @@ interface Props {
   statsClubs: number
   statsProducts: number
   statsSports: number
+  interval?: number
 }
-defineProps<Props>()
+withDefaults(defineProps<Props>(), { interval: 3 })
 
 const { t } = useI18n()
 </script>
@@ -73,7 +74,7 @@ const { t } = useI18n()
 
         <!-- Right panel — #0f1a40, carousel sits inside as a square -->
         <div class="relative flex-shrink-0 w-full lg:w-[500px] min-h-[300px] lg:min-h-0 bg-ink overflow-hidden flex items-center justify-center p-5 md:p-6">
-          <HomeHeroCarousel v-if="slides.length" :slides="slides" />
+          <HomeHeroCarousel v-if="slides.length" :slides="slides" :interval="interval" />
           <div v-else class="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
             {{ t('admin.carousel.preview.empty') }}
           </div>

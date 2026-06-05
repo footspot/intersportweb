@@ -3,11 +3,14 @@
 import { defineStore } from 'pinia'
 import { invokeEdge } from '~/composables/useEdgeFunction'
 
+export type SlideAnimation = 'zoom' | 'soccer' | 'basketball'
+
 export interface HomeSlide {
   id: string
   image_path: string
   title: string | null
   sort_order: number
+  animation: SlideAnimation
   created_at: string
 }
 
@@ -15,6 +18,7 @@ export interface SlideInput {
   id?: string
   title?: string | null
   sort_order?: number
+  animation?: SlideAnimation
   file?: File | null
 }
 

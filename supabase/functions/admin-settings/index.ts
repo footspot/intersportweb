@@ -10,6 +10,7 @@ interface SettingsPayload {
   promo_banner_text?: string | null
   promo_banner_url?: string | null
   promo_banner_active?: boolean
+  carousel_autoplay_seconds?: number
 }
 
 Deno.serve(async (req) => {
@@ -38,6 +39,11 @@ Deno.serve(async (req) => {
       patch.promo_banner_url = body.promo_banner_url?.trim() || null
     }
     if (body.promo_banner_active !== undefined) patch.promo_banner_active = !!body.promo_banner_active
+    // * Carousel dwell time: clamp to the 1–60s the DB CHECK allows.
+    if (body.carousel_autoplay_seconds !== undefined) {
+      const n = Math.round(Number(body.carousel_autoplay_seconds))
+      patch.carousel_autoplay_seconds = Math.min(60, Math.max(1, Number.isFinite(n) ? n : 3))
+    }
 
     const { data: existing } = await sb
       .from('site_settings')

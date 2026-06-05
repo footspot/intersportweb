@@ -64,7 +64,7 @@ const { t } = flow
 
     <!-- Right panel — #0f1a40, carousel sits inside as a square -->
     <div class="hero-right relative flex-shrink-0 w-full lg:w-[520px] min-h-[320px] lg:min-h-0 bg-ink overflow-hidden flex items-center justify-center p-5 md:p-6">
-      <HomeHeroCarousel :slides="flow.carousel.sorted" />
+      <HomeHeroCarousel :slides="flow.carousel.sorted" :interval="flow.siteSettings.carouselAutoplaySeconds" />
     </div>
   </section>
 </template>
