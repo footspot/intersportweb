@@ -130,16 +130,16 @@ function exportCsv() {
     </div>
 
     <div class="flex flex-wrap items-end gap-3 bg-white dark:bg-sidebar-surface rounded-card shadow-card-sm p-4">
-      <label class="block">
+      <label class="flex items-center gap-2">
         <span class="text-xs text-gray-500">{{ t('admin.prepaidOrders.filter.club') }}</span>
-        <select v-model="filterClub" class="mt-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none">
+        <select v-model="filterClub" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none">
           <option value="all">{{ t('admin.prepaidOrders.filter.allClubs') }}</option>
           <option v-for="c in clubs.items" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </label>
-      <label class="block">
+      <label class="flex items-center gap-2">
         <span class="text-xs text-gray-500">{{ t('admin.prepaidOrders.filter.status') }}</span>
-        <select v-model="filterStatus" class="mt-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none">
+        <select v-model="filterStatus" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none">
           <option value="all">{{ t('admin.prepaidOrders.filter.allStatuses') }}</option>
           <option value="paid">paid</option>
           <option value="shipped">shipped</option>
@@ -147,13 +147,13 @@ function exportCsv() {
           <option value="cancelled">cancelled</option>
         </select>
       </label>
-      <label class="block">
+      <label class="flex items-center gap-2">
         <span class="text-xs text-gray-500">{{ t('admin.prepaidOrders.filter.from') }}</span>
-        <input v-model="dateFrom" type="date" class="mt-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none" />
+        <input v-model="dateFrom" type="date" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none" />
       </label>
-      <label class="block">
+      <label class="flex items-center gap-2">
         <span class="text-xs text-gray-500">{{ t('admin.prepaidOrders.filter.to') }}</span>
-        <input v-model="dateTo" type="date" class="mt-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none" />
+        <input v-model="dateTo" type="date" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:outline-none" />
       </label>
     </div>
 

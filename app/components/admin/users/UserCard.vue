@@ -3,6 +3,7 @@ import type { User } from '~/stores/users'
 
 interface Props {
   user: User
+  currentUserId?: string | null
 }
 const props = defineProps<Props>()
 defineEmits<{
@@ -12,6 +13,14 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const isSelf = computed(() => !!props.currentUserId && props.user.id === props.currentUserId)
+// * Employees can be disabled (toggled). Admins cannot be disabled — neither
+// * other admins nor oneself.
+const canToggle = computed(() => props.user.role === 'employee')
+// * Delete: any employee, or the caller's own admin account. Other admins are
+// * protected.
+const canDelete = computed(() => props.user.role === 'employee' || isSelf.value)
 
 const initials = computed(() => {
   const n = props.user.full_name?.trim() || props.user.email
@@ -56,6 +65,7 @@ const roleClass = computed(() =>
 
     <div class="flex justify-end gap-1 pt-2 border-t border-gray-100 dark:border-sidebar">
       <button
+        v-if="canToggle"
         type="button"
         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
         :title="user.active ? t('admin.users.deactivate') : t('admin.users.reactivate')"
@@ -72,9 +82,11 @@ const roleClass = computed(() =>
         <UIcon name="i-lucide-pencil" class="w-4 h-4" />
       </button>
       <button
+        v-if="canDelete"
         type="button"
         class="p-2 rounded-lg hover:bg-brand-secondary/10 text-brand-secondary"
-        :aria-label="t('common.delete')"
+        :title="isSelf ? t('admin.users.deleteSelf') : t('common.delete')"
+        :aria-label="isSelf ? t('admin.users.deleteSelf') : t('common.delete')"
         @click="$emit('delete', user)"
       >
         <UIcon name="i-lucide-trash-2" class="w-4 h-4" />

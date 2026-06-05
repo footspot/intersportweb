@@ -16,12 +16,17 @@ export interface Profile {
 interface AuthState {
   profile: Profile | null
   loadingProfile: boolean
+  // * In-flight fetchProfile() promise, used to dedupe concurrent calls
+  // * (plugin boot + route middleware fire it at the same time). Sharing one
+  // * promise avoids two parallel auth-lock acquisitions that deadlock/steal.
+  _profilePromise: Promise<void> | null
 }
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     profile: null,
     loadingProfile: false,
+    _profilePromise: null,
   }),
 
   getters: {
@@ -44,19 +49,32 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    async fetchProfile() {
-      // * Read the uid from getUser() — the reactive useSupabaseUser() ref is
-      // * sometimes empty right after sign-in or during SSR, even when the
-      // * session is valid.
+    fetchProfile(): Promise<void> {
+      // * Dedupe: if a fetch is already running, reuse its promise instead of
+      // * starting a second one. Two concurrent runs each grab the gotrue auth
+      // * lock and one waits >5s before the other "steals" it — the errors we
+      // * were seeing. One shared promise = one lock acquisition.
+      if (this._profilePromise) return this._profilePromise
+      this._profilePromise = this._doFetchProfile().finally(() => {
+        this._profilePromise = null
+      })
+      return this._profilePromise
+    },
+
+    async _doFetchProfile() {
+      // * Read the uid from getSession() (local-storage read, fast) rather than
+      // * getUser() (a network round-trip that holds the auth lock the whole
+      // * time). The reactive useSupabaseUser() ref is sometimes empty right
+      // * after sign-in, but the persisted session is reliable here.
       // * IMPORTANT: don't clobber the existing profile on transient failures
       // * (network hiccup, token-refresh in flight). Only explicit sign-out
       // * clears it via signOut() / the SIGNED_OUT auth event.
       const client = useSupabaseClient()
       this.loadingProfile = true
       try {
-        const { data: userData, error: userErr } = await client.auth.getUser()
-        const uid = userData?.user?.id
-        if (userErr || !uid) {
+        const { data: sessionData } = await client.auth.getSession()
+        const uid = sessionData?.session?.user?.id
+        if (!uid) {
           // * No session. If we never had a profile, keep it null. If we did,
           // * leave it in place until the next definitive sign-out — this
           // * prevents admin UI flicker during transient auth hiccups.

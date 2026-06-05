@@ -73,8 +73,8 @@ function isActive(key: string) {
     <div class="bg-white dark:bg-sidebar border-b border-gray-100 dark:border-sidebar-surface">
       <div class="max-w-7xl mx-auto px-3 sm:px-6 h-[68px] flex items-center gap-4 sm:gap-6">
         <NuxtLink to="/" class="shrink-0 flex items-center" :aria-label="t('app.name')" @click.prevent="resetHome">
-          <img src="/logo_compose.svg" :alt="t('app.name')" class="h-9 sm:h-10 w-auto block dark:hidden">
-          <img src="/logo_compose_noir.svg" :alt="t('app.name')" class="h-9 sm:h-10 w-auto hidden dark:block dark:invert">
+          <img src="/logo_horizontal.svg" :alt="t('app.name')" class="h-9 sm:h-10 w-auto block dark:hidden">
+          <img src="/logo_horizontal.svg" :alt="t('app.name')" class="h-9 sm:h-10 w-auto hidden dark:block dark:brightness-0 dark:invert">
         </NuxtLink>
 
         <!-- Product search — sport selector + paginated results -->

@@ -14,13 +14,45 @@ interface Props {
   bucket: string
   maxImages?: number
   label?: string
+  clubLogoUrl?: string | null   // * selected club's logo, passed to the overlay editor
 }
-const props = withDefaults(defineProps<Props>(), { maxImages: 5, label: '' })
+const props = withDefaults(defineProps<Props>(), { maxImages: 5, label: '', clubLogoUrl: null })
 const emit = defineEmits<{ (e: 'update:modelValue', v: GallerySlot[]): void }>()
 
 const { t } = useI18n()
 const client = useSupabaseClient()
 const error = ref<string | null>(null)
+
+// * Logo/text overlay editor state — bakes the chosen slot's image in place.
+const overlayOpen = ref(false)
+const overlayIndex = ref<number | null>(null)
+const overlayBgUrl = computed(() => {
+  // * Guard: the targeted slot may have been deleted while the index lingers.
+  if (overlayIndex.value == null) return null
+  const slot = props.modelValue[overlayIndex.value]
+  return slot ? previewUrl(slot) : null
+})
+
+function openOverlay(index: number) {
+  overlayIndex.value = index
+  overlayOpen.value = true
+}
+
+// * Clear the target index once the editor closes so a later slot deletion
+// * can't point the background URL at a removed slot.
+watch(overlayOpen, (open) => {
+  if (!open) overlayIndex.value = null
+})
+
+// * Replace the edited slot's image with the flattened PNG (destructive bake).
+// * Keep the slot id so its position in the gallery is preserved.
+function onOverlayApplied(file: File) {
+  if (overlayIndex.value == null) return
+  const next = props.modelValue.slice()
+  const slot = next[overlayIndex.value]
+  next[overlayIndex.value] = { id: slot.id, file }
+  emitNext(next)
+}
 
 // * Cache object URLs per File so we don't leak on re-renders.
 const objectUrls = new Map<File, string>()
@@ -94,7 +126,7 @@ function makePrimary(index: number) {
       <div
         v-for="(slot, i) in modelValue"
         :key="slot.id"
-        class="relative w-24 h-24 rounded-lg border border-gray-200 dark:border-sidebar bg-gray-50 dark:bg-sidebar-surface overflow-hidden group"
+        class="relative w-[7.2rem] h-[7.2rem] rounded-lg border border-gray-200 dark:border-sidebar bg-gray-50 dark:bg-sidebar-surface overflow-hidden group"
       >
         <img
           v-if="previewUrl(slot)"
@@ -108,6 +140,15 @@ function makePrimary(index: number) {
         >
           {{ t('admin.products.gallery.primary') }}
         </span>
+        <button
+          v-if="previewUrl(slot)"
+          type="button"
+          class="absolute top-1 right-1 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-brand-primary"
+          :title="t('admin.products.overlay.edit')"
+          @click="openOverlay(i)"
+        >
+          <UIcon name="i-lucide-stamp" class="w-3.5 h-3.5" />
+        </button>
         <div class="absolute inset-x-0 bottom-0 flex justify-between bg-black/50 text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             v-if="i !== 0"
@@ -131,7 +172,7 @@ function makePrimary(index: number) {
 
       <label
         v-if="canAddMore"
-        class="w-24 h-24 rounded-lg border border-dashed border-gray-300 dark:border-sidebar flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary hover:text-brand-primary text-gray-400"
+        class="w-[7.2rem] h-[7.2rem] rounded-lg border border-dashed border-gray-300 dark:border-sidebar flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary hover:text-brand-primary text-gray-400"
       >
         <UIcon name="i-lucide-image-plus" class="w-6 h-6" />
         <span class="text-[10px] mt-1">{{ t('admin.common.choose') }}</span>
@@ -143,5 +184,12 @@ function makePrimary(index: number) {
       {{ t('admin.products.gallery.hint', { max: maxImages }) }}
     </p>
     <p v-if="error" class="text-xs text-brand-secondary mt-1">{{ error }}</p>
+
+    <AdminProductsLogoOverlayEditor
+      v-model="overlayOpen"
+      :background-url="overlayBgUrl"
+      :club-logo-url="clubLogoUrl"
+      @applied="onOverlayApplied"
+    />
   </div>
 </template>

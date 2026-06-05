@@ -28,7 +28,7 @@ const FOOTSPOT_SIZES: FootspotSize[] = ['4XS', '3XS', '2XS', 'XS', 'S', 'M', 'L'
 
 const gridCols = computed(() =>
   props.footspotEnabled
-    ? 'grid-cols-[0.5fr_110px_1fr_130px_32px]'
+    ? 'grid-cols-[0.5fr_110px_1fr_140px_32px]'
     : 'grid-cols-[0.5fr_140px_1fr_32px]',
 )
 
@@ -99,15 +99,22 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
           :placeholder="t('admin.products.variants.skuPlaceholder')"
           @input="setField(i, 'sku', ($event.target as HTMLInputElement).value || null)"
         />
-        <select
-          v-if="footspotEnabled"
-          :value="v.footspot_size ?? ''"
-          class="px-2 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none text-sm"
-          @change="setField(i, 'footspot_size', (($event.target as HTMLSelectElement).value || null) as FootspotSize | null)"
-        >
-          <option value="">{{ t('admin.products.variants.footspotNotSynced') }}</option>
-          <option v-for="s in FOOTSPOT_SIZES" :key="s" :value="s">{{ s }}</option>
-        </select>
+        <!-- * Custom chevron + appearance-none so the native arrow doesn't
+             overlap the long "Non synchronisée" label in this narrow column. -->
+        <div v-if="footspotEnabled" class="relative">
+          <select
+            :value="v.footspot_size ?? ''"
+            class="w-full appearance-none truncate pl-2 pr-7 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none text-sm"
+            @change="setField(i, 'footspot_size', (($event.target as HTMLSelectElement).value || null) as FootspotSize | null)"
+          >
+            <option value="">{{ t('admin.products.variants.footspotNotSynced') }}</option>
+            <option v-for="s in FOOTSPOT_SIZES" :key="s" :value="s">{{ s }}</option>
+          </select>
+          <UIcon
+            name="i-lucide-chevron-down"
+            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+          />
+        </div>
         <button
           type="button"
           class="p-2 rounded-lg text-brand-secondary hover:bg-brand-secondary/10 justify-self-end"

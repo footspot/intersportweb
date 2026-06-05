@@ -119,12 +119,20 @@ async function openLabel() {
   }
 }
 
-async function setStatus(status: OrderStatus) {
-  if (!detail.value) return
+// * Pick a target status — opens the confirmation modal before applying.
+const confirmStatus = ref<OrderStatus | null>(null)
+
+function chooseStatus(status: OrderStatus) {
+  confirmStatus.value = status
+}
+
+async function applyStatus() {
+  if (!detail.value || !confirmStatus.value) return
   updating.value = true
   try {
-    await orders.setStatus(detail.value.id, status)
+    await orders.setStatus(detail.value.id, confirmStatus.value)
     detail.value = await orders.fetchDetail(detail.value.id, true)
+    confirmStatus.value = null
   } finally {
     updating.value = false
   }
@@ -267,7 +275,7 @@ const trackingUrl = computed(() => {
               type="button"
               class="px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 dark:border-sidebar hover:bg-gray-50 dark:hover:bg-sidebar"
               :disabled="updating"
-              @click="setStatus(s)"
+              @click="chooseStatus(s)"
             >
               {{ t(`admin.orders.status.${s}`) }}
             </button>
@@ -303,5 +311,21 @@ const trackingUrl = computed(() => {
         </section>
       </div>
     </aside>
+
+    <AdminConfirmDialog
+      :model-value="!!confirmStatus"
+      :title="t('admin.orders.status.confirmTitle')"
+      :message="confirmStatus && detail
+        ? t('admin.orders.status.confirmMessage', {
+            n: detail.order_number,
+            s: t(`admin.orders.status.${confirmStatus}`),
+          })
+        : ''"
+      :confirm-label="t('admin.orders.status.confirmCta')"
+      :busy="updating"
+      :danger="false"
+      @update:model-value="(v) => { if (!v) confirmStatus = null }"
+      @confirm="applyStatus"
+    />
   </div>
 </template>

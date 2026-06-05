@@ -41,6 +41,11 @@ interface BundleComponentPayload {
   quantity?: number
 }
 
+interface OptionPayload {
+  name: string
+  price?: number
+}
+
 interface ImageSlot {
   existing?: string
   file_key?: string
@@ -70,11 +75,12 @@ interface ProductData {
   sort_order?: number
   variants?: VariantPayload[]
   components?: BundleComponentPayload[]
+  options?: OptionPayload[]
   image_slots?: ImageSlot[]
 }
 
 const PRODUCT_SELECT =
-  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position)'
+  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position), options:product_options(id, name, price, position)'
 
 function normaliseVariants(vs: VariantPayload[] | undefined): VariantPayload[] | string {
   if (!Array.isArray(vs) || vs.length === 0) return 'at least one variant is required'
@@ -116,6 +122,21 @@ function normaliseComponents(
     axis: c.axis,
     quantity: Math.max(1, Math.floor(Number(c.quantity ?? 1))),
   }))
+}
+
+// * Validate the paid add-on options. Returns the cleaned list (possibly
+// * empty) or an error string. Options are optional, so undefined/null → [].
+function normaliseOptions(os: OptionPayload[] | undefined | null): OptionPayload[] | string {
+  if (os === undefined || os === null) return []
+  if (!Array.isArray(os)) return 'options must be an array'
+  const out: OptionPayload[] = []
+  for (const o of os) {
+    if (!o?.name?.trim()) return 'option name cannot be empty'
+    const price = Number(o.price ?? 0)
+    if (!Number.isFinite(price) || price < 0) return 'option price must be >= 0'
+    out.push({ name: o.name.trim(), price: Math.max(0, price) })
+  }
+  return out
 }
 
 // * Validate image_slots shape; returns the cleaned list or an error string.
@@ -179,6 +200,26 @@ async function replaceProductImages(
   if (paths.length === 0) return
   const rows = paths.map((image_path, position) => ({ product_id: productId, image_path, position }))
   const { error: iErr } = await sb.from('product_images').insert(rows)
+  if (iErr) throw iErr
+}
+
+// * Replace the product's whole option set (delete-all + reinsert), mirroring
+// * how images are handled. Options carry no storage so this is pure DB.
+async function replaceProductOptions(
+  sb: ReturnType<typeof serviceClient>,
+  productId: string,
+  options: OptionPayload[],
+) {
+  const { error: dErr } = await sb.from('product_options').delete().eq('product_id', productId)
+  if (dErr) throw dErr
+  if (options.length === 0) return
+  const rows = options.map((o, position) => ({
+    product_id: productId,
+    name: o.name,
+    price: o.price ?? 0,
+    position,
+  }))
+  const { error: iErr } = await sb.from('product_options').insert(rows)
   if (iErr) throw iErr
 }
 
@@ -341,6 +382,9 @@ Deno.serve(async (req) => {
       if (slotsResult.some((s) => s.existing))
         return jsonResponse({ error: 'cannot reference existing images on create' }, { status: 400 })
 
+      const optionsResult = normaliseOptions(data.options)
+      if (typeof optionsResult === 'string') return jsonResponse({ error: optionsResult }, { status: 400 })
+
       const isPack = !!data.is_pack
       let components: BundleComponentPayload[] = []
       let variants: VariantPayload[] = []
@@ -393,6 +437,8 @@ Deno.serve(async (req) => {
         if (finalPaths.length > 0) {
           await replaceProductImages(sb, product.id, finalPaths)
         }
+
+        await replaceProductOptions(sb, product.id, optionsResult)
 
         if (isPack) {
           const rows = components.map((c) => ({
@@ -447,6 +493,13 @@ Deno.serve(async (req) => {
 
       const slotsResult = normaliseSlots(data.image_slots, files)
       if (typeof slotsResult === 'string') return jsonResponse({ error: slotsResult }, { status: 400 })
+
+      // * Options are optional on PUT: when the key is omitted entirely we leave
+      // * the existing set untouched (so toggle-only updates don't wipe them);
+      // * when present (even as []) we replace the whole set.
+      const optionsProvided = data.options !== undefined && data.options !== null
+      const optionsResult = normaliseOptions(data.options)
+      if (typeof optionsResult === 'string') return jsonResponse({ error: optionsResult }, { status: 400 })
 
       const isPack = !!data.is_pack
       let components: BundleComponentPayload[] = []
@@ -510,6 +563,8 @@ Deno.serve(async (req) => {
         if (pErr) throw pErr
 
         await replaceProductImages(sb, data.id!, finalPaths)
+
+        if (optionsProvided) await replaceProductOptions(sb, data.id!, optionsResult)
 
         if (isPack) {
           // * Drop any lingering variants if the product used to be non-pack.

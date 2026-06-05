@@ -26,6 +26,15 @@ const password = ref('')
 const useAccent = ref(false)
 const accentColorValue = ref('#3B82F6')
 const slogan = ref('')
+// * Per-club delivery toggles. Colissimo defaults on (matches DB default);
+// * the two pickup methods are opt-in. The DB enforces ≥1 enabled.
+const deliveryColissimo = ref(true)
+const deliveryClubPickup = ref(false)
+const deliveryShopPickup = ref(false)
+// * Independent working-days delays shown at checkout per pickup method.
+// * Empty = generic "we'll email you" message. Set by admin, never the buyer.
+const clubPickupDelayDays = ref<number | null>(null)
+const shopPickupDelayDays = ref<number | null>(null)
 const saving = ref(false)
 const errorMsg = ref<string | null>(null)
 // * Phase 4 — read-only count of products this club discounts via Footspot.
@@ -61,6 +70,11 @@ watch(
     useAccent.value = !!props.club?.accent_color
     accentColorValue.value = props.club?.accent_color ?? '#3B82F6'
     slogan.value = props.club?.slogan ?? ''
+    deliveryColissimo.value = props.club?.delivery_colissimo_enabled ?? true
+    deliveryClubPickup.value = props.club?.delivery_club_pickup_enabled ?? false
+    deliveryShopPickup.value = props.club?.delivery_shop_pickup_enabled ?? false
+    clubPickupDelayDays.value = props.club?.club_pickup_delay_days ?? null
+    shopPickupDelayDays.value = props.club?.shop_pickup_delay_days ?? null
     errorMsg.value = null
     discountCount.value = 0
     if (props.club?.footspot_linked) loadDiscountCount(props.club.id)
@@ -86,6 +100,10 @@ async function save() {
     errorMsg.value = t('admin.clubs.errors.passwordRequired')
     return
   }
+  if (!deliveryColissimo.value && !deliveryClubPickup.value && !deliveryShopPickup.value) {
+    errorMsg.value = t('admin.clubs.errors.deliveryRequired')
+    return
+  }
 
   saving.value = true
   try {
@@ -99,6 +117,17 @@ async function save() {
       file: logoFile.value,
       accent_color: useAccent.value ? accentColorValue.value : null,
       slogan: slogan.value.trim() || null,
+      delivery_colissimo_enabled: deliveryColissimo.value,
+      delivery_club_pickup_enabled: deliveryClubPickup.value,
+      delivery_shop_pickup_enabled: deliveryShopPickup.value,
+      club_pickup_delay_days:
+        clubPickupDelayDays.value === null || (clubPickupDelayDays.value as any) === ''
+          ? null
+          : Math.max(0, Number(clubPickupDelayDays.value)),
+      shop_pickup_delay_days:
+        shopPickupDelayDays.value === null || (shopPickupDelayDays.value as any) === ''
+          ? null
+          : Math.max(0, Number(shopPickupDelayDays.value)),
     }
     if (props.club) {
       await clubs.update({ id: props.club.id, ...base })
@@ -118,10 +147,10 @@ async function save() {
 <template>
   <div
     v-if="modelValue"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 overflow-y-auto"
     @click.self="close"
   >
-    <div class="w-full max-w-lg bg-white dark:bg-sidebar-surface rounded-card shadow-card-lg p-6 space-y-4">
+    <div class="w-full max-w-2xl bg-white dark:bg-sidebar-surface rounded-card shadow-card-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto my-auto">
       <h3 class="font-heading text-xl font-bold">
         {{ isEdit ? t('admin.clubs.edit') : t('admin.clubs.new') }}
       </h3>
@@ -190,6 +219,48 @@ async function save() {
           <p class="text-xs text-gray-400 mt-1">{{ slogan.length }}/80</p>
         </label>
 
+        <!-- * Delivery methods offered on this club's shop page -->
+        <div class="space-y-2 rounded-lg border border-gray-200 dark:border-sidebar p-3">
+          <div class="text-sm font-medium">{{ t('admin.clubs.deliveryMethods') }}</div>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input v-model="deliveryColissimo" type="checkbox" class="w-4 h-4 accent-brand-primary" />
+            <span class="text-sm">{{ t('admin.clubs.deliveryColissimo') }}</span>
+          </label>
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-3 cursor-pointer flex-1">
+              <input v-model="deliveryClubPickup" type="checkbox" class="w-4 h-4 accent-brand-primary" />
+              <span class="text-sm">{{ t('admin.clubs.deliveryClubPickup') }}</span>
+            </label>
+            <label v-if="deliveryClubPickup" class="flex items-center gap-2 shrink-0">
+              <span class="text-xs text-gray-500">{{ t('admin.clubs.pickupDelayShort') }}</span>
+              <input
+                v-model="clubPickupDelayDays"
+                type="number"
+                min="0"
+                :placeholder="t('admin.clubs.pickupDelayPlaceholder')"
+                class="w-24 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
+              />
+            </label>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-3 cursor-pointer flex-1">
+              <input v-model="deliveryShopPickup" type="checkbox" class="w-4 h-4 accent-brand-primary" />
+              <span class="text-sm">{{ t('admin.clubs.deliveryShopPickup') }}</span>
+            </label>
+            <label v-if="deliveryShopPickup" class="flex items-center gap-2 shrink-0">
+              <span class="text-xs text-gray-500">{{ t('admin.clubs.pickupDelayShort') }}</span>
+              <input
+                v-model="shopPickupDelayDays"
+                type="number"
+                min="0"
+                :placeholder="t('admin.clubs.pickupDelayPlaceholder')"
+                class="w-24 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
+              />
+            </label>
+          </div>
+          <p class="text-xs text-gray-400">{{ t('admin.clubs.deliveryMethodsHint') }}</p>
+        </div>
+
         <!-- * Footspot shop — read-only. Footspot is the source of truth for
              the per-product club discounts; the admin panel only shows the tally. -->
         <div
@@ -201,16 +272,16 @@ async function save() {
             {{ t('admin.clubs.footspotShop') }}
           </div>
           <div class="flex items-center justify-between text-xs">
-            <span class="text-gray-500">{{ t('admin.clubs.shopStatus') }}</span>
+            <span class="text-gray-500">{{ t('admin.clubs.footspotLink') }}</span>
             <span
               class="inline-flex items-center gap-1.5 font-medium"
-              :class="club?.shop_status === 'disconnected' ? 'text-brand-secondary' : 'text-brand-green'"
+              :class="club?.footspot_linked ? 'text-brand-green' : 'text-brand-secondary'"
             >
               <span
                 class="w-1.5 h-1.5 rounded-full"
-                :class="club?.shop_status === 'disconnected' ? 'bg-brand-secondary' : 'bg-brand-green'"
+                :class="club?.footspot_linked ? 'bg-brand-green' : 'bg-brand-secondary'"
               />
-              {{ club?.shop_status === 'disconnected' ? t('admin.clubs.shopDisconnected') : t('admin.clubs.shopActive') }}
+              {{ club?.footspot_linked ? t('admin.clubs.shopLinked') : t('admin.clubs.shopUnlinked') }}
             </span>
           </div>
           <div class="flex items-center justify-between text-xs">

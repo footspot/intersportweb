@@ -23,6 +23,8 @@ interface NavItem {
   label: string
   icon: string
   adminOnly?: boolean
+  // * Open the target in a new browser tab (used for "view site").
+  external?: boolean
   // * Reactive count pulled from an already-populated store.
   // * Returns null when the store is empty so the badge stays hidden
   // * (we never fetch eagerly just to show a number).
@@ -87,7 +89,7 @@ const sections = computed<NavSection[]>(() => [
       { to: '/admin/footspot', label: t('admin.footspot.title'), icon: 'i-lucide-link-2', adminOnly: true },
       { to: '/admin/notifications', label: t('admin.notifications.title'), icon: 'i-lucide-bell' },
       { to: '/admin/settings', label: t('admin.sidebar.settings'), icon: 'i-lucide-settings', adminOnly: true },
-      { to: '/', label: t('admin.sidebar.viewSite'), icon: 'i-lucide-external-link' },
+      { to: '/', label: t('admin.sidebar.viewSite'), icon: 'i-lucide-external-link', external: true },
     ],
   },
 ])
@@ -128,6 +130,9 @@ function isActive(to: string) {
           <li v-for="item in section.items" :key="item.to" v-show="visible(item)">
             <NuxtLink
               :to="item.to"
+              :external="item.external"
+              :target="item.external ? '_blank' : undefined"
+              :rel="item.external ? 'noopener noreferrer' : undefined"
               :class="[
                 'group relative flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150',
                 isActive(item.to)

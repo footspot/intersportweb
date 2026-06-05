@@ -1,9 +1,11 @@
 // * footspot-disconnect — the club director tapped "Déconnecter" on Footspot.
 // *
-// * Marks the club's shop 'disconnected' so create-order refuses NEW checkouts.
-// * Orders already in flight keep delivering — the footspot_links row stays
-// * active so their lifecycle events still dispatch (SHOP_PERSONALIZATION_GUIDE
-// * §Phase 2). Re-pairing through footspot-pairing-complete brings it back.
+// * Revokes the club's footspot_links row so cross-platform sync stops (no more
+// * outbound order events — footspot-push-event skips clubs whose link isn't
+// * 'active'). The Intersport storefront itself stays fully open: checkout keeps
+// * accepting new orders regardless of Footspot pairing state (client decision
+// * 2026-06-05, overriding SHOP_PERSONALIZATION_GUIDE §2). Mirrors the admin
+// * red "unlink" button. Re-pairing through footspot-pairing-complete restores it.
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { serviceClient } from '../_shared/supabase.ts'
 import { verifyFootspotClubAuth } from '../_shared/footspot/inbound.ts'
@@ -34,24 +36,32 @@ Deno.serve(async (req) => {
   const sb = serviceClient()
   const { data: club } = await sb
     .from('clubs')
-    .select('id, name, shop_status')
+    .select('id, name')
     .eq('id', auth.clubId)
     .maybeSingle()
   if (!club) return fail(404, 'club_not_found', 'Club not found')
 
-  // * Idempotent — a replay of the disconnect is a no-op success.
-  if (club.shop_status === 'disconnected') {
+  // * Idempotent — if there's no active link, a replay (or a club that already
+  // * unlinked from the Intersport side) is a no-op success.
+  const { data: link } = await sb
+    .from('footspot_links')
+    .select('id, status')
+    .eq('club_id', auth.clubId)
+    .maybeSingle()
+  if (!link || link.status !== 'active') {
     return jsonResponse({ ok: true, idempotent: true })
   }
 
+  // * Revoke the link (stops outbound sync) + clear the club's linked flag.
   const { error } = await sb
-    .from('clubs')
-    .update({ shop_status: 'disconnected' })
-    .eq('id', auth.clubId)
+    .from('footspot_links')
+    .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+    .eq('id', link.id)
   if (error) {
     console.error('[footspot-disconnect]', error)
     return fail(500, 'update_failed', error.message)
   }
+  await sb.from('clubs').update({ footspot_linked: false }).eq('id', auth.clubId)
 
   // * Let the back-office know the shop went offline.
   await sb.rpc('notify_backoffice', {

@@ -386,17 +386,16 @@ Deno.serve(async (req) => {
     // * resolved club. (club_id was discovered from the cart's products.)
     const { data: club, error: clubErr } = await sb
       .from('clubs')
-      .select('id, shop_status, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
+      .select('id, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
       .eq('id', clubId)
       .single()
     if (clubErr || !club) {
       return jsonResponse({ error: 'club_not_found' }, { status: 400 })
     }
-    // * A club whose director unpaired the shop on Footspot refuses NEW orders.
-    // * Orders already in flight are unaffected (SHOP_PERSONALIZATION_GUIDE §2).
-    if (club.shop_status === 'disconnected') {
-      return jsonResponse({ error: 'shop_disconnected' }, { status: 409 })
-    }
+    // * A Footspot disconnect only stops cross-platform sync — it does NOT take
+    // * the Intersport storefront offline. The shop keeps accepting new orders
+    // * regardless of footspot pairing state (per client decision 2026-06-05,
+    // * overriding SHOP_PERSONALIZATION_GUIDE §2's original "refuse" behaviour).
     const allowed =
       (body.delivery_method === 'colissimo' && club.delivery_colissimo_enabled) ||
       (body.delivery_method === 'club_pickup' && club.delivery_club_pickup_enabled) ||

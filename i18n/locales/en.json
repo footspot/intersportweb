@@ -150,6 +150,8 @@
       "shopPickup": "Pick up at an Intersport shop",
       "shopPickupHint": "Collect your order at a partner shop. Free.",
       "chooseShop": "Choose a shop",
+      "pickupDelay": "Available for pickup in about {n} business day(s).",
+      "pickupDelayGeneric": "You'll get an email as soon as your order is ready for pickup.",
       "allDisabled": "No delivery method is available for this club."
     },
     "customerInfo": "Customer info"
@@ -358,9 +360,7 @@
     },
     "admin": {
       "title": "Back-office access",
-      "subtitle": "Admin and employee accounts only.",
-      "customerHint": "Are you a customer?",
-      "customerLink": "Shop sign-in"
+      "subtitle": "Admin and employee accounts only."
     },
     "mfa": {
       "title": "Two-factor authentication",
@@ -493,17 +493,27 @@
       "slogan": "Slogan",
       "sloganPlaceholder": "E.g. Together we go further",
       "footspotShop": "Footspot shop",
-      "shopStatus": "Shop status",
-      "shopActive": "Active",
-      "shopDisconnected": "Disconnected",
+      "footspotLink": "Footspot link",
+      "shopLinked": "Linked",
+      "shopUnlinked": "Unlinked",
       "clubDiscounts": "Club discounts",
       "discountCount": "{n} product(s) discounted",
       "footspotShopHint": "Slogan, accent colour and product discounts are managed by the club from Footspot.",
+      "deliveryMethods": "Delivery methods",
+      "deliveryColissimo": "Colissimo (home)",
+      "deliveryClubPickup": "Club pickup",
+      "deliveryShopPickup": "Intersport shop pickup",
+      "deliveryMethodsHint": "These appear at checkout on this club's shop page.",
+      "pickupDelay": "Pickup delay (business days)",
+      "pickupDelayShort": "Delay (days)",
+      "pickupDelayPlaceholder": "E.g. 5",
+      "pickupDelayHint": "Shown at checkout. Leave empty for a generic message.",
       "errors": {
         "nameRequired": "Club name is required.",
         "sportRequired": "Sport is required.",
         "passwordRequired": "A password is required when protection is enabled.",
         "passwordTooShort": "Password must be at least 4 characters.",
+        "deliveryRequired": "Enable at least one delivery method.",
         "hasProducts": "Cannot delete: this club still has products."
       }
     },
@@ -524,6 +534,30 @@
         "primary": "Primary",
         "makePrimary": "Set as primary",
         "hint": "Up to {max} images. The first one is shown as the thumbnail."
+      },
+      "overlay": {
+        "edit": "Add logo / text",
+        "title": "Logo & text on image",
+        "hint": "Drag, scale and rotate the logo or text, then apply. The image is flattened.",
+        "logoSection": "Logo",
+        "addClubLogo": "Club logo",
+        "uploadLogo": "Upload a logo",
+        "noClubLogo": "This club has no logo. Upload one instead.",
+        "textSection": "Text",
+        "textPlaceholder": "e.g. FC 93 or +15 €",
+        "addText": "Add",
+        "color": "Color",
+        "size": "Size",
+        "selectedSection": "Selected element",
+        "removeSelected": "Remove selected",
+        "selectHint": "Click an element on the image to move, resize or edit it.",
+        "removeWhite": "Remove white background",
+        "removeWhiteOn": "White background removed",
+        "removeWhiteHint": "Works best on logos over a solid white background. Adjust the strength if edges look wrong.",
+        "tolerance": "Strength",
+        "apply": "Apply",
+        "loadError": "Failed to load the image.",
+        "exportError": "Failed to generate the image."
       },
       "pricing": "Pricing",
       "buyingPrice": "Buying price (Intersport → club)",
@@ -662,12 +696,22 @@
         "subtitle": "This is how the product appears to customers.",
         "openProductPage": "Open product page"
       },
+      "options": {
+        "title": "Paid options",
+        "hint": "Add billable extras (e.g. gift wrap, express embroidery). Customers can pick them.",
+        "add": "Add option",
+        "empty": "No options yet. Click \"Add option\".",
+        "name": "Name",
+        "namePlaceholder": "e.g. Gift wrap",
+        "price": "Price"
+      },
       "errors": {
         "clubRequired": "Select a club.",
         "nameRequired": "The name is required.",
         "referenceRequired": "Reference is required.",
         "sellingBelowBuying": "Selling price must be greater than or equal to buying price.",
         "discountSourceRequired": "Pick who absorbs the discount.",
+        "optionNameRequired": "Every option needs a name.",
         "variantRequired": "Add at least one size with a name.",
         "bundleEmpty": "Add at least one component to the bundle.",
         "bundleNeedsPrimary": "At least one component must use the primary axis.",
@@ -680,7 +724,7 @@
       "subtitle": "Live feed of every order.",
       "empty": "No orders match this filter.",
       "realtime": "Live",
-      "searchPlaceholder": "Search by number or email…",
+      "searchPlaceholder": "Search by number, email or client",
       "filter": {
         "all": "All",
         "pending": "Pending",
@@ -902,8 +946,17 @@
       "activeHint": "Unchecked: the session is blocked immediately.",
       "deactivate": "Deactivate",
       "reactivate": "Reactivate",
-      "deleteTitle": "Disable this account?",
-      "deleteConfirm": "Disable \"{name}\"? The account will be banned and unable to sign in.",
+      "deleteTitle": "Delete this account?",
+      "deleteConfirm": "Permanently delete \"{name}\"'s account? This cannot be undone.",
+      "deleteSelf": "Delete my account",
+      "selfDeleteModal": {
+        "title": "Delete your account?",
+        "message": "This cannot be undone. Confirm your identity to continue.",
+        "password": "Password",
+        "code": "2FA code",
+        "confirm": "Delete permanently",
+        "invalidPassword": "Incorrect password."
+      },
       "role": {
         "label": "Role",
         "admin": "Administrator",
@@ -925,7 +978,8 @@
       },
       "errors": {
         "emailRequired": "Email is required.",
-        "lastAdmin": "Cannot proceed — at least one active administrator must remain."
+        "lastAdmin": "Cannot proceed — at least one active administrator must remain.",
+        "cannotDeleteAdmin": "You cannot delete another administrator's account."
       }
     },
     "catalog": {
@@ -983,7 +1037,8 @@
         "club": "Club",
         "contact": "Contact",
         "sentAt": "Sent at",
-        "status": "Status"
+        "status": "Status",
+        "actions": "Actions"
       },
       "status": {
         "sent": "Sent",

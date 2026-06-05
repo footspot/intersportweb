@@ -2,11 +2,13 @@
 // * /admin/users — admin-only. Provisions admin/employee accounts.
 // * Customers self-register on the storefront and are NOT listed here.
 import { useUsersStore, type User } from '~/stores/users'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
 const users = useUsersStore()
+const auth = useAuthStore()
 
 type FilterValue = 'all' | 'admin' | 'employee' | 'inactive'
 const filter = ref<FilterValue>('all')
@@ -18,6 +20,9 @@ const confirmOpen = ref(false)
 const deleting = ref<User | null>(null)
 const confirmBusy = ref(false)
 const deleteError = ref<string | null>(null)
+
+// * Self-deletion (admin removing their own account) goes through a re-auth modal.
+const selfDeleteOpen = ref(false)
 
 await useAsyncData('admin-users-page', async () => { await users.fetchAll(); return true })
 
@@ -49,7 +54,12 @@ async function toggleActive(u: User) {
 function askDelete(u: User) {
   deleting.value = u
   deleteError.value = null
-  confirmOpen.value = true
+  // * Deleting one's own admin account requires re-authentication.
+  if (u.id === auth.profile?.id) {
+    selfDeleteOpen.value = true
+  } else {
+    confirmOpen.value = true
+  }
 }
 async function doDelete() {
   if (!deleting.value) return
@@ -62,11 +72,36 @@ async function doDelete() {
   } catch (err: any) {
     if (err?.message === 'last_admin') {
       deleteError.value = t('admin.users.errors.lastAdmin')
+    } else if (err?.message === 'cannot_delete_admin') {
+      deleteError.value = t('admin.users.errors.cannotDeleteAdmin')
     } else {
       deleteError.value = err instanceof Error ? err.message : t('auth.errors.generic')
     }
   } finally {
     confirmBusy.value = false
+  }
+}
+
+// * Re-auth succeeded — delete the caller's own account, then sign out.
+async function onSelfDeleteConfirmed() {
+  if (!deleting.value) return
+  try {
+    await users.remove(deleting.value.id)
+    selfDeleteOpen.value = false
+    deleting.value = null
+    await auth.signOut()
+  } catch (err: any) {
+    // * Re-auth passed but the delete itself failed (e.g. last admin) — close
+    // * the modal and surface the reason.
+    selfDeleteOpen.value = false
+    deleting.value = null
+    alert(
+      err?.message === 'last_admin'
+        ? t('admin.users.errors.lastAdmin')
+        : err instanceof Error
+          ? err.message
+          : t('auth.errors.generic'),
+    )
   }
 }
 
@@ -146,6 +181,7 @@ function dismissCredentials() {
         v-for="u in filtered"
         :key="u.id"
         :user="u"
+        :current-user-id="auth.profile?.id"
         @edit="openEdit"
         @toggle="toggleActive"
         @delete="askDelete"
@@ -159,7 +195,14 @@ function dismissCredentials() {
       :title="t('admin.users.deleteTitle')"
       :message="deleteError || t('admin.users.deleteConfirm', { name: deleting?.full_name ?? deleting?.email ?? '' })"
       :busy="confirmBusy"
+      require-typed
       @confirm="doDelete"
+    />
+
+    <AdminUsersSelfDeleteModal
+      v-model="selfDeleteOpen"
+      :email="deleting?.email ?? ''"
+      @confirmed="onSelfDeleteConfirmed"
     />
   </div>
 </template>

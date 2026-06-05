@@ -23,6 +23,11 @@ interface ClubData {
   clear_logo?: boolean
   accent_color?: string | null
   slogan?: string | null
+  delivery_colissimo_enabled?: boolean
+  delivery_club_pickup_enabled?: boolean
+  delivery_shop_pickup_enabled?: boolean
+  club_pickup_delay_days?: number | null
+  shop_pickup_delay_days?: number | null
 }
 
 interface ResetPasswordPayload {
@@ -93,6 +98,17 @@ Deno.serve(async (req) => {
         is_password_protected: !!data.is_password_protected,
         accent_color: data.accent_color ?? null,
         slogan: data.slogan?.trim() || null,
+        delivery_colissimo_enabled: data.delivery_colissimo_enabled ?? true,
+        delivery_club_pickup_enabled: data.delivery_club_pickup_enabled ?? false,
+        delivery_shop_pickup_enabled: data.delivery_shop_pickup_enabled ?? false,
+        club_pickup_delay_days:
+          data.club_pickup_delay_days === null || data.club_pickup_delay_days === undefined
+            ? null
+            : Math.max(0, Math.trunc(Number(data.club_pickup_delay_days))),
+        shop_pickup_delay_days:
+          data.shop_pickup_delay_days === null || data.shop_pickup_delay_days === undefined
+            ? null
+            : Math.max(0, Math.trunc(Number(data.shop_pickup_delay_days))),
       }
       if (data.is_password_protected) {
         if (!data.password) {
@@ -148,6 +164,21 @@ Deno.serve(async (req) => {
 
       if ('accent_color' in data) patch.accent_color = data.accent_color ?? null
       if ('slogan' in data) patch.slogan = data.slogan?.trim() || null
+      if ('delivery_colissimo_enabled' in data) patch.delivery_colissimo_enabled = !!data.delivery_colissimo_enabled
+      if ('delivery_club_pickup_enabled' in data) patch.delivery_club_pickup_enabled = !!data.delivery_club_pickup_enabled
+      if ('delivery_shop_pickup_enabled' in data) patch.delivery_shop_pickup_enabled = !!data.delivery_shop_pickup_enabled
+      if ('club_pickup_delay_days' in data) {
+        patch.club_pickup_delay_days =
+          data.club_pickup_delay_days === null || data.club_pickup_delay_days === undefined
+            ? null
+            : Math.max(0, Math.trunc(Number(data.club_pickup_delay_days)))
+      }
+      if ('shop_pickup_delay_days' in data) {
+        patch.shop_pickup_delay_days =
+          data.shop_pickup_delay_days === null || data.shop_pickup_delay_days === undefined
+            ? null
+            : Math.max(0, Math.trunc(Number(data.shop_pickup_delay_days)))
+      }
 
       const { data: club, error } = await sb
         .from('clubs')

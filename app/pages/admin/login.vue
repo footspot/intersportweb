@@ -187,10 +187,6 @@ async function cancelMfa() {
         {{ loading ? t('common.loading') : t('auth.signIn') }}
       </button>
 
-      <p class="text-xs text-center text-gray-400">
-        {{ t('auth.admin.customerHint') }}
-        <NuxtLink to="/login" class="text-brand-primary hover:underline">{{ t('auth.admin.customerLink') }}</NuxtLink>
-      </p>
     </form>
 
     <!-- Step 2 — 2FA code -->

@@ -163,16 +163,25 @@ Deno.serve(async (req) => {
         .eq('id', id)
         .single()
       if (cErr) throw cErr
+
+      // * Authorization rules:
+      // * - Employees: any admin may delete them.
+      // * - Admins: an admin may delete ONLY their own account (the front-end
+      // *   re-authenticates with password / 2FA first). Deleting another
+      // *   admin is forbidden.
       if (current.role === 'admin') {
+        if (current.id !== guard.id) {
+          return jsonResponse({ error: 'cannot_delete_admin' }, { status: 403 })
+        }
         const adminCount = await countActiveAdmins(sb)
         if (adminCount <= 1) return jsonResponse({ error: 'last_admin' }, { status: 409 })
       }
 
-      // * Soft delete — active=false + permanent ban. Profile row stays so
-      // * created_by references in fund_transactions / refunds still resolve.
-      const { error: pErr } = await sb.from('profiles').update({ active: false }).eq('id', id)
-      if (pErr) throw pErr
-      await sb.auth.admin.updateUserById(id, { ban_duration: '876000h' }).catch(() => {})
+      // * Hard delete — remove the auth user. profiles.id cascades, and the
+      // * created_by/sent_by references are ON DELETE SET NULL, so the account
+      // * is fully removed while historical records survive.
+      const { error: delErr } = await sb.auth.admin.deleteUser(id)
+      if (delErr) throw delErr
 
       return jsonResponse({ ok: true })
     }

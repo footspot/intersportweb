@@ -36,6 +36,15 @@ export interface ProductImage {
   position: number
 }
 
+// * A paid add-on the seller defines per product (name + price). Free-form,
+// * dynamic count — distinct from the structured flocking options.
+export interface ProductOption {
+  id: string
+  name: string
+  price: number
+  position: number
+}
+
 // * Multipart slot descriptor for create/update requests. Position 0 = primary.
 export type ImageSlot = { existing: string } | { file_key: string }
 
@@ -67,15 +76,18 @@ export interface Product {
   bundle_components: BundleComponent[]
   // * Ordered gallery (position 0 = primary). Empty when no images uploaded.
   images: ProductImage[]
+  // * Ordered paid add-ons (by position). Empty when none defined.
+  options: ProductOption[]
 }
 
 export type ProductPayload = Omit<
   Product,
-  'id' | 'created_at' | 'variants' | 'bundle_components' | 'images'
+  'id' | 'created_at' | 'variants' | 'bundle_components' | 'images' | 'options'
 > & {
   id?: string
   variants?: Array<Pick<Variant, 'size' | 'stock' | 'sku' | 'footspot_size'> & { id?: string }>
   components?: Array<{ component_product_id: string; axis: BundleAxis; quantity: number }>
+  options?: Array<{ name: string; price: number }>
   image_slots?: ImageSlot[]
 }
 
@@ -93,12 +105,17 @@ function sortImages(images: ProductImage[] | null | undefined): ProductImage[] {
   return [...(images ?? [])].sort((a, b) => a.position - b.position)
 }
 
+function sortOptions(options: ProductOption[] | null | undefined): ProductOption[] {
+  return [...(options ?? [])].sort((a, b) => a.position - b.position)
+}
+
 function enrich(p: Product): Product {
   return {
     ...p,
     variants: p.variants ?? [],
     bundle_components: p.bundle_components ?? [],
     images: sortImages(p.images),
+    options: sortOptions(p.options),
   }
 }
 
@@ -144,7 +161,7 @@ export const useProductsStore = defineStore('products', {
         const { data, error } = await client
           .from('products')
           .select(
-            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position)',
+            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position), options:product_options(id, name, price, position)',
           )
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: false })

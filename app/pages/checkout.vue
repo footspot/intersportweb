@@ -70,6 +70,8 @@ interface ClubFlags {
   delivery_club_pickup_enabled: boolean
   footspot_linked: boolean
   delivery_shop_pickup_enabled: boolean
+  club_pickup_delay_days: number | null
+  shop_pickup_delay_days: number | null
 }
 const clubFlags = ref<ClubFlags | null>(null)
 
@@ -81,7 +83,7 @@ watchEffect(async () => {
   }
   const { data } = await supabase
     .from('clubs')
-    .select('delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, footspot_linked')
+    .select('delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, footspot_linked, club_pickup_delay_days, shop_pickup_delay_days')
     .eq('id', clubId)
     .maybeSingle()
   clubFlags.value = data as ClubFlags | null
@@ -372,8 +374,18 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
             <div v-if="deliveryMethod === 'colissimo'">
               <CheckoutShippingForm v-model="shipping" />
             </div>
-            <div v-else-if="deliveryMethod === 'shop_pickup'">
+            <div v-else-if="deliveryMethod === 'shop_pickup'" class="space-y-2">
               <CheckoutPickupShopPicker v-model="pickupShopId" />
+              <p class="flex items-center gap-1.5 text-xs text-gray-500">
+                <UIcon name="i-lucide-clock" class="w-3.5 h-3.5 text-brand-primary" />
+                <span v-if="clubFlags?.shop_pickup_delay_days != null">{{ t('checkout.delivery.pickupDelay', { n: clubFlags.shop_pickup_delay_days }) }}</span>
+                <span v-else>{{ t('checkout.delivery.pickupDelayGeneric') }}</span>
+              </p>
+            </div>
+            <div v-else-if="deliveryMethod === 'club_pickup'" class="flex items-center gap-1.5 text-xs text-gray-500">
+              <UIcon name="i-lucide-clock" class="w-3.5 h-3.5 text-brand-primary" />
+              <span v-if="clubFlags?.club_pickup_delay_days != null">{{ t('checkout.delivery.pickupDelay', { n: clubFlags.club_pickup_delay_days }) }}</span>
+              <span v-else>{{ t('checkout.delivery.pickupDelayGeneric') }}</span>
             </div>
             <div class="flex justify-end">
               <button

@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { useProductsStore, type FlockingKind, type ImageSlot, type Product, type ProductPayload } from '~/stores/products'
+
+// * Draft row for the dynamic paid-options editor (name + price). No id is
+// * threaded back: the whole set is replaced on every save.
+interface DraftOption {
+  name: string
+  price: number
+}
 import { useClubsStore } from '~/stores/clubs'
 import type { DiscountSource } from '~/composables/usePricingPreview'
 import type { DraftVariant } from './VariantStockEditor.vue'
@@ -19,6 +26,16 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const products = useProductsStore()
 const clubs = useClubsStore()
+const supabase = useSupabaseClient()
+
+// * Public URL of the selected club's logo (club-logos bucket), fed to the
+// * image overlay editor so staff can stamp the crest onto a product photo.
+const selectedClubLogoUrl = computed(() => {
+  const club = clubs.byId(clubId.value)
+  if (!club?.logo_path) return null
+  const { data } = supabase.storage.from('club-logos').getPublicUrl(club.logo_path)
+  return data?.publicUrl ?? null
+})
 
 const clubId = ref('')
 const name = ref('')
@@ -42,6 +59,7 @@ const weightGrams = ref(0)
 const availableFrom = ref<string>('')
 const footspotCategory = ref<string>('')
 const variants = ref<DraftVariant[]>([])
+const options = ref<DraftOption[]>([])
 
 const FOOTSPOT_CATEGORIES = [
   'jersey', 'shorts', 'socks', 'ball', 'cone', 'bib',
@@ -125,6 +143,7 @@ watch(
     variants.value = p?.variants?.length
       ? p.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock, sku: v.sku, footspot_size: v.footspot_size }))
       : [{ size: '', stock: 0, sku: null, footspot_size: null }]
+    options.value = (p?.options ?? []).map((o) => ({ name: o.name, price: Number(o.price) }))
     bundleComponents.value = (p?.bundle_components ?? []).map((bc) => ({
       component_product_id: bc.component_product_id,
       axis: bc.axis,
@@ -137,6 +156,14 @@ watch(
 
 function close() {
   if (!saving.value) emit('update:modelValue', false)
+}
+
+function addOption() {
+  options.value.push({ name: '', price: 0 })
+}
+
+function removeOption(index: number) {
+  options.value.splice(index, 1)
 }
 
 async function save() {
@@ -159,6 +186,10 @@ async function save() {
   }
   if (discountPercent.value > 0 && !discountSource.value) {
     errorMsg.value = t('admin.products.errors.discountSourceRequired')
+    return
+  }
+  if (options.value.some((o) => !o.name.trim())) {
+    errorMsg.value = t('admin.products.errors.optionNameRequired')
     return
   }
   if (isPack.value) {
@@ -218,6 +249,10 @@ async function save() {
       available_from: availableFrom.value.trim() || null,
       footspot_category: (footspotCategory.value.trim() || null) as ProductPayload['footspot_category'],
       sort_order: props.product?.sort_order ?? 0,
+      options: options.value.map((o) => ({
+        name: o.name.trim(),
+        price: Math.max(0, Number(o.price) || 0),
+      })),
     }
 
     const payload: ProductPayload = isPack.value
@@ -376,6 +411,7 @@ async function save() {
         v-model="gallerySlots"
         bucket="product-images"
         :label="t('admin.products.image')"
+        :club-logo-url="selectedClubLogoUrl"
       />
 
       <!-- Pack toggle -->
@@ -520,6 +556,65 @@ async function save() {
               <span class="text-gray-500">€</span>
             </div>
           </label>
+        </div>
+      </div>
+
+      <!-- Custom paid options (dynamic) -->
+      <div class="border-t border-gray-100 dark:border-sidebar pt-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="font-heading font-bold">{{ t('admin.products.options.title') }}</h4>
+            <p class="text-xs text-gray-500">{{ t('admin.products.options.hint') }}</p>
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-brand-primary text-brand-primary hover:bg-brand-primary/5"
+            @click="addOption"
+          >
+            <UIcon name="i-lucide-plus" class="w-4 h-4" />
+            {{ t('admin.products.options.add') }}
+          </button>
+        </div>
+
+        <p v-if="options.length === 0" class="text-sm text-gray-400">
+          {{ t('admin.products.options.empty') }}
+        </p>
+
+        <div
+          v-for="(opt, i) in options"
+          :key="i"
+          class="flex items-end gap-2"
+        >
+          <label class="block flex-1">
+            <span class="text-sm font-medium">{{ t('admin.products.options.name') }}</span>
+            <input
+              v-model="opt.name"
+              type="text"
+              :placeholder="t('admin.products.options.namePlaceholder')"
+              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+            />
+          </label>
+          <label class="block w-32">
+            <span class="text-sm font-medium">{{ t('admin.products.options.price') }}</span>
+            <div class="flex items-center gap-2 mt-1">
+              <input
+                v-model.number="opt.price"
+                type="number"
+                min="0"
+                step="0.01"
+                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+              />
+              <span class="text-gray-500">€</span>
+            </div>
+          </label>
+          <button
+            type="button"
+            class="p-2 mb-0.5 rounded-lg text-gray-400 hover:text-brand-secondary hover:bg-brand-secondary/5"
+            :title="t('common.delete')"
+            @click="removeOption(i)"
+          >
+            <UIcon name="i-lucide-trash-2" class="w-4 h-4" />
+          </button>
         </div>
       </div>
 

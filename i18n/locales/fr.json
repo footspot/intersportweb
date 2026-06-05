@@ -150,6 +150,8 @@
       "shopPickup": "Retrait en magasin Intersport",
       "shopPickupHint": "Récupérez votre commande dans un magasin Intersport partenaire. Gratuit.",
       "chooseShop": "Choisissez un magasin",
+      "pickupDelay": "Retrait disponible sous environ {n} jour(s) ouvré(s).",
+      "pickupDelayGeneric": "Vous recevrez un e-mail dès que votre commande sera prête au retrait.",
       "allDisabled": "Aucun mode de livraison n'est disponible pour ce club."
     },
     "customerInfo": "Informations client"
@@ -358,9 +360,7 @@
     },
     "admin": {
       "title": "Accès back-office",
-      "subtitle": "Réservé aux comptes administrateur et employé.",
-      "customerHint": "Vous êtes client ?",
-      "customerLink": "Connexion boutique"
+      "subtitle": "Réservé aux comptes administrateur et employé."
     },
     "mfa": {
       "title": "Authentification à deux facteurs",
@@ -493,17 +493,27 @@
       "slogan": "Slogan",
       "sloganPlaceholder": "Ex : Ensemble, on va plus loin",
       "footspotShop": "Boutique Footspot",
-      "shopStatus": "État de la boutique",
-      "shopActive": "Active",
-      "shopDisconnected": "Déconnectée",
+      "footspotLink": "Liaison Footspot",
+      "shopLinked": "Liée",
+      "shopUnlinked": "Non liée",
       "clubDiscounts": "Réductions club",
       "discountCount": "{n} produit(s) en réduction",
       "footspotShopHint": "Le slogan, la couleur d'accent et les réductions produits sont gérés par le club depuis Footspot.",
+      "deliveryMethods": "Modes de livraison",
+      "deliveryColissimo": "Colissimo (domicile)",
+      "deliveryClubPickup": "Retrait au club",
+      "deliveryShopPickup": "Retrait en magasin Intersport",
+      "deliveryMethodsHint": "Ces modes apparaissent au paiement sur la boutique de ce club.",
+      "pickupDelay": "Délai de retrait (jours ouvrés)",
+      "pickupDelayShort": "Délai (j. ouvrés)",
+      "pickupDelayPlaceholder": "Ex : 5",
+      "pickupDelayHint": "Affiché au paiement. Laissez vide pour un message générique.",
       "errors": {
         "nameRequired": "Le nom du club est requis.",
         "sportRequired": "Le sport est requis.",
         "passwordRequired": "Un mot de passe est requis lorsque la protection est activée.",
         "passwordTooShort": "Le mot de passe doit contenir au moins 4 caractères.",
+        "deliveryRequired": "Activez au moins un mode de livraison.",
         "hasProducts": "Impossible de supprimer : ce club possède encore des produits."
       }
     },
@@ -524,6 +534,30 @@
         "primary": "Principale",
         "makePrimary": "Définir principale",
         "hint": "Jusqu'à {max} images. La première est affichée en vignette."
+      },
+      "overlay": {
+        "edit": "Ajouter logo / texte",
+        "title": "Logo et texte sur l'image",
+        "hint": "Glissez, redimensionnez et tournez le logo ou le texte, puis appliquez. L'image est aplatie.",
+        "logoSection": "Logo",
+        "addClubLogo": "Logo du club",
+        "uploadLogo": "Importer un logo",
+        "noClubLogo": "Ce club n'a pas de logo. Importez-en un.",
+        "textSection": "Texte",
+        "textPlaceholder": "ex. FC 93 ou +15 €",
+        "addText": "Ajouter",
+        "color": "Couleur",
+        "size": "Taille",
+        "selectedSection": "Élément sélectionné",
+        "removeSelected": "Supprimer la sélection",
+        "selectHint": "Cliquez un élément sur l'image pour le déplacer, redimensionner ou modifier.",
+        "removeWhite": "Supprimer le fond blanc",
+        "removeWhiteOn": "Fond blanc supprimé",
+        "removeWhiteHint": "Fonctionne mieux sur les logos sur fond blanc uni. Ajustez l'intensité si les bords sont incorrects.",
+        "tolerance": "Intensité",
+        "apply": "Appliquer",
+        "loadError": "Échec du chargement de l'image.",
+        "exportError": "Échec de la génération de l'image."
       },
       "pricing": "Tarification",
       "buyingPrice": "Prix d'achat (Intersport → club)",
@@ -662,12 +696,22 @@
         "subtitle": "Voici comment ce produit apparaît côté client.",
         "openProductPage": "Ouvrir la fiche produit"
       },
+      "options": {
+        "title": "Options payantes",
+        "hint": "Ajoutez des suppléments facturés (ex. emballage cadeau, broderie express). Le client pourra les choisir.",
+        "add": "Ajouter une option",
+        "empty": "Aucune option. Cliquez sur « Ajouter une option ».",
+        "name": "Nom",
+        "namePlaceholder": "ex. Emballage cadeau",
+        "price": "Prix"
+      },
       "errors": {
         "clubRequired": "Sélectionnez un club.",
         "nameRequired": "Le nom est requis.",
         "referenceRequired": "La référence est requise.",
         "sellingBelowBuying": "Le prix de vente doit être supérieur ou égal au prix d'achat.",
         "discountSourceRequired": "Choisissez qui absorbe la réduction.",
+        "optionNameRequired": "Chaque option doit avoir un nom.",
         "variantRequired": "Ajoutez au moins une taille avec un nom.",
         "bundleEmpty": "Ajoutez au moins un composant au pack.",
         "bundleNeedsPrimary": "Au moins un composant doit utiliser l'axe principal.",
@@ -680,7 +724,7 @@
       "subtitle": "Suivez les commandes en temps réel.",
       "empty": "Aucune commande pour ce filtre.",
       "realtime": "Temps réel",
-      "searchPlaceholder": "Rechercher par numéro, email…",
+      "searchPlaceholder": "Rechercher par numéro email ou client",
       "filter": {
         "all": "Toutes",
         "pending": "En attente",
@@ -902,8 +946,17 @@
       "activeHint": "Décoché : la session est bloquée immédiatement.",
       "deactivate": "Désactiver",
       "reactivate": "Réactiver",
-      "deleteTitle": "Désactiver ce compte ?",
-      "deleteConfirm": "Désactiver « {name} » ? Le compte sera banni et ne pourra plus se connecter.",
+      "deleteTitle": "Supprimer ce compte ?",
+      "deleteConfirm": "Supprimer définitivement le compte de « {name} » ? Cette action est irréversible.",
+      "deleteSelf": "Supprimer mon compte",
+      "selfDeleteModal": {
+        "title": "Supprimer votre compte ?",
+        "message": "Cette action est irréversible. Confirmez votre identité pour continuer.",
+        "password": "Mot de passe",
+        "code": "Code 2FA",
+        "confirm": "Supprimer définitivement",
+        "invalidPassword": "Mot de passe incorrect."
+      },
       "role": {
         "label": "Rôle",
         "admin": "Administrateur",
@@ -925,7 +978,8 @@
       },
       "errors": {
         "emailRequired": "L'email est requis.",
-        "lastAdmin": "Impossible — au moins un administrateur actif doit rester."
+        "lastAdmin": "Impossible — au moins un administrateur actif doit rester.",
+        "cannotDeleteAdmin": "Vous ne pouvez pas supprimer le compte d'un autre administrateur."
       }
     },
     "catalog": {
@@ -983,7 +1037,8 @@
         "club": "Club",
         "contact": "Contact",
         "sentAt": "Envoyée le",
-        "status": "Statut"
+        "status": "Statut",
+        "actions": "Actions"
       },
       "status": {
         "sent": "Envoyée",

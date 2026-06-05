@@ -29,10 +29,17 @@ const accentCss = flow.accentCss
             class="absolute inset-0 pointer-events-none"
             :style="{ background: `linear-gradient(to right, transparent 0%, ${flow.selectedClub.value.accent_color}33 25%, ${flow.selectedClub.value.accent_color}80 50%, ${flow.selectedClub.value.accent_color}33 75%, transparent 100%)` }"
           />
-          <div class="relative">
-            <h2 class="font-heading text-xl md:text-[22px] font-extrabold uppercase tracking-[0.02em] leading-tight">
-              {{ flow.selectedClub.value?.name ?? '' }}
-            </h2>
+          <div class="relative flex items-center gap-3">
+            <img
+              v-if="flow.selectedClub.value?.logo_path"
+              :src="flow.clubLogoUrl(flow.selectedClub.value.logo_path) ?? undefined"
+              :alt="flow.selectedClub.value?.name ?? ''"
+              class="h-11 w-11 md:h-12 md:w-12 object-contain flex-shrink-0 rounded-lg"
+            />
+            <div>
+              <h2 class="font-heading text-xl md:text-[22px] font-extrabold uppercase tracking-[0.02em] leading-tight">
+                {{ flow.selectedClub.value?.name ?? '' }}
+              </h2>
             <p v-if="flow.selectedClub.value?.slogan" class="flex items-center gap-2 text-sm italic text-gray-500 mt-1">
               <span
                 v-if="flow.selectedClub.value?.accent_color"
@@ -41,6 +48,7 @@ const accentCss = flow.accentCss
               />
               {{ flow.selectedClub.value.slogan }}
             </p>
+            </div>
           </div>
           <div v-if="flow.productCategories.value.length" class="relative flex gap-2 flex-wrap">
             <button

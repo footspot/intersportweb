@@ -134,8 +134,9 @@ async function remove(s: Shop) {
       </table>
     </div>
 
-    <UModal v-model="showForm">
-      <div v-if="editing" class="p-5 space-y-3 bg-white dark:bg-sidebar-surface rounded-card max-w-md">
+    <UModal v-model:open="showForm">
+      <template #content>
+      <div v-if="editing" class="p-5 space-y-3 bg-white dark:bg-sidebar-surface rounded-card">
         <h2 class="font-heading font-bold">{{ editing.id ? t('admin.shops.editShop') : t('admin.shops.addShop') }}</h2>
         <label class="block text-sm">
           <span class="font-medium">{{ t('admin.shops.name') }}</span>
@@ -171,6 +172,7 @@ async function remove(s: Shop) {
           </button>
         </div>
       </div>
+      </template>
     </UModal>
   </section>
 </template>

@@ -88,14 +88,16 @@ export const useUsersStore = defineStore('users', {
       return updated
     },
 
+    // * Hard delete — removes the account entirely (employee, or the caller's
+    // * own admin account). The row is dropped from the list on success.
     async remove(id: string) {
       const { error } = await invokeEdge<{ ok: true }>('admin-users', {
         method: 'DELETE',
         query: { id },
       })
       if (error) throw error
-      const u = this.items.find((x) => x.id === id)
-      if (u) u.active = false
+      const idx = this.items.findIndex((x) => x.id === id)
+      if (idx !== -1) this.items.splice(idx, 1)
     },
 
     clearLastCreated() {

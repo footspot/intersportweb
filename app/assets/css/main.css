@@ -40,6 +40,21 @@
 /* * Enable class-based dark mode (driven by @nuxtjs/color-mode). */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* * ── Dark-mode brand contrast ──
+ * The brand blue (#0331f9) and red (#e30b0c) are tuned for light surfaces; as
+ * text / borders / rings on dark backgrounds they're too dark to read. Tailwind
+ * v4 emits every `text-/border-/bg-/ring-brand-*` utility as `var(--color-...)`,
+ * so re-declaring the tokens under `.dark` lightens them everywhere at once —
+ * solid fills get a friendlier light blue/red too, white button text stays legible.
+ * `--color-ink` / `--color-accent` (storefront header/topbar fills) are left
+ * untouched so those large backgrounds don't wash out. */
+.dark {
+  --color-brand-primary: #5b82ff;
+  --color-brand-primary-light: #85a3ff;
+  --color-brand-primary-dark: #3a5fff;
+  --color-brand-secondary: #ff5a5b;
+}
+
 @layer base {
   html,
   body {
@@ -118,4 +133,35 @@
   .home-product-card {
     animation: none;
   }
+}
+
+/* * ── Dark-mode form-field contrast ──
+ * App-wide, native fields are styled inline as `bg-transparent dark:border-sidebar`.
+ * But --color-sidebar (#0a0e27) is darker than the surfaces fields sit on
+ * (cards / modals at #0f1428), so the border vanishes and the field is
+ * indistinguishable from its background until focused. These rules are
+ * intentionally UNLAYERED so they win over the inline utility classes, giving
+ * every text field a subtle raised fill + a visible border in dark mode.
+ * Checkboxes, radios, colour swatches, ranges, files and button-inputs are
+ * excluded so their accent styling stays intact. */
+.dark input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']):not([type='file']):not([type='submit']):not([type='button']):not([type='reset']),
+.dark select,
+.dark textarea {
+  background-color: #181e36;
+  border-color: #323b60;
+  color-scheme: dark;
+}
+.dark input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']):not([type='file']):not([type='submit']):not([type='button']):not([type='reset']):hover,
+.dark select:hover,
+.dark textarea:hover {
+  border-color: #404a78;
+}
+.dark input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']):not([type='file']):not([type='submit']):not([type='button']):not([type='reset']):focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: var(--color-brand-primary-light);
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #6b7494;
 }

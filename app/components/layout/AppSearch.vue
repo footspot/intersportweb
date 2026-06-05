@@ -14,7 +14,14 @@ const search = useProductSearch()
 const root = ref<HTMLElement | null>(null)
 onClickOutside(root, () => (search.open.value = false))
 
+// * Defer the sport <option> list until after mount. The store can be populated
+// * inconsistently between SSR and client hydration, which makes the <select>
+// * child count diverge and throws a hydration mismatch. Rendering only the
+// * "All sports" option during SSR + initial hydration keeps both sides identical.
+const mounted = ref(false)
+
 onMounted(() => {
+  mounted.value = true
   // * Header is global; sports may not be loaded on non-home routes.
   if (!sports.items.length) sports.fetchAll()
 })
@@ -45,17 +52,13 @@ const showDropdown = computed(() => search.open.value && search.query.value.trim
     <div class="flex items-center gap-1.5 bg-[#f2f2f2] dark:bg-sidebar-surface rounded-xl p-1 ring-1 ring-transparent focus-within:ring-ink/30 dark:focus-within:ring-white/15 transition-shadow">
       <!-- Sport selector — branded filter chip -->
       <div class="sport-select relative shrink-0">
-        <UIcon
-          name="i-lucide-trophy"
-          class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-ink/70 dark:text-[#7ea2ff]"
-        />
         <select
           v-model="search.sportId.value"
-          class="appearance-none bg-ink/[0.07] dark:bg-white/[0.06] text-ink dark:text-gray-100 text-[13px] font-semibold rounded-lg pl-8 pr-7 py-2 max-w-[160px] outline-none cursor-pointer hover:bg-ink/[0.12] dark:hover:bg-white/10 transition-colors"
+          class="appearance-none bg-ink/[0.07] dark:bg-white/[0.06] text-ink dark:text-gray-100 text-[13px] font-semibold rounded-lg pl-3 pr-7 py-2 max-w-[160px] outline-none cursor-pointer hover:bg-ink/[0.12] dark:hover:bg-white/10 transition-colors"
           :aria-label="t('storefront.search.allSports')"
         >
           <option :value="null">{{ t('storefront.search.allSports') }}</option>
-          <option v-for="s in sports.sorted" :key="s.id" :value="s.id">{{ sportName(s) }}</option>
+          <option v-for="s in (mounted ? sports.sorted : [])" :key="s.id" :value="s.id">{{ sportName(s) }}</option>
         </select>
         <UIcon
           name="i-lucide-chevron-down"
