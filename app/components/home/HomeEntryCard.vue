@@ -1,18 +1,57 @@
 <script setup lang="ts">
 // * One "how can we help you?" card — mockup style: colored top accent bar,
 // * icon, title, description and a CTA link. The whole card is clickable.
+// * When `cover` is set the image fills the whole card and the title/description/
+// * CTA are overlaid on it (optionally over a dark gradient for legibility).
 interface Props {
   accent: string // * hex
   title: string
   desc: string
   cta: string
+  cover?: string | null // * full-card background image URL
+  textColor?: string | null // * overlay text color in cover mode
+  gradient?: boolean // * dark gradient over the cover image (default on)
 }
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { gradient: true })
 defineEmits<{ select: [] }>()
+
+// * Default text color follows the gradient: white over the dark gradient,
+// * black on a bare image. An explicit textColor always wins.
+const coverTextColor = computed(
+  () => props.textColor || (props.gradient ? '#ffffff' : '#000000'),
+)
 </script>
 
 <template>
+  <!-- * Cover variant: image fills the card, text overlaid in a configurable color. -->
   <button
+    v-if="cover"
+    type="button"
+    class="entry-card cover group relative text-left overflow-hidden rounded-xl border-[1.5px] border-transparent min-h-[210px] flex flex-col justify-end transition-transform duration-150 hover:-translate-y-0.5"
+    :style="{ '--accent': accent }"
+    @click="$emit('select')"
+  >
+    <img :src="cover" alt="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
+    <span v-if="gradient" class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/5" />
+    <span class="absolute top-0 inset-x-0 h-[3px]" :style="{ background: accent }" />
+
+    <div class="relative px-6 py-6" :style="{ color: coverTextColor }">
+      <div class="font-heading font-extrabold text-xl uppercase tracking-[0.02em] mb-1.5 drop-shadow-md">
+        {{ title }}
+      </div>
+      <div v-if="desc" class="text-[13px] leading-[1.5] mb-3 line-clamp-2 opacity-90 drop-shadow">
+        {{ desc }}
+      </div>
+      <span class="inline-flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.05em]">
+        {{ cta }}
+        <UIcon name="i-lucide-arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </div>
+  </button>
+
+  <!-- * Default variant: accent bar + logo + text. -->
+  <button
+    v-else
     type="button"
     class="entry-card group relative text-left overflow-hidden rounded-xl border-[1.5px] border-gray-200 dark:border-sidebar-surface bg-white dark:bg-sidebar-surface px-6 py-7 transition-transform duration-150 hover:-translate-y-0.5"
     :style="{ '--accent': accent }"

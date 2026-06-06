@@ -58,6 +58,8 @@ export function useHomeFlow() {
   const clubLogoUrl = (p: string | null) => publicUrl('club-logos', p)
   const catalogLogoUrl = (p: string | null) => publicUrl('catalog-logos', p)
   const homeSectionLogoUrl = (p: string | null) => publicUrl('home-section-logos', p)
+  const homeSectionCoverUrl = (p: string | null) => publicUrl('home-section-covers', p)
+  const entryCardCoverUrl = (p: string | null) => publicUrl('entry-card-covers', p)
   const homeSectionLinkLogoUrl = (p: string | null) => publicUrl('home-section-link-logos', p)
   const productImageUrl = (p: string | null) => publicUrl('product-images', p)
 
@@ -348,6 +350,8 @@ export function useHomeFlow() {
     clubLogoUrl,
     catalogLogoUrl,
     homeSectionLogoUrl,
+    homeSectionCoverUrl,
+    entryCardCoverUrl,
     homeSectionLinkLogoUrl,
     productImageUrl,
     sectionStyle,

@@ -10,7 +10,10 @@ export interface HomeSection {
   name: string
   description: string | null
   logo_path: string | null
+  cover_image_path: string | null
   accent_color: string
+  text_color: string | null
+  cover_gradient: boolean
   is_visible: boolean
   sort_order: number
   created_at: string
@@ -31,10 +34,14 @@ export interface HomeSectionInput {
   name: string
   description?: string | null
   accent_color?: string
+  text_color?: string | null
+  cover_gradient?: boolean
   is_visible?: boolean
   sort_order?: number
   clear_logo?: boolean
-  file?: File | null
+  clear_cover?: boolean
+  file?: File | null         // * logo
+  cover_file?: File | null   // * full-card cover image
 }
 
 export interface HomeSectionLinkInput {
@@ -47,12 +54,13 @@ export interface HomeSectionLinkInput {
   file?: File | null
 }
 
-function buildBody<T extends { file?: File | null }>(payload: T) {
-  const { file, ...rest } = payload
-  if (file) {
+function buildBody<T extends { file?: File | null; cover_file?: File | null }>(payload: T) {
+  const { file, cover_file, ...rest } = payload
+  if (file || cover_file) {
     const fd = new FormData()
     fd.append('data', JSON.stringify(rest))
-    fd.append('logo', file)
+    if (file) fd.append('logo', file)
+    if (cover_file) fd.append('cover', cover_file)
     return fd
   }
   return rest

@@ -428,6 +428,7 @@
       "catalog": "Catalog",
       "promoCodes": "Promo codes",
       "carousel": "Carousel",
+      "entryCards": "Home cards",
       "homeSections": "Home sections",
       "contact": "Contact",
       "settings": "Settings",
@@ -973,7 +974,7 @@
       "created": {
         "title": "Account created successfully",
         "password": "Temporary password",
-        "magicLink": "Sign-in link",
+        "magicLink": "Login page",
         "hint": "Share these details with the account holder. They won't be shown again."
       },
       "errors": {
@@ -1337,6 +1338,12 @@
       "descriptionPlaceholder": "e.g. Browse our partner gear",
       "url": "URL",
       "logo": "Logo",
+      "cover": "Full-card image",
+      "coverHint": "When set, the image fills the whole card on the home page; the name and description show in white over it.",
+      "textColor": "Text color",
+      "textColorHint": "Color of the title and description shown over the image.",
+      "gradient": "Black filter (gradient)",
+      "preview": "Preview",
       "accentColor": "Accent color",
       "visible": "Visible on the home page",
       "hide": "Hide",
@@ -1449,6 +1456,20 @@
       "shop": "Shop",
       "club": "Club",
       "noPickups": "No pickups to manage right now."
+    },
+    "entryCards": {
+      "title": "Home cards",
+      "subtitle": "Full-card image and text color for the Catalog, Shop and Clearance cards. Without an image, the card keeps its color and white background.",
+      "catalog": "Catalog",
+      "shop": "Shop",
+      "clearance": "Sale & Clearance",
+      "cover": "Full-card image",
+      "coverHint": "When set, the image fills the whole card on the home page; the title and description show over it.",
+      "textColor": "Text color",
+      "saved": "Saved",
+      "gradient": "Black filter (gradient)",
+      "preview": "Preview",
+      "previewEmpty": "Add an image to see the preview."
     }
   },
   "errorPage": {

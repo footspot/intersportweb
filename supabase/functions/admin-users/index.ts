@@ -86,12 +86,12 @@ Deno.serve(async (req) => {
         throw pErr
       }
 
-      // * Provide a magic sign-in link so the admin can share it with the new account.
-      const { data: linkData } = await sb.auth.admin.generateLink({
-        type: 'magiclink',
-        email,
-      })
-      const loginLink = linkData?.properties?.action_link ?? null
+      // * Back-office accounts sign in with email + password at /admin/login.
+      // * A Supabase magic link is no use here — it redirects to the storefront,
+      // * which has no login flow, and is single-use anyway. Point to the admin
+      // * login page (derived from the calling origin) instead.
+      const origin = req.headers.get('origin')
+      const loginLink = origin ? `${origin}/admin/login` : null
 
       return jsonResponse(
         {

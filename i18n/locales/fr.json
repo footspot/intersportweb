@@ -428,6 +428,7 @@
       "catalog": "Catalogue",
       "promoCodes": "Codes promo",
       "carousel": "Carrousel",
+      "entryCards": "Cartes d'accueil",
       "homeSections": "Sections accueil",
       "contact": "Contact",
       "settings": "Paramètres",
@@ -973,7 +974,7 @@
       "created": {
         "title": "Compte créé avec succès",
         "password": "Mot de passe temporaire",
-        "magicLink": "Lien de connexion",
+        "magicLink": "Page de connexion",
         "hint": "Transmettez ces informations à la personne concernée. Elles ne seront plus affichées."
       },
       "errors": {
@@ -1337,6 +1338,12 @@
       "descriptionPlaceholder": "Ex. Découvrez le matériel de nos partenaires",
       "url": "URL",
       "logo": "Logo",
+      "cover": "Image pleine carte",
+      "coverHint": "Si définie, l'image remplit toute la carte sur l'accueil ; le nom et la description s'affichent en blanc par-dessus.",
+      "textColor": "Couleur du texte",
+      "textColorHint": "Couleur du titre et de la description affichés sur l'image.",
+      "gradient": "Filtre noir (dégradé)",
+      "preview": "Aperçu",
       "accentColor": "Couleur d'accent",
       "visible": "Visible sur la page d'accueil",
       "hide": "Masquer",
@@ -1449,6 +1456,20 @@
       "shop": "Magasin",
       "club": "Club",
       "noPickups": "Aucun retrait à gérer pour le moment."
+    },
+    "entryCards": {
+      "title": "Cartes d'accueil",
+      "subtitle": "Image pleine carte et couleur du texte pour les cartes Catalogue, Boutique et Soldes. Sans image, la carte garde sa couleur et son fond blanc.",
+      "catalog": "Catalogue",
+      "shop": "Boutique",
+      "clearance": "Soldes & Déstockage",
+      "cover": "Image pleine carte",
+      "coverHint": "Si définie, l'image remplit toute la carte sur l'accueil ; le titre et la description s'affichent par-dessus.",
+      "textColor": "Couleur du texte",
+      "saved": "Enregistré",
+      "gradient": "Filtre noir (dégradé)",
+      "preview": "Aperçu",
+      "previewEmpty": "Ajoutez une image pour voir l'aperçu."
     }
   },
   "errorPage": {

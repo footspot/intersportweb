@@ -10,7 +10,34 @@ export interface SiteSettings {
   promo_banner_url: string | null
   promo_banner_active: boolean
   carousel_autoplay_seconds: number
+  // * Static entry-card personalization (cover image + overlay text color).
+  catalog_cover_image_path: string | null
+  catalog_text_color: string | null
+  catalog_cover_gradient: boolean
+  shop_cover_image_path: string | null
+  shop_text_color: string | null
+  shop_cover_gradient: boolean
+  clearance_cover_image_path: string | null
+  clearance_text_color: string | null
+  clearance_cover_gradient: boolean
   updated_at: string
+}
+
+// * Payload for the entry-card editor — text colors + clear flags as JSON,
+// * cover images as Files (sent multipart when any file is present).
+export interface EntryCardInput {
+  catalog_text_color?: string | null
+  shop_text_color?: string | null
+  clearance_text_color?: string | null
+  catalog_cover_gradient?: boolean
+  shop_cover_gradient?: boolean
+  clearance_cover_gradient?: boolean
+  clear_catalog_cover?: boolean
+  clear_shop_cover?: boolean
+  clear_clearance_cover?: boolean
+  catalog_cover?: File | null
+  shop_cover?: File | null
+  clearance_cover?: File | null
 }
 
 export const useSiteSettingsStore = defineStore('siteSettings', () => {
@@ -71,6 +98,28 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     return update({ clearance_active: !clearanceActive.value })
   }
 
+  // * Static entry cards (catalog/shop/clearance) cover + text color. Sends
+  // * multipart when any cover File is present, plain JSON otherwise.
+  async function updateEntryCards(payload: EntryCardInput) {
+    const { catalog_cover, shop_cover, clearance_cover, ...rest } = payload
+    let body: FormData | typeof rest = rest
+    if (catalog_cover || shop_cover || clearance_cover) {
+      const fd = new FormData()
+      fd.append('data', JSON.stringify(rest))
+      if (catalog_cover) fd.append('catalog_cover', catalog_cover)
+      if (shop_cover) fd.append('shop_cover', shop_cover)
+      if (clearance_cover) fd.append('clearance_cover', clearance_cover)
+      body = fd
+    }
+    const { data, error: err } = await invokeEdge<{ settings: SiteSettings }>(
+      'admin-settings',
+      { method: 'PUT', body },
+    )
+    if (err) throw new Error(err.message)
+    if (data?.settings) settings.value = data.settings
+    return data?.settings
+  }
+
   return {
     settings,
     loading,
@@ -83,5 +132,6 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     fetchAll,
     update,
     toggleClearance,
+    updateEntryCards,
   }
 })

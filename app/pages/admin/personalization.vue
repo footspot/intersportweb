@@ -10,12 +10,13 @@ const router = useRouter()
 const tabs = computed(() => [
   { key: 'banner', label: t('admin.sidebar.banner'), icon: 'i-lucide-megaphone' },
   { key: 'carousel', label: t('admin.sidebar.carousel'), icon: 'i-lucide-images' },
+  { key: 'entry-cards', label: t('admin.sidebar.entryCards'), icon: 'i-lucide-credit-card' },
   { key: 'home-sections', label: t('admin.sidebar.homeSections'), icon: 'i-lucide-layout-grid' },
   { key: 'contact', label: t('admin.sidebar.contact'), icon: 'i-lucide-mail' },
 ])
 
 function isValidTab(value: unknown): value is string {
-  return typeof value === 'string' && ['banner', 'carousel', 'home-sections', 'contact'].includes(value)
+  return typeof value === 'string' && ['banner', 'carousel', 'entry-cards', 'home-sections', 'contact'].includes(value)
 }
 
 // * The active tab is mirrored in the `?tab=` query so deep links and the
@@ -61,6 +62,9 @@ watch(activeTab, (key) => {
     </div>
     <div v-show="activeTab === 'carousel'">
       <AdminPersonalizationCarouselManager />
+    </div>
+    <div v-show="activeTab === 'entry-cards'">
+      <AdminPersonalizationEntryCardsManager />
     </div>
     <div v-show="activeTab === 'home-sections'">
       <AdminPersonalizationHomeSectionsManager />

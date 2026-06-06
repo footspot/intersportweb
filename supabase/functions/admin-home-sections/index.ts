@@ -5,24 +5,35 @@
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { verifyAdmin } from '../_shared/auth.ts'
 import { serviceClient } from '../_shared/supabase.ts'
-import { parseMultipart, uploadImage, removeImage } from '../_shared/multipart.ts'
+import { parseMultipartFiles, uploadImage, removeImage } from '../_shared/multipart.ts'
 
 const BUCKET = 'home-section-logos'
+const COVER_BUCKET = 'home-section-covers'
 
 interface SectionData {
   id?: string
   name?: string
   description?: string | null
   accent_color?: string
+  text_color?: string | null
+  cover_gradient?: boolean
   is_visible?: boolean
   sort_order?: number
   clear_logo?: boolean
+  clear_cover?: boolean
 }
 
 function normalizeColor(value: string | undefined, fallback = '#0331f9'): string {
   if (!value) return fallback
   const v = value.trim()
   return /^#[0-9a-fA-F]{6}$/.test(v) ? v : fallback
+}
+
+// * Optional color: a valid hex or null (card then falls back to its default).
+function colorOrNull(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const v = value.trim()
+  return /^#[0-9a-fA-F]{6}$/.test(v) ? v : null
 }
 
 Deno.serve(async (req) => {
@@ -39,15 +50,19 @@ Deno.serve(async (req) => {
 
   try {
     if (req.method === 'POST') {
-      const { data, file } = isMultipart
-        ? await parseMultipart<SectionData>(req, 'logo')
-        : { data: (await req.json()) as SectionData, file: null as File | null }
+      const { data, files } = isMultipart
+        ? await parseMultipartFiles<SectionData>(req)
+        : { data: (await req.json()) as SectionData, files: {} as Record<string, File> }
+      const logo = files.logo ?? null
+      const cover = files.cover ?? null
 
       if (!data?.name?.trim())
         return jsonResponse({ error: 'name required' }, { status: 400 })
 
       let logoPath: string | null = null
-      if (file) logoPath = await uploadImage(sb, BUCKET, file)
+      let coverPath: string | null = null
+      if (logo) logoPath = await uploadImage(sb, BUCKET, logo)
+      if (cover) coverPath = await uploadImage(sb, COVER_BUCKET, cover)
 
       const { data: section, error } = await sb
         .from('home_sections')
@@ -55,7 +70,10 @@ Deno.serve(async (req) => {
           name: data.name.trim(),
           description: data.description?.toString().trim() || null,
           logo_path: logoPath,
+          cover_image_path: coverPath,
           accent_color: normalizeColor(data.accent_color),
+          text_color: colorOrNull(data.text_color),
+          cover_gradient: data.cover_gradient ?? true,
           is_visible: data.is_visible ?? true,
           sort_order: data.sort_order ?? 0,
         })
@@ -63,25 +81,29 @@ Deno.serve(async (req) => {
         .single()
       if (error) {
         if (logoPath) await removeImage(sb, BUCKET, logoPath)
+        if (coverPath) await removeImage(sb, COVER_BUCKET, coverPath)
         throw error
       }
       return jsonResponse({ section }, { status: 201 })
     }
 
     if (req.method === 'PUT') {
-      const { data, file } = isMultipart
-        ? await parseMultipart<SectionData>(req, 'logo')
-        : { data: (await req.json()) as SectionData, file: null as File | null }
+      const { data, files } = isMultipart
+        ? await parseMultipartFiles<SectionData>(req)
+        : { data: (await req.json()) as SectionData, files: {} as Record<string, File> }
+      const logo = files.logo ?? null
+      const cover = files.cover ?? null
 
       if (!data?.id) return jsonResponse({ error: 'id required' }, { status: 400 })
 
       const { data: current, error: cErr } = await sb
         .from('home_sections')
-        .select('logo_path')
+        .select('logo_path, cover_image_path')
         .eq('id', data.id)
         .single()
       if (cErr) throw cErr
       const previousLogo = current?.logo_path ?? null
+      const previousCover = current?.cover_image_path ?? null
 
       const patch: Record<string, unknown> = {}
       if (data.name !== undefined) patch.name = data.name.trim()
@@ -89,15 +111,26 @@ Deno.serve(async (req) => {
         patch.description = data.description?.toString().trim() || null
       if (data.accent_color !== undefined)
         patch.accent_color = normalizeColor(data.accent_color)
+      if (data.text_color !== undefined)
+        patch.text_color = colorOrNull(data.text_color)
+      if (data.cover_gradient !== undefined) patch.cover_gradient = !!data.cover_gradient
       if (data.is_visible !== undefined) patch.is_visible = !!data.is_visible
       if (data.sort_order !== undefined) patch.sort_order = data.sort_order
 
       let newLogoPath: string | null = null
-      if (file) {
-        newLogoPath = await uploadImage(sb, BUCKET, file)
+      if (logo) {
+        newLogoPath = await uploadImage(sb, BUCKET, logo)
         patch.logo_path = newLogoPath
       } else if (data.clear_logo) {
         patch.logo_path = null
+      }
+
+      let newCoverPath: string | null = null
+      if (cover) {
+        newCoverPath = await uploadImage(sb, COVER_BUCKET, cover)
+        patch.cover_image_path = newCoverPath
+      } else if (data.clear_cover) {
+        patch.cover_image_path = null
       }
 
       const { data: section, error } = await sb
@@ -108,11 +141,15 @@ Deno.serve(async (req) => {
         .single()
       if (error) {
         if (newLogoPath) await removeImage(sb, BUCKET, newLogoPath)
+        if (newCoverPath) await removeImage(sb, COVER_BUCKET, newCoverPath)
         throw error
       }
 
-      if ((file || data.clear_logo) && previousLogo && previousLogo !== newLogoPath) {
+      if ((logo || data.clear_logo) && previousLogo && previousLogo !== newLogoPath) {
         await removeImage(sb, BUCKET, previousLogo)
+      }
+      if ((cover || data.clear_cover) && previousCover && previousCover !== newCoverPath) {
+        await removeImage(sb, COVER_BUCKET, previousCover)
       }
 
       return jsonResponse({ section })
@@ -131,7 +168,7 @@ Deno.serve(async (req) => {
 
       const { data: current } = await sb
         .from('home_sections')
-        .select('logo_path')
+        .select('logo_path, cover_image_path')
         .eq('id', id)
         .single()
 
@@ -139,6 +176,8 @@ Deno.serve(async (req) => {
       if (error) throw error
 
       if (current?.logo_path) await removeImage(sb, BUCKET, current.logo_path)
+      if (current?.cover_image_path)
+        await removeImage(sb, COVER_BUCKET, current.cover_image_path)
       const linkLogos = (links ?? [])
         .map((l) => (l as { logo_path: string | null }).logo_path)
         .filter((p): p is string => !!p)

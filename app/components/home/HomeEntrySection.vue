@@ -11,22 +11,13 @@ const { t } = flow
 // * Official Intersport blue / red.
 const NAVY = '#164194'
 const RED = '#e30613'
+
+// * Admin-set cover image + overlay text color for the three static cards.
+const s = computed(() => flow.siteSettings.settings)
 </script>
 
 <template>
   <section class="px-6 md:px-10 lg:px-12 py-10 bg-white dark:bg-sidebar">
-    <div class="flex items-center justify-between mb-7 flex-wrap gap-3">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-accent flex items-center justify-center">
-          <UIcon name="i-lucide-heart-handshake" class="w-5 h-5 text-white" />
-        </div>
-        <h2 class="font-heading text-[22px] font-extrabold uppercase tracking-[0.02em] text-ink dark:text-white">
-          {{ t('storefront.home.supportTitle') }}
-        </h2>
-      </div>
-      <span class="text-[13px] text-gray-400 italic">{{ t('storefront.home.supportHint') }}</span>
-    </div>
-
     <div class="flex gap-4 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
       <!-- Catalogues -->
       <HomeEntryCard
@@ -35,6 +26,9 @@ const RED = '#e30613'
         :title="t('storefront.home.entryCatalogTitle')"
         :desc="t('storefront.home.entryCatalogDesc')"
         :cta="t('nav.catalog')"
+        :cover="flow.entryCardCoverUrl(s?.catalog_cover_image_path ?? null)"
+        :text-color="s?.catalog_text_color ?? null"
+        :gradient="s?.catalog_cover_gradient ?? true"
         @select="flow.pickEntry('catalog')"
       >
         <template #icon>
@@ -49,6 +43,9 @@ const RED = '#e30613'
         :title="t('storefront.home.entryShopTitle')"
         :desc="t('storefront.home.entryShopDesc')"
         :cta="t('nav.shop')"
+        :cover="flow.entryCardCoverUrl(s?.shop_cover_image_path ?? null)"
+        :text-color="s?.shop_text_color ?? null"
+        :gradient="s?.shop_cover_gradient ?? true"
         @select="flow.pickEntry('shop')"
       >
         <template #icon>
@@ -64,6 +61,9 @@ const RED = '#e30613'
         :title="t('storefront.home.clearance.title')"
         :desc="t('storefront.home.clearance.itemsCount', { n: flow.clearanceProducts.value.length })"
         :cta="t('storefront.home.clearance.badge')"
+        :cover="flow.entryCardCoverUrl(s?.clearance_cover_image_path ?? null)"
+        :text-color="s?.clearance_text_color ?? null"
+        :gradient="s?.clearance_cover_gradient ?? true"
         @select="flow.pickEntry('clearance')"
       >
         <template #icon>
@@ -79,7 +79,10 @@ const RED = '#e30613'
         :accent="section.accent_color"
         :title="section.name"
         :desc="section.description ?? ''"
-        :cta="t('nav.shop')"
+        :cta="t('nav.catalog')"
+        :cover="flow.homeSectionCoverUrl(section.cover_image_path)"
+        :text-color="section.text_color"
+        :gradient="section.cover_gradient"
         @select="flow.pickHomeSection(section.id)"
       >
         <template #icon>
