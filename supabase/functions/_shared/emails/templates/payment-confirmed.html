@@ -14,8 +14,15 @@
 
     <table style="width:100%;margin-top:8px;font-size:14px">
       <tr>
-        <td style="color:#888">Total payé</td>
-        <td style="text-align:right;font-weight:700">{{total}}</td>
+        <td style="color:#888;font-size:13px;font-weight:600;padding-bottom:4px" colspan="2">Votre commande</td>
+      </tr>
+      {{order_items}}
+    </table>
+
+    <table style="width:100%;margin-top:16px;font-size:14px;border-top:2px solid #eee">
+      <tr>
+        <td style="color:#888;padding-top:10px">Total payé</td>
+        <td style="text-align:right;font-weight:700;padding-top:10px">{{total}}</td>
       </tr>
       <tr>
         <td style="color:#888">Mode de paiement</td>

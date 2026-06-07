@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
   const sb = serviceClient()
   const { data, error } = await sb
     .from('clubs')
-    .select('id, name, footspot_linked')
+    .select('id, name, footspot_linked, logo_path')
     .eq('id', payload.club_id)
     .maybeSingle()
   if (error) {
@@ -42,9 +42,17 @@ Deno.serve(async (req) => {
   }
   if (!data) return jsonResponse({ error: 'not_found' }, { status: 404 })
 
+  // * Public URL for the club crest so Footspot's PDG app can show it next to
+  // * the Footspot club logo for a visual match check before accepting.
+  const base = Deno.env.get('SUPABASE_URL') ?? ''
+  const logo_url = data.logo_path
+    ? `${base}/storage/v1/object/public/club-logos/${data.logo_path}`
+    : null
+
   return jsonResponse({
     club_id: data.id,
     name: data.name,
     footspot_linked: !!data.footspot_linked,
+    logo_url,
   })
 })

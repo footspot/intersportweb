@@ -231,7 +231,9 @@ Deno.serve(async (req) => {
 
     const { data: order, error: oErr } = await sb
       .from('orders')
-      .select('id, order_number, status, total, guest_email, guest_first_name, guest_last_name, access_token')
+      .select(
+        'id, order_number, status, total, guest_email, guest_first_name, guest_last_name, access_token, delivery_method, club:clubs(name), pickup_shop:intersport_shops(name, city)',
+      )
       .eq('order_number', orderId)
       .maybeSingle()
     if (oErr || !order) {
@@ -298,15 +300,74 @@ Deno.serve(async (req) => {
           const name = order.guest_first_name
             ? `${order.guest_first_name} ${order.guest_last_name ?? ''}`.trim()
             : undefined
+
+          const fmtEur = (n: number) =>
+            new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
+
+          // * Pull the order lines to list product name / size / quantity in the email.
+          const { data: items } = await sb
+            .from('order_items')
+            .select(
+              'quantity, size, secondary_size, unit_price_paid, status, flocking_name, flocking_initial, flocking_number, product:products(name, reference)',
+            )
+            .eq('order_id', order.id)
+
+          // deno-lint-ignore no-explicit-any
+          const itemsHtml = (items ?? [])
+            .map((it: any) => {
+              const pname = it.product?.name?.fr ?? it.product?.reference ?? 'Article'
+              const sizeBits = [it.size, it.secondary_size].filter(Boolean).join(' / ')
+              const flock = [it.flocking_name, it.flocking_initial, it.flocking_number]
+                .filter(Boolean)
+                .join(' · ')
+              const sub = [sizeBits ? `Taille ${sizeBits}` : '', flock].filter(Boolean).join(' · ')
+              const oos = it.status === 'refunded_oos'
+              const lineTotal = fmtEur(Number(it.unit_price_paid) * it.quantity)
+              return (
+                `<tr>` +
+                `<td style="padding:8px 0;border-top:1px solid #eee;vertical-align:top${oos ? ';opacity:.6' : ''}">` +
+                `<div style="font-weight:600">${pname} <span style="color:#888;font-weight:400">×${it.quantity}</span></div>` +
+                (sub ? `<div style="color:#888;font-size:12px">${sub}</div>` : '') +
+                (oos ? `<div style="color:#e30b0c;font-size:12px">Indisponible — remboursé</div>` : '') +
+                `</td>` +
+                `<td style="padding:8px 0;border-top:1px solid #eee;text-align:right;vertical-align:top;white-space:nowrap">${lineTotal}</td>` +
+                `</tr>`
+              )
+            })
+            .join('')
+
+          // * Human-readable delivery mode, with the pickup location appended for
+          // * club / shop pickups (so the buyer sees where to collect their order).
+          // deno-lint-ignore no-explicit-any
+          const o = order as any
+          let deliveryLabel = 'Livraison à domicile (Colissimo)'
+          if (o.delivery_method === 'club_pickup') {
+            deliveryLabel = o.club?.name
+              ? `Retrait au club — ${o.club.name}`
+              : 'Retrait au club'
+          } else if (o.delivery_method === 'shop_pickup') {
+            const shop = o.pickup_shop
+            const shopLabel = shop?.name
+              ? `${shop.name}${shop.city ? ` (${shop.city})` : ''}`
+              : ''
+            deliveryLabel = shopLabel
+              ? `Retrait en magasin Intersport — ${shopLabel}`
+              : 'Retrait en magasin Intersport'
+          }
+
+          const paymentLabel =
+            paymentMethod === 'paypal' ? 'PayPal' : paymentMethod === 'card' ? 'Carte bancaire' : '—'
+
           await sendOrderEmail({
             to: { email: recipient, name },
             template: 'payment-confirmed',
             data: {
               customer_name: order.guest_first_name ?? name ?? '',
               order_number: order.order_number,
-              total: new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
-                Number(order.total),
-              ),
+              total: fmtEur(Number(order.total)),
+              order_items: itemsHtml,
+              payment_method_label: paymentLabel,
+              delivery_method_label: deliveryLabel,
               magic_link: buildMagicLink(order.access_token),
             },
           })
