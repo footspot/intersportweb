@@ -152,7 +152,8 @@
       "chooseShop": "Choose a shop",
       "pickupDelay": "Available for pickup in about {n} business day(s).",
       "pickupDelayGeneric": "You'll get an email as soon as your order is ready for pickup.",
-      "allDisabled": "No delivery method is available for this club."
+      "allDisabled": "No delivery method is available for this club.",
+      "multiClubNote": "Your cart has items from several clubs: only home delivery and shop pickup are available."
     },
     "customerInfo": "Customer info"
   },

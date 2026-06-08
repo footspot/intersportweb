@@ -30,7 +30,6 @@ interface AppliedPromo {
 }
 const appliedPromo = ref<AppliedPromo | null>(null)
 
-interface PurchaseApplied { code: string; member_id: string; member_name?: string }
 interface PrepaidApplied {
   code: string
   prepaid_code_ref: string
@@ -41,7 +40,6 @@ interface PrepaidApplied {
   club_name?: string
   cap_amount_cents: number
 }
-const purchaseApplied = ref<PurchaseApplied | null>(null)
 const prepaidApplied = ref<PrepaidApplied | null>(null)
 const prepaidCredit = computed(() => {
   if (!prepaidApplied.value) return 0
@@ -66,6 +64,7 @@ const shipping = ref<ShippingAddress>({
 })
 
 interface ClubFlags {
+  id: string
   delivery_colissimo_enabled: boolean
   delivery_club_pickup_enabled: boolean
   footspot_linked: boolean
@@ -73,35 +72,49 @@ interface ClubFlags {
   club_pickup_delay_days: number | null
   shop_pickup_delay_days: number | null
 }
-const clubFlags = ref<ClubFlags | null>(null)
+// * A cart can span several clubs. We load the delivery flags of every club
+// * present and offer only the methods all of them allow (one shipment).
+const clubFlagsList = ref<ClubFlags[]>([])
+const cartClubIds = computed(() => cart.clubIds)
+const singleClubId = computed(() => (cartClubIds.value.length === 1 ? cartClubIds.value[0] : null))
+// * Pickup-delay hints + the Footspot membership step are per-club, so they
+// * only apply when the cart is a single club.
+const singleClubFlags = computed(() => (clubFlagsList.value.length === 1 ? clubFlagsList.value[0] : null))
+const isMultiClub = computed(() => cartClubIds.value.length > 1)
 
 watchEffect(async () => {
-  const clubId = cart.lines[0]?.club_id
-  if (!clubId) {
-    clubFlags.value = null
+  const ids = cartClubIds.value
+  if (!ids.length) {
+    clubFlagsList.value = []
     return
   }
   const { data } = await supabase
     .from('clubs')
-    .select('delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, footspot_linked, club_pickup_delay_days, shop_pickup_delay_days')
-    .eq('id', clubId)
-    .maybeSingle()
-  clubFlags.value = data as ClubFlags | null
-  if (!deliveryMethod.value && data) {
-    if (data.delivery_colissimo_enabled) deliveryMethod.value = 'colissimo'
-    else if (data.delivery_club_pickup_enabled) deliveryMethod.value = 'club_pickup'
-    else if (data.delivery_shop_pickup_enabled) deliveryMethod.value = 'shop_pickup'
-  }
+    .select('id, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, footspot_linked, club_pickup_delay_days, shop_pickup_delay_days')
+    .in('id', ids)
+  clubFlagsList.value = (data ?? []) as ClubFlags[]
 })
 
 const availableDelivery = computed<DeliveryMethod[]>(() => {
-  const f = clubFlags.value
-  if (!f) return []
+  const list = clubFlagsList.value
+  if (!list.length) return []
   const out: DeliveryMethod[] = []
-  if (f.delivery_colissimo_enabled) out.push('colissimo')
-  if (f.delivery_club_pickup_enabled) out.push('club_pickup')
-  if (f.delivery_shop_pickup_enabled) out.push('shop_pickup')
+  // * Colissimo + shop pickup are unified across clubs → require every club to
+  // * allow them. club_pickup is collected at one site, so single-club only.
+  if (list.every((c) => c.delivery_colissimo_enabled)) out.push('colissimo')
+  if (list.length === 1 && list[0]!.delivery_club_pickup_enabled) out.push('club_pickup')
+  if (list.every((c) => c.delivery_shop_pickup_enabled)) out.push('shop_pickup')
   return out
+})
+
+// * Default to the first available method; reset if the current pick is no
+// * longer offered (e.g. the cart became multi-club and dropped club_pickup).
+watchEffect(() => {
+  const avail = availableDelivery.value
+  if (!avail.length) return
+  if (!deliveryMethod.value || !avail.includes(deliveryMethod.value)) {
+    deliveryMethod.value = avail[0]!
+  }
 })
 
 const SHIPPING_COST = 6.9
@@ -241,7 +254,7 @@ async function onSubmit() {
         pickup_shop_id: deliveryMethod.value === 'shop_pickup' ? pickupShopId.value : undefined,
         promo_code_id: appliedPromo.value?.promo_code_id,
         prepaid_code: prepaidApplied.value?.code,
-        footspot_member_id: prepaidApplied.value?.member_id ?? purchaseApplied.value?.member_id,
+        footspot_member_id: prepaidApplied.value?.member_id,
         guest: {
           email: guest.value.email,
           first_name: guest.value.first_name,
@@ -370,6 +383,10 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
             />
           </button>
           <div v-show="isOpen(2)" class="px-5 pb-5 space-y-4">
+            <p v-if="isMultiClub" class="flex items-start gap-1.5 text-xs text-gray-500">
+              <UIcon name="i-lucide-info" class="w-3.5 h-3.5 mt-0.5 text-brand-primary shrink-0" />
+              <span>{{ t('checkout.delivery.multiClubNote') }}</span>
+            </p>
             <CheckoutDeliveryMethodSelector v-model="deliveryMethod" :available="availableDelivery" />
             <div v-if="deliveryMethod === 'colissimo'">
               <CheckoutShippingForm v-model="shipping" />
@@ -378,13 +395,13 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
               <CheckoutPickupShopPicker v-model="pickupShopId" />
               <p class="flex items-center gap-1.5 text-xs text-gray-500">
                 <UIcon name="i-lucide-clock" class="w-3.5 h-3.5 text-brand-primary" />
-                <span v-if="clubFlags?.shop_pickup_delay_days != null">{{ t('checkout.delivery.pickupDelay', { n: clubFlags.shop_pickup_delay_days }) }}</span>
+                <span v-if="singleClubFlags?.shop_pickup_delay_days != null">{{ t('checkout.delivery.pickupDelay', { n: singleClubFlags.shop_pickup_delay_days }) }}</span>
                 <span v-else>{{ t('checkout.delivery.pickupDelayGeneric') }}</span>
               </p>
             </div>
             <div v-else-if="deliveryMethod === 'club_pickup'" class="flex items-center gap-1.5 text-xs text-gray-500">
               <UIcon name="i-lucide-clock" class="w-3.5 h-3.5 text-brand-primary" />
-              <span v-if="clubFlags?.club_pickup_delay_days != null">{{ t('checkout.delivery.pickupDelay', { n: clubFlags.club_pickup_delay_days }) }}</span>
+              <span v-if="singleClubFlags?.club_pickup_delay_days != null">{{ t('checkout.delivery.pickupDelay', { n: singleClubFlags.club_pickup_delay_days }) }}</span>
               <span v-else>{{ t('checkout.delivery.pickupDelayGeneric') }}</span>
             </div>
             <div class="flex justify-end">
@@ -476,13 +493,11 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
             @update:applied="(v) => (appliedPromo = v)"
           />
           <CheckoutFootspotStep
-            v-if="cart.lines[0]"
-            :club-id="cart.lines[0].club_id"
+            v-if="singleClubId"
+            :club-id="singleClubId"
             :subtotal-after-promo="cart.subtotal - promoDiscount"
-            :enabled="!!clubFlags?.footspot_linked"
-            :purchase-applied="purchaseApplied"
+            :enabled="!!singleClubFlags?.footspot_linked"
             :prepaid-applied="prepaidApplied"
-            @update:purchase-applied="(v) => (purchaseApplied = v)"
             @update:prepaid-applied="(v) => (prepaidApplied = v)"
             @identity-locked="(v) => {
               if (v) {

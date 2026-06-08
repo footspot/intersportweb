@@ -262,7 +262,10 @@ Deno.serve(async (req) => {
 
     const pending: PendingItem[] = []
     let subtotal = 0
-    let clubId: string | null = null
+    // * A cart may span multiple clubs. We collect every club represented so the
+    // * order can be validated against all of them and the fund credited per
+    // * item's own club (process_paid_order reads products.club_id per line).
+    const clubIdSet = new Set<string>()
 
     for (const line of body.lines) {
       const product = productMap.get(line.product_id)
@@ -374,32 +377,41 @@ Deno.serve(async (req) => {
 
       subtotal += unitPaid * line.quantity
 
-      if (!clubId) clubId = product.club_id
-      else if (clubId !== product.club_id) {
-        return jsonResponse({ error: 'multi_club_cart' }, { status: 400 })
-      }
+      clubIdSet.add(product.club_id)
     }
 
-    if (!clubId) return jsonResponse({ error: 'missing_club' }, { status: 400 })
+    if (clubIdSet.size === 0) return jsonResponse({ error: 'missing_club' }, { status: 400 })
+    const clubIds = Array.from(clubIdSet)
+    const isMultiClub = clubIds.length > 1
+    // * Single-club orders keep club_id on the row (preserves Footspot dispatch,
+    // * per-club admin views, etc.). Mixed-club orders set it NULL — the source
+    // * of truth for "which club" then becomes each item's products.club_id.
+    const orderClubId = isMultiClub ? null : clubIds[0]
 
-    // * Validate that the requested delivery_method is allowed on the order's
-    // * resolved club. (club_id was discovered from the cart's products.)
-    const { data: club, error: clubErr } = await sb
+    // * club_pickup is inherently single-club (you collect at one club's site),
+    // * so it's unavailable for mixed carts (product decision 2026-06-08).
+    if (isMultiClub && body.delivery_method === 'club_pickup') {
+      return jsonResponse({ error: 'club_pickup_multi_club' }, { status: 400 })
+    }
+
+    // * Validate the requested delivery_method against EVERY club in the cart:
+    // * a mixed-cart shipment is only possible if all clubs allow that method.
+    const { data: clubsRows, error: clubErr } = await sb
       .from('clubs')
       .select('id, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
-      .eq('id', clubId)
-      .single()
-    if (clubErr || !club) {
+      .in('id', clubIds)
+    if (clubErr || !clubsRows || clubsRows.length !== clubIds.length) {
       return jsonResponse({ error: 'club_not_found' }, { status: 400 })
     }
     // * A Footspot disconnect only stops cross-platform sync — it does NOT take
     // * the Intersport storefront offline. The shop keeps accepting new orders
     // * regardless of footspot pairing state (per client decision 2026-06-05,
     // * overriding SHOP_PERSONALIZATION_GUIDE §2's original "refuse" behaviour).
-    const allowed =
+    const allowed = clubsRows.every((club) =>
       (body.delivery_method === 'colissimo' && club.delivery_colissimo_enabled) ||
       (body.delivery_method === 'club_pickup' && club.delivery_club_pickup_enabled) ||
-      (body.delivery_method === 'shop_pickup' && club.delivery_shop_pickup_enabled)
+      (body.delivery_method === 'shop_pickup' && club.delivery_shop_pickup_enabled),
+    )
     if (!allowed) {
       return jsonResponse({ error: 'delivery_method_not_enabled_for_club' }, { status: 400 })
     }
@@ -521,7 +533,7 @@ Deno.serve(async (req) => {
         guest_first_name: body.guest!.first_name,
         guest_last_name: body.guest!.last_name,
         idempotency_key: body.idempotency_key ?? null,
-        club_id: clubId,
+        club_id: orderClubId,
         status: 'pending',
         payment_method: null,
         subtotal: Number(subtotal.toFixed(2)),

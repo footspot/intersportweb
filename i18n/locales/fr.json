@@ -152,7 +152,8 @@
       "chooseShop": "Choisissez un magasin",
       "pickupDelay": "Retrait disponible sous environ {n} jour(s) ouvré(s).",
       "pickupDelayGeneric": "Vous recevrez un e-mail dès que votre commande sera prête au retrait.",
-      "allDisabled": "Aucun mode de livraison n'est disponible pour ce club."
+      "allDisabled": "Aucun mode de livraison n'est disponible pour ce club.",
+      "multiClubNote": "Votre panier contient des articles de plusieurs clubs : seules la livraison à domicile et le retrait en magasin sont disponibles."
     },
     "customerInfo": "Informations client"
   },

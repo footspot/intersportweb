@@ -85,46 +85,46 @@ Deno.serve(async (req) => {
     ? null
     : (pStart.getTime() < weekStart.getTime() ? pStart : weekStart)
 
-  // * Paid orders — paid_at is the sale timestamp and the period anchor.
-  let oq = sb
-    .from('orders')
-    .select('id, paid_at')
-    .eq('club_id', auth.clubId)
-    .not('paid_at', 'is', null)
-  if (effectiveSince) oq = oq.gte('paid_at', effectiveSince.toISOString())
-  const { data: orders, error: oErr } = await oq
-  if (oErr) {
-    console.error('[club-stats] order lookup', oErr)
-    return fail(500, 'lookup_failed', oErr.message)
+  // * This club's sold lines. A line belongs to this club via its product, not
+  // * via orders.club_id (NULL on mixed-club orders) — so we drive the query off
+  // * order_items filtered by products.club_id and embed the parent order's
+  // * paid_at as the sale timestamp / period anchor.
+  let iq = sb
+    .from('order_items')
+    .select('quantity, unit_price_paid, fund_credit_snapshot, status, ' +
+            'product:products!inner(reference, name, club_id), ' +
+            'order:orders!inner(id, paid_at)')
+    .eq('product.club_id', auth.clubId)
+    .not('order.paid_at', 'is', null)
+  if (effectiveSince) iq = iq.gte('order.paid_at', effectiveSince.toISOString())
+  const { data: itemRows, error: iErr } = await iq
+  if (iErr) {
+    console.error('[club-stats] item lookup', iErr)
+    return fail(500, 'lookup_failed', iErr.message)
   }
 
-  const orderPaidAt = new Map<string, string>()
-  for (const o of orders ?? []) orderPaidAt.set(o.id, o.paid_at)
-  const orderIds = [...orderPaidAt.keys()]
-
-  let items: Record<string, any>[] = []
-  if (orderIds.length) {
-    const { data, error: iErr } = await sb
-      .from('order_items')
-      .select('order_id, quantity, unit_price_paid, fund_credit_snapshot, status, ' +
-              'product:products(reference, name)')
-      .in('order_id', orderIds)
-    if (iErr) {
-      console.error('[club-stats] item lookup', iErr)
-      return fail(500, 'lookup_failed', iErr.message)
-    }
-    items = data ?? []
-  }
+  const items = (itemRows ?? []).map((it: any) => ({
+    order_id: it.order?.id as string,
+    paid_at: it.order?.paid_at as string,
+    quantity: it.quantity,
+    unit_price_paid: it.unit_price_paid,
+    fund_credit_snapshot: it.fund_credit_snapshot,
+    status: it.status,
+    product: it.product,
+  }))
 
   // * Aggregate items into period KPIs + current-week chart + top products.
   let revenue = 0
   let margin = 0
   const weekDays = FR_DAYS.map((day) => ({ day, revenue: 0, margin: 0 }))
   const topMap = new Map<string, { reference: string; name: string; units: number; revenue: number; margin: number }>()
+  // * Distinct orders that contain a line of this club within the period —
+  // * counts each mixed-club order once toward the club's sales count.
+  const periodOrders = new Set<string>()
 
   for (const it of items) {
     if (it.status === 'refunded_oos') continue
-    const paidAt = orderPaidAt.get(it.order_id)
+    const paidAt = it.paid_at
     if (!paidAt) continue
     const t = new Date(paidAt).getTime()
     const lineRevenue = Number(it.unit_price_paid) * it.quantity
@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
     if (t >= pStartMs) {
       revenue += lineRevenue
       margin += lineMargin
+      periodOrders.add(it.order_id)
       const ref = it.product?.reference ?? '—'
       const tp = topMap.get(ref) ??
         { reference: ref, name: it.product?.name?.fr ?? it.product?.name?.en ?? '', units: 0, revenue: 0, margin: 0 }
@@ -151,14 +152,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  const salesCount = (orders ?? []).filter((o) => new Date(o.paid_at).getTime() >= pStartMs).length
+  const salesCount = periodOrders.size
 
-  // * Pending = a now-snapshot of in-flight orders awaiting fulfilment.
-  const { count: pendingCount } = await sb
-    .from('orders')
-    .select('id', { count: 'exact', head: true })
-    .eq('club_id', auth.clubId)
-    .in('status', ['paid', 'shipped', 'awaiting_pickup'])
+  // * Pending = a now-snapshot of in-flight orders awaiting fulfilment that
+  // * contain at least one line from this club (dedup mixed-club orders).
+  const { data: pendRows } = await sb
+    .from('order_items')
+    .select('order:orders!inner(id, status), product:products!inner(club_id)')
+    .eq('product.club_id', auth.clubId)
+    .in('order.status', ['paid', 'shipped', 'awaiting_pickup'])
+  const pendingCount = new Set((pendRows ?? []).map((r: any) => r.order?.id)).size
 
   // * Cagnotte — fund_balance is the live balance; fund_transactions over the
   // * period give the net delta + the recent movement list.

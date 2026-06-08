@@ -83,12 +83,13 @@ Deno.serve(async (req) => {
     const since = sinceFor(period)
 
     // * Pull orders in range (paid + partially_refunded + shipped + delivered count as revenue)
-    let orderQuery = sb
+    const orderQuery = sb
       .from('orders')
       .select('id, club_id, total, subtotal, status, paid_at, created_at')
       .gte('created_at', since.toISOString())
       .in('status', ['paid', 'partially_refunded', 'shipped', 'delivered', 'refunded'])
-    if (filters.club_id) orderQuery = orderQuery.eq('club_id', filters.club_id)
+    // * The club filter is applied per item (via products.club_id) rather than
+    // * on orders.club_id, so mixed-club orders still count toward each club.
     const { data: orders, error: oErr } = await orderQuery
     if (oErr) throw oErr
 
@@ -110,6 +111,7 @@ Deno.serve(async (req) => {
     // * even after the user picks one.
     const preSizeItems = (items ?? []).filter((it: any) => {
       if (it.status === 'refunded_oos') return false
+      if (filters.club_id && it.product?.club_id !== filters.club_id) return false
       if (filters.category && it.product?.category !== filters.category) return false
       if (filters.product_id && it.product_id !== filters.product_id) return false
       if (filters.reference && !String(it.product?.reference ?? '').toLowerCase().includes(filters.reference.toLowerCase())) return false
@@ -156,8 +158,11 @@ Deno.serve(async (req) => {
         existing.margin += lineMargin
       }
 
-      if (o.club_id) {
-        revenueByClub.set(o.club_id, (revenueByClub.get(o.club_id) ?? 0) + lineRevenue)
+      // * Attribute revenue to the item's own club (orders.club_id is NULL for
+      // * mixed-club orders, so it can't be used for per-club aggregation).
+      const itemClubId = it.product?.club_id ?? o.club_id
+      if (itemClubId) {
+        revenueByClub.set(itemClubId, (revenueByClub.get(itemClubId) ?? 0) + lineRevenue)
       }
 
       qtyBySize.set(it.size, (qtyBySize.get(it.size) ?? 0) + it.quantity)
