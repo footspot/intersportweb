@@ -66,6 +66,7 @@ const shipping = ref<ShippingAddress>({
 interface ClubFlags {
   id: string
   delivery_colissimo_enabled: boolean
+  delivery_colissimo_free: boolean
   delivery_club_pickup_enabled: boolean
   footspot_linked: boolean
   delivery_shop_pickup_enabled: boolean
@@ -90,7 +91,7 @@ watchEffect(async () => {
   }
   const { data } = await supabase
     .from('clubs')
-    .select('id, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, footspot_linked, club_pickup_delay_days, shop_pickup_delay_days')
+    .select('id, delivery_colissimo_enabled, delivery_colissimo_free, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, footspot_linked, club_pickup_delay_days, shop_pickup_delay_days')
     .in('id', ids)
   clubFlagsList.value = (data ?? []) as ClubFlags[]
 })
@@ -118,7 +119,15 @@ watchEffect(() => {
 })
 
 const SHIPPING_COST = 6.9
-const shippingCostNow = computed(() => (deliveryMethod.value === 'colissimo' ? SHIPPING_COST : 0))
+// * Free Colissimo only when EVERY club in the cart offers it (single parcel,
+// * one fee). Mirrors the create-order server check so the displayed total and
+// * the charged total agree.
+const colissimoIsFree = computed(
+  () => clubFlagsList.value.length > 0 && clubFlagsList.value.every((c) => c.delivery_colissimo_free),
+)
+const shippingCostNow = computed(() =>
+  deliveryMethod.value === 'colissimo' && !colissimoIsFree.value ? SHIPPING_COST : 0,
+)
 
 const submitting = ref(false)
 const errorMsg = ref<string | null>(null)

@@ -24,6 +24,7 @@ interface ClubData {
   accent_color?: string | null
   slogan?: string | null
   delivery_colissimo_enabled?: boolean
+  delivery_colissimo_free?: boolean
   delivery_club_pickup_enabled?: boolean
   delivery_shop_pickup_enabled?: boolean
   club_pickup_delay_days?: number | null
@@ -99,6 +100,7 @@ Deno.serve(async (req) => {
         accent_color: data.accent_color ?? null,
         slogan: data.slogan?.trim() || null,
         delivery_colissimo_enabled: data.delivery_colissimo_enabled ?? true,
+        delivery_colissimo_free: data.delivery_colissimo_free ?? false,
         delivery_club_pickup_enabled: data.delivery_club_pickup_enabled ?? false,
         delivery_shop_pickup_enabled: data.delivery_shop_pickup_enabled ?? false,
         club_pickup_delay_days:
@@ -165,6 +167,7 @@ Deno.serve(async (req) => {
       if ('accent_color' in data) patch.accent_color = data.accent_color ?? null
       if ('slogan' in data) patch.slogan = data.slogan?.trim() || null
       if ('delivery_colissimo_enabled' in data) patch.delivery_colissimo_enabled = !!data.delivery_colissimo_enabled
+      if ('delivery_colissimo_free' in data) patch.delivery_colissimo_free = !!data.delivery_colissimo_free
       if ('delivery_club_pickup_enabled' in data) patch.delivery_club_pickup_enabled = !!data.delivery_club_pickup_enabled
       if ('delivery_shop_pickup_enabled' in data) patch.delivery_shop_pickup_enabled = !!data.delivery_shop_pickup_enabled
       if ('club_pickup_delay_days' in data) {

@@ -1,6 +1,8 @@
 const ALLOWED_ORIGINS = [
-  'http://localhost:3000',
+  'http://localhost:6342',
   'https://intesport-web.netlify.app',
+  'https://www.intersportclubidf.com',
+  'https://intersportclubidf.com'
 ]
 
 // * Netlify deploy-preview URLs: https://<id>--intesport-web.netlify.app

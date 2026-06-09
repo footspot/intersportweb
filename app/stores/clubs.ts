@@ -17,6 +17,7 @@ export interface Club {
   footspot_linked: boolean
   shop_status: 'active' | 'disconnected'
   delivery_colissimo_enabled: boolean
+  delivery_colissimo_free: boolean
   delivery_club_pickup_enabled: boolean
   delivery_shop_pickup_enabled: boolean
   club_pickup_delay_days: number | null
@@ -43,6 +44,7 @@ export interface ClubInput {
   accent_color?: string | null
   slogan?: string | null
   delivery_colissimo_enabled?: boolean
+  delivery_colissimo_free?: boolean
   delivery_club_pickup_enabled?: boolean
   delivery_shop_pickup_enabled?: boolean
   club_pickup_delay_days?: number | null
@@ -78,7 +80,7 @@ export const useClubsStore = defineStore('clubs', () => {
       const { data: clubs, error: err } = await client
         .from('clubs')
         .select(
-          'id, sport_id, name, logo_path, is_password_protected, fund_balance, sort_order, created_at, accent_color, slogan, footspot_linked, shop_status, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, club_pickup_delay_days, shop_pickup_delay_days',
+          'id, sport_id, name, logo_path, is_password_protected, fund_balance, sort_order, created_at, accent_color, slogan, footspot_linked, shop_status, delivery_colissimo_enabled, delivery_colissimo_free, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, club_pickup_delay_days, shop_pickup_delay_days',
         )
         .order('sort_order', { ascending: true })
       if (err) throw err

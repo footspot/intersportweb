@@ -29,6 +29,8 @@ const slogan = ref('')
 // * Per-club delivery toggles. Colissimo defaults on (matches DB default);
 // * the two pickup methods are opt-in. The DB enforces ≥1 enabled.
 const deliveryColissimo = ref(true)
+// * Admin can waive the flat Colissimo fee for this club (offered delivery).
+const deliveryColissimoFree = ref(false)
 const deliveryClubPickup = ref(false)
 const deliveryShopPickup = ref(false)
 // * Independent working-days delays shown at checkout per pickup method.
@@ -71,6 +73,7 @@ watch(
     accentColorValue.value = props.club?.accent_color ?? '#3B82F6'
     slogan.value = props.club?.slogan ?? ''
     deliveryColissimo.value = props.club?.delivery_colissimo_enabled ?? true
+    deliveryColissimoFree.value = props.club?.delivery_colissimo_free ?? false
     deliveryClubPickup.value = props.club?.delivery_club_pickup_enabled ?? false
     deliveryShopPickup.value = props.club?.delivery_shop_pickup_enabled ?? false
     clubPickupDelayDays.value = props.club?.club_pickup_delay_days ?? null
@@ -118,6 +121,8 @@ async function save() {
       accent_color: useAccent.value ? accentColorValue.value : null,
       slogan: slogan.value.trim() || null,
       delivery_colissimo_enabled: deliveryColissimo.value,
+      // * Free shipping is meaningless if Colissimo itself is off → force false.
+      delivery_colissimo_free: deliveryColissimo.value && deliveryColissimoFree.value,
       delivery_club_pickup_enabled: deliveryClubPickup.value,
       delivery_shop_pickup_enabled: deliveryShopPickup.value,
       club_pickup_delay_days:
@@ -222,10 +227,16 @@ async function save() {
         <!-- * Delivery methods offered on this club's shop page -->
         <div class="space-y-2 rounded-lg border border-gray-200 dark:border-sidebar p-3">
           <div class="text-sm font-medium">{{ t('admin.clubs.deliveryMethods') }}</div>
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input v-model="deliveryColissimo" type="checkbox" class="w-4 h-4 accent-brand-primary" />
-            <span class="text-sm">{{ t('admin.clubs.deliveryColissimo') }}</span>
-          </label>
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-3 cursor-pointer flex-1">
+              <input v-model="deliveryColissimo" type="checkbox" class="w-4 h-4 accent-brand-primary" />
+              <span class="text-sm">{{ t('admin.clubs.deliveryColissimo') }}</span>
+            </label>
+            <label v-if="deliveryColissimo" class="flex items-center gap-2 cursor-pointer shrink-0">
+              <input v-model="deliveryColissimoFree" type="checkbox" class="w-4 h-4 accent-brand-gold" />
+              <span class="text-xs text-brand-gold font-medium">{{ t('admin.clubs.deliveryColissimoFree') }}</span>
+            </label>
+          </div>
           <div class="flex items-center gap-3">
             <label class="flex items-center gap-3 cursor-pointer flex-1">
               <input v-model="deliveryClubPickup" type="checkbox" class="w-4 h-4 accent-brand-primary" />

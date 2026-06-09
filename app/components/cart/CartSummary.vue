@@ -39,7 +39,8 @@ const total = computed(() => {
     </div>
     <div v-if="showShipping" class="flex justify-between">
       <span class="text-gray-500">{{ t('cart.shipping') }}</span>
-      <span>{{ fmt(shipping) }}</span>
+      <span v-if="shipping <= 0" class="text-brand-green font-medium">{{ t('cart.freeShipping') }}</span>
+      <span v-else>{{ fmt(shipping) }}</span>
     </div>
     <div v-if="promoDiscount > 0" class="flex justify-between text-brand-green">
       <span>{{ t('cart.promoApplied', { code: promoCode ?? '' }) }}</span>

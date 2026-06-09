@@ -398,7 +398,7 @@ Deno.serve(async (req) => {
     // * a mixed-cart shipment is only possible if all clubs allow that method.
     const { data: clubsRows, error: clubErr } = await sb
       .from('clubs')
-      .select('id, delivery_colissimo_enabled, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
+      .select('id, delivery_colissimo_enabled, delivery_colissimo_free, delivery_club_pickup_enabled, delivery_shop_pickup_enabled')
       .in('id', clubIds)
     if (clubErr || !clubsRows || clubsRows.length !== clubIds.length) {
       return jsonResponse({ error: 'club_not_found' }, { status: 400 })
@@ -416,9 +416,12 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'delivery_method_not_enabled_for_club' }, { status: 400 })
     }
 
-    // * Shipping cost: colissimo charges a flat 6.90 € (admin setting later);
-    // * pickup methods are free to the customer.
-    const shippingCost = body.delivery_method === 'colissimo' ? SHIPPING_COST_DEFAULT : 0
+    // * Shipping cost: colissimo charges a flat 6.90 €, UNLESS every club in the
+    // * cart offers free Colissimo delivery (admin "offered delivery" toggle).
+    // * Pickup methods are always free to the customer.
+    const colissimoFree = clubsRows.every((club) => club.delivery_colissimo_free)
+    const shippingCost =
+      body.delivery_method === 'colissimo' && !colissimoFree ? SHIPPING_COST_DEFAULT : 0
 
     // * Promo validation: re-verify the code server-side so a tampered client
     // *   can't claim a non-existent or expired code. The atomic claim itself
