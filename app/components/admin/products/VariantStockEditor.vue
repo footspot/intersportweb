@@ -2,6 +2,7 @@
 // * Dynamic size/stock/SKU rows. Packs use `BundleComponentsEditor` instead —
 // * this editor is only used for regular (non-pack) products.
 import type { FootspotSize } from '~/stores/products'
+import type { DraftColor } from './ProductColorsEditor.vue'
 
 export interface DraftVariant {
   id?: string
@@ -9,6 +10,8 @@ export interface DraftVariant {
   stock: number
   sku: string | null
   footspot_size?: FootspotSize | null
+  // * References a color in the product's `colors[]` by its `key` (null = no color).
+  color_key?: string | null
 }
 
 interface Props {
@@ -16,8 +19,11 @@ interface Props {
   // * When the product carries a footspot_category, each variant gets a
   // *   footspot_size mapping column.
   footspotEnabled?: boolean
+  // * Defined colors; when non-empty each row gets a color column so the seller
+  // *   can track stock per (color, size).
+  colors?: DraftColor[]
 }
-const props = withDefaults(defineProps<Props>(), { footspotEnabled: false })
+const props = withDefaults(defineProps<Props>(), { footspotEnabled: false, colors: () => [] })
 const emit = defineEmits<{
   (e: 'update:modelValue', v: DraftVariant[]): void
 }>()
@@ -26,18 +32,29 @@ const { t } = useI18n()
 
 const FOOTSPOT_SIZES: FootspotSize[] = ['4XS', '3XS', '2XS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
 
-const gridCols = computed(() =>
-  props.footspotEnabled
+const hasColors = computed(() => props.colors.length > 0)
+
+// * Grid template per (hasColors × footspotEnabled). Kept as static literals so
+// * Tailwind's compile-time scanner can see the arbitrary-value classes.
+const gridCols = computed(() => {
+  if (hasColors.value) {
+    return props.footspotEnabled
+      ? 'grid-cols-[130px_0.5fr_110px_1fr_140px_32px]'
+      : 'grid-cols-[130px_0.5fr_140px_1fr_32px]'
+  }
+  return props.footspotEnabled
     ? 'grid-cols-[0.5fr_110px_1fr_140px_32px]'
-    : 'grid-cols-[0.5fr_140px_1fr_32px]',
-)
+    : 'grid-cols-[0.5fr_140px_1fr_32px]'
+})
 
 function update(next: DraftVariant[]) {
   emit('update:modelValue', next)
 }
 
 function addRow() {
-  update([...props.modelValue, { size: '', stock: 0, sku: null, footspot_size: null }])
+  // * New rows default to the first color when colors are in use.
+  const color_key = hasColors.value ? props.colors[0]!.key : null
+  update([...props.modelValue, { size: '', stock: 0, sku: null, footspot_size: null, color_key }])
 }
 
 function removeRow(i: number) {
@@ -65,6 +82,7 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
 
     <div v-else class="mt-2 space-y-2">
       <div class="grid gap-2 text-xs uppercase tracking-wider text-gray-500 px-1" :class="gridCols">
+        <div v-if="hasColors">{{ t('admin.products.variants.color') }}</div>
         <div>{{ t('admin.products.variants.size') }}</div>
         <div>{{ t('admin.products.variants.stock') }}</div>
         <div>{{ t('admin.products.variants.sku') }}</div>
@@ -77,6 +95,20 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
         class="grid gap-2 items-center"
         :class="gridCols"
       >
+        <div v-if="hasColors" class="relative">
+          <select
+            :value="v.color_key ?? ''"
+            class="w-full appearance-none truncate pl-2 pr-7 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none text-sm"
+            @change="setField(i, 'color_key', (($event.target as HTMLSelectElement).value || null))"
+          >
+            <option value="">{{ t('admin.products.variants.colorNone') }}</option>
+            <option v-for="c in colors" :key="c.key" :value="c.key">{{ c.name || '—' }}</option>
+          </select>
+          <UIcon
+            name="i-lucide-chevron-down"
+            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+          />
+        </div>
         <input
           :value="v.size"
           type="text"

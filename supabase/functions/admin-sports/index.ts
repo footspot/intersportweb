@@ -15,12 +15,21 @@ import { parseMultipart, uploadImage, removeImage } from '../_shared/multipart.t
 
 const BUCKET = 'sports-icons'
 
+// * A valid 6-digit hex color, or null (the tile then uses its default styling).
+function colorOrNull(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const v = value.trim()
+  return /^#[0-9a-fA-F]{6}$/.test(v) ? v : null
+}
+
 interface SportData {
   id?: string
   name?: { fr: string; en: string }
   sort_order?: number
   // * When true, detach the existing icon even if no new file is provided.
   clear_icon?: boolean
+  // * Optional storefront tile background (hex) or null to clear it.
+  background_color?: string | null
 }
 
 interface ReorderPayload {
@@ -71,6 +80,7 @@ Deno.serve(async (req) => {
         .insert({
           name: data.name,
           icon_path: iconPath,
+          background_color: colorOrNull(data.background_color),
           sort_order: data.sort_order ?? 0,
         })
         .select()
@@ -102,6 +112,8 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = {}
       if (data.name) patch.name = data.name
       if (data.sort_order !== undefined) patch.sort_order = data.sort_order
+      // * Present (even as null) → set/clear; omitted → leave untouched.
+      if ('background_color' in data) patch.background_color = colorOrNull(data.background_color)
 
       let newIconPath: string | null = null
       if (file) {

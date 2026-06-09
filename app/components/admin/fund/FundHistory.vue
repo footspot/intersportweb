@@ -11,7 +11,15 @@ const props = withDefaults(defineProps<Props>(), {
   showEmpty: true,
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+// * Prefer the product name for auto-sale rows; fall back to the raw reason.
+function title(tx: FundTransaction) {
+  if (tx.product_name) {
+    return tx.product_name[locale.value as 'fr' | 'en'] ?? tx.product_name.fr
+  }
+  return tx.reason
+}
 
 const visible = computed(() =>
   props.limit > 0 ? props.items.slice(0, props.limit) : props.items,
@@ -53,7 +61,7 @@ const TYPE_STYLE: Record<FundTxType, { label: string; classes: string; icon: str
         </span>
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between gap-2">
-            <span class="font-medium truncate">{{ tx.reason }}</span>
+            <span class="font-medium truncate">{{ title(tx) }}</span>
             <span
               class="font-mono font-medium shrink-0"
               :class="Number(tx.amount) >= 0 ? 'text-brand-green' : 'text-brand-secondary'"

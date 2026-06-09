@@ -176,7 +176,17 @@ async function commitOrder() {
                 <UIcon v-else name="i-lucide-trophy" class="w-5 h-5 text-gray-400" />
               </div>
             </td>
-            <td class="px-4 py-3 font-medium">{{ s.name.fr }}</td>
+            <td class="px-4 py-3 font-medium">
+              <span class="inline-flex items-center gap-2">
+                <span
+                  v-if="s.background_color"
+                  class="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-sidebar shrink-0"
+                  :style="{ backgroundColor: s.background_color }"
+                  :title="s.background_color"
+                />
+                {{ s.name.fr }}
+              </span>
+            </td>
             <td class="px-4 py-3 text-gray-500">{{ idx + 1 }}</td>
             <td class="px-4 py-3 text-right space-x-1">
               <button

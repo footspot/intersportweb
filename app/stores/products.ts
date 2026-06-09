@@ -21,6 +21,17 @@ export interface Variant {
   stock: number
   sku: string | null
   footspot_size: FootspotSize | null
+  // * Null when the product has no colors. Otherwise points at a product_colors row.
+  color_id: string | null
+}
+
+// * A color variant of a product: display name + hex (from the admin color
+// * picker). Size/stock variants and gallery images reference it by id.
+export interface ProductColor {
+  id: string
+  name: string
+  hex: string
+  position: number
 }
 
 export interface BundleComponent {
@@ -34,6 +45,8 @@ export interface ProductImage {
   id: string
   image_path: string
   position: number
+  // * Null = shown for every color / no color. Otherwise tied to a product_colors row.
+  color_id: string | null
 }
 
 // * A paid add-on the seller defines per product (name + price). Free-form,
@@ -46,7 +59,15 @@ export interface ProductOption {
 }
 
 // * Multipart slot descriptor for create/update requests. Position 0 = primary.
-export type ImageSlot = { existing: string } | { file_key: string }
+// * `color_key` ties the image to a color in the same payload (see ProductPayload.colors).
+export type ImageSlot =
+  | { existing: string; color_key?: string | null }
+  | { file_key: string; color_key?: string | null }
+
+// * Draft color in a create/update payload. New colors carry only a client-side
+// * `key`; existing ones also carry their `id`. Variants and images reference a
+// * color by `key`, so the edge function can resolve them to ids after insert.
+export type ColorPayload = { id?: string; key: string; name: string; hex: string }
 
 export interface Product {
   id: string
@@ -78,16 +99,25 @@ export interface Product {
   images: ProductImage[]
   // * Ordered paid add-ons (by position). Empty when none defined.
   options: ProductOption[]
+  // * Ordered color variants (by position). Empty when the product has no colors.
+  colors: ProductColor[]
 }
 
 export type ProductPayload = Omit<
   Product,
-  'id' | 'created_at' | 'variants' | 'bundle_components' | 'images' | 'options'
+  'id' | 'created_at' | 'variants' | 'bundle_components' | 'images' | 'options' | 'colors'
 > & {
   id?: string
-  variants?: Array<Pick<Variant, 'size' | 'stock' | 'sku' | 'footspot_size'> & { id?: string }>
+  variants?: Array<
+    Pick<Variant, 'size' | 'stock' | 'sku' | 'footspot_size'> & {
+      id?: string
+      // * References a color in `colors[]` by its `key` (null = no color).
+      color_key?: string | null
+    }
+  >
   components?: Array<{ component_product_id: string; axis: BundleAxis; quantity: number }>
   options?: Array<{ name: string; price: number }>
+  colors?: ColorPayload[]
   image_slots?: ImageSlot[]
 }
 
@@ -109,6 +139,10 @@ function sortOptions(options: ProductOption[] | null | undefined): ProductOption
   return [...(options ?? [])].sort((a, b) => a.position - b.position)
 }
 
+function sortColors(colors: ProductColor[] | null | undefined): ProductColor[] {
+  return [...(colors ?? [])].sort((a, b) => a.position - b.position)
+}
+
 function enrich(p: Product): Product {
   return {
     ...p,
@@ -116,6 +150,7 @@ function enrich(p: Product): Product {
     bundle_components: p.bundle_components ?? [],
     images: sortImages(p.images),
     options: sortOptions(p.options),
+    colors: sortColors(p.colors),
   }
 }
 
@@ -161,7 +196,7 @@ export const useProductsStore = defineStore('products', {
         const { data, error } = await client
           .from('products')
           .select(
-            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position), options:product_options(id, name, price, position)',
+            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position), colors:product_colors(id, name, hex, position)',
           )
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: false })
@@ -217,7 +252,13 @@ export const useProductsStore = defineStore('products', {
       const updated = await this.update({
         ...product,
         is_on_clearance: next,
-        image_slots: product.images.map((img) => ({ existing: img.image_path })),
+        // * Preserve colors + per-variant/per-image color links so a toggle
+        // * doesn't wipe them (the edge function replaces the whole set).
+        colors: product.colors.map((c) => ({ id: c.id, key: c.id, name: c.name, hex: c.hex })),
+        image_slots: product.images.map((img) => ({
+          existing: img.image_path,
+          color_key: img.color_id,
+        })),
         variants: product.is_pack
           ? undefined
           : product.variants.map((v) => ({
@@ -225,6 +266,8 @@ export const useProductsStore = defineStore('products', {
               size: v.size,
               stock: v.stock,
               sku: v.sku,
+              footspot_size: v.footspot_size,
+              color_key: v.color_id,
             })),
         components: product.is_pack
           ? product.bundle_components.map((bc) => ({
@@ -247,8 +290,13 @@ export const useProductsStore = defineStore('products', {
       await this.update({
         ...product,
         is_visible: !product.is_visible,
-        // * Keep the current gallery untouched.
-        image_slots: product.images.map((img) => ({ existing: img.image_path })),
+        // * Keep the current gallery + colors untouched (whole sets are replaced
+        // * on save, so they must be echoed back).
+        colors: product.colors.map((c) => ({ id: c.id, key: c.id, name: c.name, hex: c.hex })),
+        image_slots: product.images.map((img) => ({
+          existing: img.image_path,
+          color_key: img.color_id,
+        })),
         // * Re-serialise the shape the edge function expects depending on kind
         variants: product.is_pack
           ? undefined
@@ -257,6 +305,8 @@ export const useProductsStore = defineStore('products', {
               size: v.size,
               stock: v.stock,
               sku: v.sku,
+              footspot_size: v.footspot_size,
+              color_key: v.color_id,
             })),
         components: product.is_pack
           ? product.bundle_components.map((bc) => ({

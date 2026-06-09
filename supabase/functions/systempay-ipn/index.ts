@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
           const { data: items } = await sb
             .from('order_items')
             .select(
-              'quantity, size, secondary_size, unit_price_paid, status, flocking_name, flocking_initial, flocking_number, product:products(name, reference)',
+              'quantity, size, secondary_size, color, selected_options, unit_price_paid, status, flocking_name, flocking_initial, flocking_number, product:products(name, reference)',
             )
             .eq('order_id', order.id)
 
@@ -320,7 +320,17 @@ Deno.serve(async (req) => {
               const flock = [it.flocking_name, it.flocking_initial, it.flocking_number]
                 .filter(Boolean)
                 .join(' · ')
-              const sub = [sizeBits ? `Taille ${sizeBits}` : '', flock].filter(Boolean).join(' · ')
+              const optNames = Array.isArray(it.selected_options)
+                ? it.selected_options.map((o: any) => o?.name).filter(Boolean).join(', ')
+                : ''
+              const sub = [
+                it.color || '',
+                sizeBits ? `Taille ${sizeBits}` : '',
+                flock,
+                optNames ? `Options : ${optNames}` : '',
+              ]
+                .filter(Boolean)
+                .join(' · ')
               const oos = it.status === 'refunded_oos'
               const lineTotal = fmtEur(Number(it.unit_price_paid) * it.quantity)
               return (

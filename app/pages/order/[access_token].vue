@@ -18,6 +18,8 @@ interface OrderItem {
   quantity: number
   size: string
   secondary_size: string | null
+  color: string | null
+  selected_options: { name: string; price: number }[]
   unit_price_paid: number
   status: string
   flocking_name: string | null
@@ -230,9 +232,12 @@ const timeline = computed<TimelineStep[]>(() => {
             <img v-if="imageUrl(it.product?.image_path)" :src="imageUrl(it.product?.image_path)!" alt="" class="w-14 h-14 object-cover rounded" />
             <div class="flex-1 min-w-0">
               <p class="font-medium truncate">{{ it.product?.name?.fr ?? it.product?.reference }}</p>
-              <p class="text-xs text-gray-500">{{ it.size }}<template v-if="it.secondary_size"> / {{ it.secondary_size }}</template> · ×{{ it.quantity }}</p>
+              <p class="text-xs text-gray-500"><template v-if="it.color">{{ it.color }} · </template>{{ it.size }}<template v-if="it.secondary_size"> / {{ it.secondary_size }}</template> · ×{{ it.quantity }}</p>
               <p v-if="it.flocking_name || it.flocking_initial || it.flocking_number" class="text-xs text-gray-500">
                 {{ [it.flocking_name, it.flocking_initial, it.flocking_number].filter(Boolean).join(' · ') }}
+              </p>
+              <p v-if="it.selected_options?.length" class="text-xs text-gray-500">
+                + {{ it.selected_options.map((o) => o.name).join(', ') }}
               </p>
             </div>
             <p class="font-medium">{{ fmt(it.unit_price_paid * it.quantity) }}</p>

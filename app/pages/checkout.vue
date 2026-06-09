@@ -224,6 +224,8 @@ async function onSubmit() {
           secondary_size: l.secondary_size,
           quantity: l.quantity,
           unit_price_paid: l.unit_price_paid,
+          flocking: l.flocking,
+          option_ids: (l.selected_options ?? []).map((o) => o.id),
         })),
       },
     })
@@ -255,8 +257,10 @@ async function onSubmit() {
           variant_id: l.variant_id,
           size: l.size,
           secondary_size: l.secondary_size,
+          color: l.color,
           quantity: l.quantity,
           flocking: l.flocking,
+          option_ids: (l.selected_options ?? []).map((o) => o.id),
         })),
         delivery_method: deliveryMethod.value,
         shipping_address: mergedShipping,
@@ -492,7 +496,18 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
           <h2 class="font-heading font-bold">{{ t('checkout.summary') }}</h2>
           <ul class="space-y-2 text-sm">
             <li v-for="l in cart.lines" :key="l.line_id" class="flex justify-between gap-3">
-              <span class="flex-1 min-w-0 truncate">{{ l.name.fr }} · {{ l.size }}<template v-if="l.secondary_size"> / {{ l.secondary_size }}</template> × {{ l.quantity }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="truncate">{{ l.name.fr }} · <template v-if="l.color">{{ l.color }} · </template>{{ l.size }}<template v-if="l.secondary_size"> / {{ l.secondary_size }}</template> × {{ l.quantity }}</div>
+                <div
+                  v-if="l.flocking && (l.flocking.name || l.flocking.initial || l.flocking.number)"
+                  class="text-xs text-gray-500 truncate"
+                >
+                  {{ [l.flocking.name, l.flocking.initial, l.flocking.number ? '#' + l.flocking.number : null].filter(Boolean).join(' · ') }}
+                </div>
+                <div v-if="l.selected_options?.length" class="text-xs text-gray-500 truncate">
+                  + {{ l.selected_options.map((o) => o.name).join(', ') }}
+                </div>
+              </div>
               <span class="shrink-0 font-medium">{{ fmt(l.unit_price_paid * l.quantity) }}</span>
             </li>
           </ul>

@@ -53,8 +53,12 @@ const flockingLabel = computed(() => {
             {{ line.name[locale as 'fr' | 'en'] ?? line.name.fr }}
           </div>
           <div class="text-xs text-gray-500 truncate">
+            <span v-if="line.color">{{ line.color }} · </span>
             {{ t('cart.size') }} {{ line.size }}
             <span v-if="flockingLabel"> · {{ flockingLabel }}</span>
+          </div>
+          <div v-if="line.selected_options?.length" class="text-xs text-gray-500 truncate">
+            + {{ line.selected_options.map((o) => o.name).join(', ') }}
           </div>
         </div>
         <button

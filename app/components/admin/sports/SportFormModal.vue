@@ -17,6 +17,8 @@ const sports = useSportsStore()
 const name = ref('')
 const iconPath = ref<string | null>(null)      // * existing path in storage (edit mode)
 const iconFile = ref<File | null>(null)         // * new file picked, not yet uploaded
+const useBackground = ref(false)                // * toggle the custom tile background
+const backgroundColor = ref('#0331f9')          // * hex when enabled
 const saving = ref(false)
 const errorMsg = ref<string | null>(null)
 
@@ -27,6 +29,8 @@ watch(
     name.value = props.sport?.name.fr ?? ''
     iconPath.value = props.sport?.icon_path ?? null
     iconFile.value = null
+    useBackground.value = !!props.sport?.background_color
+    backgroundColor.value = props.sport?.background_color ?? '#0331f9'
     errorMsg.value = null
   },
   { immediate: true },
@@ -52,6 +56,7 @@ async function save() {
       name: { fr: trimmed, en: trimmed },
       file: iconFile.value,
       clear_icon: clearIcon,
+      background_color: useBackground.value ? backgroundColor.value : null,
     }
     if (props.sport) {
       await sports.update({ id: props.sport.id, ...base })
@@ -94,6 +99,29 @@ async function save() {
         bucket="sports-icons"
         :label="t('admin.sports.icon')"
       />
+
+      <!-- * Tile background color (optional) -->
+      <div class="space-y-2">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input v-model="useBackground" type="checkbox" class="w-4 h-4 accent-brand-primary" />
+          <span class="text-sm font-medium">{{ t('admin.sports.backgroundColor') }}</span>
+        </label>
+        <div v-if="useBackground" class="flex items-center gap-2 pl-7">
+          <input
+            :value="backgroundColor"
+            type="color"
+            class="h-9 w-14 rounded-lg cursor-pointer border border-gray-300 dark:border-sidebar p-0.5 bg-transparent"
+            @input="backgroundColor = ($event.target as HTMLInputElement).value"
+          />
+          <input
+            v-model="backgroundColor"
+            type="text"
+            placeholder="#0331f9"
+            class="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none font-mono text-sm"
+          />
+        </div>
+        <p class="text-xs text-gray-400 pl-7">{{ t('admin.sports.backgroundColorHint') }}</p>
+      </div>
 
       <p v-if="errorMsg" class="text-sm text-brand-secondary">{{ errorMsg }}</p>
 

@@ -3,7 +3,13 @@
 // * and check each component's stock against the picked (size, secondary_size) pair.
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { serviceClient } from '../_shared/supabase.ts'
-import { computeUnitPricing, applyClubDiscount, type DiscountSource } from '../_shared/pricing.ts'
+import {
+  computeUnitPricing,
+  applyClubDiscount,
+  computeFlockingAddon,
+  resolveOptions,
+  type DiscountSource,
+} from '../_shared/pricing.ts'
 
 interface CartLineIn {
   line_id: string
@@ -12,7 +18,9 @@ interface CartLineIn {
   size: string                          // * primary size for bundles
   secondary_size?: string | null        // * secondary size for bundles
   quantity: number
-  unit_price_paid: number
+  unit_price_paid: number               // * incl. add-ons (flocking + options)
+  flocking?: { name?: string | null; initial?: string | null; number?: string | null }
+  option_ids?: string[]
 }
 
 type Reason =
@@ -62,10 +70,25 @@ Deno.serve(async (req) => {
 
     const { data: products, error: pErr } = await sb
       .from('products')
-      .select('id, reference, club_id, is_pack, buying_price, selling_price, discount_percent, discount_source, is_visible, available_from')
+      .select('id, reference, club_id, is_pack, buying_price, selling_price, discount_percent, discount_source, is_visible, available_from, flocking_kind, flocking_members_name_price, flocking_members_initials_price, flocking_supporter_price')
       .in('id', productIds)
     if (pErr) throw pErr
     const productMap = new Map((products ?? []).map((p: any) => [p.id, p]))
+
+    // * Custom paid options per product — folded into the price check so a line
+    // * whose snapshot includes an add-on doesn't read back as price_changed.
+    const optionsMap = new Map<string, { id: string; name: string; price: number }[]>()
+    {
+      const { data: opts } = await sb
+        .from('product_options')
+        .select('id, product_id, name, price')
+        .in('product_id', productIds)
+      for (const o of opts ?? []) {
+        const list = optionsMap.get((o as any).product_id) ?? []
+        list.push({ id: (o as any).id, name: (o as any).name, price: Number((o as any).price) })
+        optionsMap.set((o as any).product_id, list)
+      }
+    }
 
     // * Footspot per-club discounts — must be folded into the price check, or a
     // * discounted line (whose snapshot already includes the cut) would always
@@ -149,6 +172,15 @@ Deno.serve(async (req) => {
         (pricing.club_fund_per_unit - (pricing.unit_price_paid - unitPaid)).toFixed(2),
       )
 
+      // * Add-ons (flocking + options) recomputed from trusted product data and
+      // * folded into the expected price so add-on lines validate correctly.
+      const addon = Number(
+        (
+          computeFlockingAddon(product, l.flocking) +
+          resolveOptions(optionsMap.get(product.id) ?? [], l.option_ids).addon
+        ).toFixed(2),
+      )
+
       if (product.is_pack) {
         // * Resolve each component variant by size axis
         const comps = bundleCompMap.get(l.product_id) ?? []
@@ -178,7 +210,7 @@ Deno.serve(async (req) => {
           minAvailable = Math.min(minAvailable, Math.floor(v.stock / c.quantity))
         }
 
-        if (Math.abs(pricing.unit_price_paid - Number(l.unit_price_paid)) > 0.005) {
+        if (Math.abs(pricing.unit_price_paid + addon - Number(l.unit_price_paid)) > 0.005) {
           return {
             line_id: l.line_id,
             ok: false,
@@ -215,7 +247,7 @@ Deno.serve(async (req) => {
         return { line_id: l.line_id, ok: false, reason: 'out_of_stock', available_stock: variant.stock }
       }
 
-      if (Math.abs(unitPaid - Number(l.unit_price_paid)) > 0.005) {
+      if (Math.abs(unitPaid + addon - Number(l.unit_price_paid)) > 0.005) {
         return {
           line_id: l.line_id,
           ok: false,

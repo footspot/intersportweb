@@ -332,6 +332,10 @@
         "outOfStock": "Cette taille est en rupture de stock.",
         "locked": "Déverrouillez la boutique du club avant de commander.",
         "componentOnly": "Ce produit est inclus dans un pack."
+      },
+      "color": "Couleur",
+      "options": {
+        "title": "Options"
       }
     }
   },
@@ -462,7 +466,9 @@
       "errors": {
         "nameRequired": "Le nom est requis.",
         "hasClubs": "Impossible de supprimer : des clubs sont encore rattachés à ce sport."
-      }
+      },
+      "backgroundColor": "Couleur de fond",
+      "backgroundColorHint": "Couleur de la tuile du sport sur la boutique (optionnel)."
     },
     "clubs": {
       "title": "Clubs",
@@ -643,7 +649,9 @@
         "sizePlaceholder": "S, M, 42…",
         "skuPlaceholder": "XYZ-42",
         "footspotSize": "Taille Footspot",
-        "footspotNotSynced": "Non synchronisée"
+        "footspotNotSynced": "Non synchronisée",
+        "color": "Couleur",
+        "colorNone": "Aucune"
       },
       "flocking": {
         "title": "Flocage",
@@ -720,7 +728,22 @@
         "bundleEmpty": "Ajoutez au moins un composant au pack.",
         "bundleNeedsPrimary": "Au moins un composant doit utiliser l'axe principal.",
         "hasOrders": "Impossible de supprimer : ce produit est lié à des commandes.",
-        "lockedInBundle": "Impossible de supprimer : ce produit appartient à {n} pack(s)."
+        "lockedInBundle": "Impossible de supprimer : ce produit appartient à {n} pack(s).",
+        "colorNameRequired": "Chaque couleur doit avoir un nom.",
+        "variantColorRequired": "Associez une couleur à chaque taille."
+      },
+      "detailsFr": "Description (FR)",
+      "detailsEn": "Description (EN)",
+      "detailsPlaceholder": "Description du produit (optionnel)",
+      "colors": {
+        "title": "Couleurs",
+        "hint": "Ajoutez les coloris du produit ; liez chaque image et chaque taille à une couleur.",
+        "add": "Ajouter une couleur",
+        "empty": "Aucune couleur. Le produit utilise une seule variante.",
+        "name": "Nom",
+        "namePlaceholder": "ex. Rouge",
+        "swatch": "Teinte",
+        "imageAll": "Toutes les couleurs"
       }
     },
     "orders": {
@@ -819,7 +842,8 @@
         "refundHistory": "Historique des remboursements",
         "changeStatus": "Changer le statut",
         "downloadInvoice": "Télécharger la facture",
-        "openLabel": "Étiquette (imprimer)"
+        "openLabel": "Étiquette (imprimer)",
+        "options": "Options"
       }
     },
     "fund": {

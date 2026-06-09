@@ -332,6 +332,10 @@
         "outOfStock": "This size is out of stock.",
         "locked": "Unlock the club's shop before ordering.",
         "componentOnly": "This product is part of a pack."
+      },
+      "color": "Color",
+      "options": {
+        "title": "Options"
       }
     }
   },
@@ -462,7 +466,9 @@
       "errors": {
         "nameRequired": "The name is required.",
         "hasClubs": "Cannot delete: clubs are still linked to this sport."
-      }
+      },
+      "backgroundColor": "Background color",
+      "backgroundColorHint": "Sport tile background color on the storefront (optional)."
     },
     "clubs": {
       "title": "Clubs",
@@ -643,7 +649,9 @@
         "sizePlaceholder": "S, M, 42…",
         "skuPlaceholder": "XYZ-42",
         "footspotSize": "Footspot size",
-        "footspotNotSynced": "Not synced"
+        "footspotNotSynced": "Not synced",
+        "color": "Color",
+        "colorNone": "None"
       },
       "flocking": {
         "title": "Flocking",
@@ -720,7 +728,22 @@
         "bundleEmpty": "Add at least one component to the bundle.",
         "bundleNeedsPrimary": "At least one component must use the primary axis.",
         "hasOrders": "Cannot delete: this product is linked to orders.",
-        "lockedInBundle": "Cannot delete: this product belongs to {n} bundle(s)."
+        "lockedInBundle": "Cannot delete: this product belongs to {n} bundle(s).",
+        "colorNameRequired": "Each color must have a name.",
+        "variantColorRequired": "Assign a color to each size."
+      },
+      "detailsFr": "Description (FR)",
+      "detailsEn": "Description (EN)",
+      "detailsPlaceholder": "Product description (optional)",
+      "colors": {
+        "title": "Colors",
+        "hint": "Add the product's colors; link each image and size to a color.",
+        "add": "Add color",
+        "empty": "No colors. The product uses a single variant.",
+        "name": "Name",
+        "namePlaceholder": "e.g. Red",
+        "swatch": "Shade",
+        "imageAll": "All colors"
       }
     },
     "orders": {
@@ -819,7 +842,8 @@
         "refundHistory": "Refund history",
         "changeStatus": "Change status",
         "downloadInvoice": "Download invoice",
-        "openLabel": "Label (print)"
+        "openLabel": "Label (print)",
+        "options": "Options"
       }
     },
     "fund": {

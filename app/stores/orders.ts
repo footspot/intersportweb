@@ -43,6 +43,10 @@ export interface OrderItem {
   size: string
   // * Secondary-axis size for bundle lines (e.g. sock size). Null otherwise.
   secondary_size: string | null
+  // * Color variant name snapshot (display only; null = no color).
+  color: string | null
+  // * Custom paid options snapshot (display only; price baked into unit_price_paid).
+  selected_options: { name: string; price: number }[]
   buying_price_snapshot: number
   selling_price_snapshot: number
   unit_price_paid: number

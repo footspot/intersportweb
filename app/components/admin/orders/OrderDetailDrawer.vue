@@ -196,13 +196,17 @@ const trackingUrl = computed(() => {
               <div class="flex-1 min-w-0">
                 <div class="font-medium truncate">{{ it.product?.name.fr ?? it.product_id }}</div>
                 <div class="text-xs text-gray-500">
-                  {{ t('admin.orders.refund.size') }} {{ it.size }}<template v-if="it.secondary_size"> / {{ it.secondary_size }}</template> · ×{{ it.quantity }} · {{ it.product?.reference }}
+                  <template v-if="it.color">{{ it.color }} · </template>{{ t('admin.orders.refund.size') }} {{ it.size }}<template v-if="it.secondary_size"> / {{ it.secondary_size }}</template> · ×{{ it.quantity }} · {{ it.product?.reference }}
                 </div>
                 <div v-if="it.flocking_name || it.flocking_initial || it.flocking_number" class="text-xs text-brand-primary mt-1">
                   {{ t('admin.orders.detail.flocking') }}:
                   <span v-if="it.flocking_name">{{ it.flocking_name }}</span>
                   <span v-if="it.flocking_initial">· {{ it.flocking_initial }}</span>
                   <span v-if="it.flocking_number">· #{{ it.flocking_number }}</span>
+                </div>
+                <div v-if="it.selected_options?.length" class="text-xs text-brand-primary mt-1">
+                  {{ t('admin.orders.detail.options') }}:
+                  {{ it.selected_options.map((o) => o.name).join(', ') }}
                 </div>
                 <div class="text-xs text-gray-500 mt-1">
                   {{ t('admin.orders.detail.buying') }}: {{ fmt(it.buying_price_snapshot) }} ·

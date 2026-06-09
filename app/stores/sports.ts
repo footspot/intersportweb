@@ -8,6 +8,8 @@ export interface Sport {
   id: string
   name: { fr: string; en: string }
   icon_path: string | null
+  // * Optional storefront tile background (hex). Null = default tile styling.
+  background_color: string | null
   sort_order: number
   created_at: string
 }
@@ -23,6 +25,8 @@ export interface SportInput {
   name: { fr: string; en: string }
   sort_order?: number
   clear_icon?: boolean
+  // * Hex tile background, or null to clear it.
+  background_color?: string | null
   file?: File | null
 }
 
@@ -54,7 +58,7 @@ export const useSportsStore = defineStore('sports', () => {
       const client = useSupabaseClient()
       const { data, error: err } = await client
         .from('sports')
-        .select('id, name, icon_path, sort_order, created_at')
+        .select('id, name, icon_path, background_color, sort_order, created_at')
         .order('sort_order', { ascending: true })
       if (err) throw err
       items.value = (data ?? []) as Sport[]

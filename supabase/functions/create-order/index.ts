@@ -19,7 +19,13 @@
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { serviceClient } from '../_shared/supabase.ts'
 import { postFootspot } from '../_shared/footspot/client.ts'
-import { computeUnitPricing, applyClubDiscount, type DiscountSource } from '../_shared/pricing.ts'
+import {
+  computeUnitPricing,
+  applyClubDiscount,
+  computeFlockingAddon,
+  resolveOptions,
+  type DiscountSource,
+} from '../_shared/pricing.ts'
 
 type DeliveryMethod = 'colissimo' | 'club_pickup' | 'shop_pickup'
 
@@ -28,8 +34,11 @@ interface CartLineIn {
   variant_id: string | null
   size: string
   secondary_size?: string | null
+  color?: string | null
   quantity: number
   flocking?: { name?: string | null; initial?: string | null; number?: string | null }
+  // * Ids of the custom paid options the buyer ticked (validated server-side).
+  option_ids?: string[]
 }
 
 interface ShippingAddress {
@@ -168,11 +177,25 @@ Deno.serve(async (req) => {
     const { data: products, error: pErr } = await sb
       .from('products')
       .select(
-        'id, club_id, name, reference, is_pack, buying_price, selling_price, discount_percent, discount_source, is_visible, weight_grams',
+        'id, club_id, name, reference, is_pack, buying_price, selling_price, discount_percent, discount_source, is_visible, weight_grams, flocking_kind, flocking_members_name_price, flocking_members_initials_price, flocking_supporter_price',
       )
       .in('id', productIds)
     if (pErr) throw pErr
     const productMap = new Map((products ?? []).map((p: any) => [p.id, p]))
+
+    // * Custom paid options per product (for server-side add-on pricing).
+    const optionsMap = new Map<string, { id: string; name: string; price: number }[]>()
+    {
+      const { data: opts } = await sb
+        .from('product_options')
+        .select('id, product_id, name, price')
+        .in('product_id', productIds)
+      for (const o of opts ?? []) {
+        const list = optionsMap.get((o as any).product_id) ?? []
+        list.push({ id: (o as any).id, name: (o as any).name, price: Number((o as any).price) })
+        optionsMap.set((o as any).product_id, list)
+      }
+    }
 
     const variantMap = new Map<string, any>()
     if (variantIds.length) {
@@ -247,8 +270,10 @@ Deno.serve(async (req) => {
       pricing: ReturnType<typeof computeUnitPricing>
       buyingSnapshot: number
       footspotPct: number
-      unitPaid: number          // * post-footspot-discount price the buyer pays
-      fundPerUnit: number       // * club fund credit per unit, post-discount
+      unitPaid: number          // * post-footspot-discount price the buyer pays (incl. add-ons)
+      fundPerUnit: number       // * club fund credit per unit, post-discount (excludes add-ons)
+      color: string | null
+      selectedOptions: { name: string; price: number }[]
       product: any
       flocking: CartLineIn['flocking']
       bundleComponents?: Array<{
@@ -288,10 +313,20 @@ Deno.serve(async (req) => {
       // * Layer the Footspot club discount on top of the catalogue price. The
       // * reduction comes straight out of the club fund credit.
       const footspotPct = discountMap.get(`${product.club_id}|${product.reference}`) ?? 0
-      const unitPaid = applyClubDiscount(pricing.unit_price_paid, footspotPct)
+      const unitDiscounted = applyClubDiscount(pricing.unit_price_paid, footspotPct)
       const fundPerUnit = Number(
-        (pricing.club_fund_per_unit - (pricing.unit_price_paid - unitPaid)).toFixed(2),
+        (pricing.club_fund_per_unit - (pricing.unit_price_paid - unitDiscounted)).toFixed(2),
       )
+
+      // * Add-ons (flocking + custom paid options) are charged on top and do NOT
+      // * affect the fund. Recompute them from trusted product data — never trust
+      // * the client's price. Unknown option ids are dropped silently.
+      const flockingAddon = computeFlockingAddon(product, line.flocking)
+      const { addon: optionsAddon, selected: selectedOptions } = resolveOptions(
+        optionsMap.get(product.id) ?? [],
+        line.option_ids,
+      )
+      const unitPaid = Number((unitDiscounted + flockingAddon + optionsAddon).toFixed(2))
 
       if (product.is_pack) {
         const comps = bundleCompMap.get(line.product_id) ?? []
@@ -336,6 +371,8 @@ Deno.serve(async (req) => {
           quantity: line.quantity,
           size: line.size,
           secondarySize: line.secondary_size ?? null,
+          color: line.color ?? null,
+          selectedOptions,
           pricing,
           buyingSnapshot,
           footspotPct,
@@ -365,6 +402,8 @@ Deno.serve(async (req) => {
           quantity: line.quantity,
           size: variant.size,
           secondarySize: null,
+          color: line.color ?? null,
+          selectedOptions,
           pricing,
           buyingSnapshot,
           footspotPct,
@@ -596,6 +635,8 @@ Deno.serve(async (req) => {
           quantity: p.quantity,
           size: p.size,
           secondary_size: p.secondarySize,
+          color: p.color ?? null,
+          selected_options: p.selectedOptions ?? [],
           buying_price_snapshot: Number(p.buyingSnapshot.toFixed(2)),
           selling_price_snapshot: Number(p.product.selling_price),
           unit_price_paid: p.unitPaid,

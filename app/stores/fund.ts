@@ -21,6 +21,8 @@ export interface FundTransaction {
   order_item_id: string | null
   created_by: string | null
   created_at: string
+  // * Resolved from order_item → product for auto_sale rows (localized name object).
+  product_name?: { fr: string; en?: string } | null
 }
 
 interface FundState {
@@ -50,12 +52,16 @@ export const useFundStore = defineStore('fund', {
         const client = useSupabaseClient()
         const { data, error } = await client
           .from('fund_transactions')
-          .select('*')
+          .select('*, order_item:order_items(product:products(name))')
           .eq('club_id', clubId)
           .order('created_at', { ascending: false })
           .limit(limit)
         if (error) throw error
-        this.historyByClub[clubId] = (data ?? []) as FundTransaction[]
+        // * Flatten the embedded product name onto each tx so the UI stays simple.
+        this.historyByClub[clubId] = (data ?? []).map((row: any) => {
+          const { order_item, ...tx } = row
+          return { ...tx, product_name: order_item?.product?.name ?? null }
+        }) as FundTransaction[]
       } catch (err) {
         this.error = err instanceof Error ? err.message : 'Failed to load history'
       } finally {

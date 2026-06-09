@@ -40,18 +40,48 @@ const isLockedComponent = computed(() =>
 
 const selectedSize = ref<string | null>(null)
 const selectedSecondarySize = ref<string | null>(null)
+const selectedColorId = ref<string | null>(null)
 const flocking = ref<FlockingOptions>({ name: null, initial: null, number: null })
 const flockingAddon = ref(0)
 const feedback = ref<{ tone: 'ok' | 'err'; msg: string } | null>(null)
 
+// * Custom paid options (multi-select). Each ticked option adds its price.
+const selectedOptionIds = ref<string[]>([])
+const productOptions = computed(() => product.value?.options ?? [])
+const selectedOptions = computed(() =>
+  productOptions.value
+    .filter((o) => selectedOptionIds.value.includes(o.id))
+    .map((o) => ({ id: o.id, name: o.name, price: Number(o.price) })),
+)
+const optionsAddon = computed(() => selectedOptions.value.reduce((s, o) => s + o.price, 0))
+function toggleOption(id: string) {
+  selectedOptionIds.value = selectedOptionIds.value.includes(id)
+    ? selectedOptionIds.value.filter((x) => x !== id)
+    : [...selectedOptionIds.value, id]
+}
+
 // * Bundle availability (null-safe; returns empty for non-packs).
 const availability = computed(() => useBundleAvailability(product.value))
 
-// * For regular products, the selected variant is the one matching selectedSize.
+// * Color variants (empty for products without colors / for packs).
+const productColors = computed(() => (product.value?.is_pack ? [] : product.value?.colors ?? []))
+const hasColors = computed(() => productColors.value.length > 0)
+const selectedColor = computed(
+  () => productColors.value.find((c) => c.id === selectedColorId.value) ?? null,
+)
+
+// * Variants available for the picked color (all variants when no colors).
+const colorVariants = computed(() => {
+  const vs = product.value?.variants ?? []
+  if (!hasColors.value) return vs
+  return vs.filter((v) => v.color_id === selectedColorId.value)
+})
+
+// * For regular products, the selected variant matches the picked color + size.
 const selectedVariant = computed(() => {
   if (!product.value || product.value.is_pack) return null
   if (!selectedSize.value) return null
-  return product.value.variants.find((v) => v.size === selectedSize.value) ?? null
+  return colorVariants.value.find((v) => v.size === selectedSize.value) ?? null
 })
 
 // * For bundles, max_stock is the units available for the picked combo.
@@ -85,11 +115,11 @@ const primaryOptions = computed(() => {
       return { value: s, disabled }
     })
   }
-  // * Regular product: one option per variant. Stock<=0 disables the size
-  // * EXCEPT when the product has an `available_from` date — then the size is
-  // * still pickable but marked as backorder.
+  // * Regular product: one option per variant of the picked color. Stock<=0
+  // * disables the size EXCEPT when the product has an `available_from` date —
+  // * then the size is still pickable but marked as backorder.
   const backorderable = !!product.value.available_from
-  return product.value.variants.map((v) => ({
+  return colorVariants.value.map((v) => ({
     value: v.size,
     disabled: v.stock <= 0 && !backorderable,
     backorder: v.stock <= 0 && backorderable,
@@ -118,20 +148,38 @@ const secondaryOptions = computed(() => {
   })
 })
 
-const galleryImages = computed(() => product.value?.images ?? [])
+// * Gallery filtered to the picked color. Untagged images (color_id null) show
+// * for every color. Falls back to the full gallery if the color has none.
+const galleryImages = computed(() => {
+  const imgs = product.value?.images ?? []
+  if (!hasColors.value || !selectedColorId.value) return imgs
+  const matching = imgs.filter((i) => i.color_id === selectedColorId.value || i.color_id == null)
+  return matching.length ? matching : imgs
+})
 const selectedImageIndex = ref(0)
 
-// * Reset pickers + gallery index whenever we land on a different product.
+// * Reset pickers + gallery index + default color whenever we land on a
+// * different product (immediate so the first color is selected on load).
 watch(
   () => product.value?.id,
   () => {
     selectedSize.value = null
     selectedSecondarySize.value = null
+    selectedColorId.value = product.value?.is_pack ? null : product.value?.colors?.[0]?.id ?? null
     flocking.value = { name: null, initial: null, number: null }
     flockingAddon.value = 0
+    selectedOptionIds.value = []
     selectedImageIndex.value = 0
   },
+  { immediate: true },
 )
+
+// * Switching color clears the size pick (sizes differ per color) and resets
+// * the gallery to the first image of that color.
+watch(selectedColorId, () => {
+  selectedSize.value = null
+  selectedImageIndex.value = 0
+})
 
 function storageUrl(path: string | null): string | null {
   if (!path) return null
@@ -145,6 +193,12 @@ const imageUrl = computed(() =>
       primaryImagePath(product.value),
   ),
 )
+
+// * Representative image for the picked color — snapshotted onto the cart line.
+const colorImagePath = computed(() => {
+  if (!selectedColorId.value) return null
+  return (product.value?.images ?? []).find((i) => i.color_id === selectedColorId.value)?.image_path ?? null
+})
 
 const pricing = computed(() =>
   product.value
@@ -200,6 +254,7 @@ const canAddToCart = computed(() => {
     if (availability.value.hasSecondary && !selectedSecondarySize.value) return false
     return bundleMaxStock.value > 0
   }
+  if (hasColors.value && !selectedColorId.value) return false
   if (!selectedVariant.value) return false
   if (selectedVariant.value.stock > 0) return true
   return !!product.value.available_from
@@ -235,6 +290,7 @@ function addToCart() {
       quantity: 1,
       flocking: flocking.value,
       flockingAddon: flockingAddon.value,
+      options: selectedOptions.value,
       footspotDiscountPct: footspotPct.value,
     })
   } else {
@@ -252,11 +308,14 @@ function addToCart() {
       variantId: selectedVariant.value.id,
       size: selectedVariant.value.size,
       secondarySize: null,
+      color: selectedColor.value?.name ?? null,
+      colorImagePath: colorImagePath.value,
       // * Backorder cap: 99 if stock is exhausted, otherwise the real stock.
       maxStock: backorderable ? Math.max(selectedVariant.value.stock, 99) : selectedVariant.value.stock,
       quantity: 1,
       flocking: flocking.value,
       flockingAddon: flockingAddon.value,
+      options: selectedOptions.value,
       footspotDiscountPct: footspotPct.value,
     })
   }
@@ -266,6 +325,44 @@ function addToCart() {
     cartOpen.value = true
   }, 150)
 }
+
+// * SEO — dynamic title/description/OG + Product JSON-LD. Getters keep it
+// * reactive as the product resolves; absolute Supabase image URL feeds og:image.
+const seoTitle = computed(() =>
+  product.value ? `${product.value.name.fr} — Intersport Club IDF` : 'Intersport Club IDF',
+)
+const seoDescription = computed(() => {
+  const d = product.value?.details?.fr?.trim()
+  if (d) return d.slice(0, 160)
+  return product.value
+    ? `${product.value.name.fr}${club.value ? ' — ' + club.value.name : ''}. Disponible sur la boutique Intersport Club IDF.`
+    : 'Boutique Intersport Club IDF.'
+})
+
+useSeoMeta({
+  title: () => seoTitle.value,
+  description: () => seoDescription.value,
+  ogTitle: () => seoTitle.value,
+  ogDescription: () => seoDescription.value,
+  ogImage: () => imageUrl.value ?? undefined,
+  twitterCard: 'summary_large_image',
+})
+
+useSchemaOrg([
+  defineProduct({
+    name: () => product.value?.name.fr ?? '',
+    description: () => seoDescription.value,
+    image: () => (imageUrl.value ? [imageUrl.value] : []),
+    sku: () => product.value?.reference ?? undefined,
+    offers: () => [
+      {
+        price: Number(finalUnitPrice.value.toFixed(2)),
+        priceCurrency: 'EUR',
+        availability: canAddToCart.value ? 'InStock' : 'OutOfStock',
+      },
+    ],
+  }),
+])
 </script>
 
 <template>
@@ -323,7 +420,7 @@ function addToCart() {
         </div>
 
         <div class="flex items-baseline gap-3">
-          <span class="font-heading text-3xl font-bold">{{ fmt(finalUnitPrice + flockingAddon) }}</span>
+          <span class="font-heading text-3xl font-bold">{{ fmt(finalUnitPrice + flockingAddon + optionsAddon) }}</span>
           <span
             v-if="hasDiscount"
             class="text-base text-gray-400 line-through"
@@ -351,6 +448,30 @@ function addToCart() {
         >
           <UIcon name="i-lucide-clock" class="w-4 h-4 mt-0.5 shrink-0" />
           <span>{{ t('storefront.product.backorderBanner', { date: product.available_from }) }}</span>
+        </div>
+
+        <div v-if="hasColors">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium">
+              {{ t('storefront.product.color') }}
+              <span v-if="selectedColor" class="text-gray-500 font-normal"> · {{ selectedColor.name }}</span>
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="c in productColors"
+              :key="c.id"
+              type="button"
+              class="w-9 h-9 rounded-full border-2 transition-all"
+              :class="selectedColorId === c.id
+                ? 'border-brand-primary ring-2 ring-brand-primary/30'
+                : 'border-gray-200 dark:border-sidebar hover:border-brand-primary/50'"
+              :style="{ backgroundColor: c.hex }"
+              :title="c.name"
+              :aria-label="c.name"
+              @click="selectedColorId = c.id"
+            />
+          </div>
         </div>
 
         <HomeSizeSelector
@@ -383,6 +504,28 @@ function addToCart() {
           :supporter-price="Number(product.flocking_supporter_price)"
           @update:addon="(v) => (flockingAddon = v)"
         />
+
+        <!-- * Custom paid options (multi-select) -->
+        <div v-if="productOptions.length" class="space-y-2">
+          <div class="inline-flex items-center gap-2 text-sm font-medium">
+            <UIcon name="i-lucide-plus-circle" class="w-4 h-4 text-brand-primary" />
+            <span class="uppercase tracking-wider text-xs">{{ t('storefront.product.options.title') }}</span>
+          </div>
+          <label
+            v-for="o in productOptions"
+            :key="o.id"
+            class="flex items-center gap-2 text-sm cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              class="w-4 h-4 accent-brand-primary"
+              :checked="selectedOptionIds.includes(o.id)"
+              @change="toggleOption(o.id)"
+            />
+            <span class="font-medium">{{ o.name }}</span>
+            <span class="text-brand-secondary text-xs">(+{{ fmt(Number(o.price)) }})</span>
+          </label>
+        </div>
 
         <div
           v-if="product.is_pack && bundleDisplayComponents.length"

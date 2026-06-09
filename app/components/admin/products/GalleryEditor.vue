@@ -1,12 +1,15 @@
 <script setup lang="ts">
-// * Multi-image editor for products. Up to `maxImages` slots (default 5),
+// * Multi-image editor for products. Up to `maxImages` slots (default 10),
 // * position 0 = primary. Each slot is either an existing storage path or a
 // * pending File (not yet uploaded). The parent collects slots + files and
 // * submits both to the edge function on Save.
+import type { DraftColor } from './ProductColorsEditor.vue'
+
 export interface GallerySlot {
   id: string        // * stable v-for key (ProductImage.id for existing, random for new)
   existing?: string // * pre-existing storage path
   file?: File       // * newly picked file, not yet uploaded
+  color_key?: string | null // * the color this image belongs to (null = every color)
 }
 
 interface Props {
@@ -15,8 +18,10 @@ interface Props {
   maxImages?: number
   label?: string
   clubLogoUrl?: string | null   // * selected club's logo, passed to the overlay editor
+  // * Defined colors; when non-empty each image gets a color assignment dropdown.
+  colors?: DraftColor[]
 }
-const props = withDefaults(defineProps<Props>(), { maxImages: 5, label: '', clubLogoUrl: null })
+const props = withDefaults(defineProps<Props>(), { maxImages: 10, label: '', clubLogoUrl: null, colors: () => [] })
 const emit = defineEmits<{ (e: 'update:modelValue', v: GallerySlot[]): void }>()
 
 const { t } = useI18n()
@@ -116,6 +121,14 @@ function makePrimary(index: number) {
   next.unshift(moved)
   emitNext(next)
 }
+
+const hasColors = computed(() => props.colors.length > 0)
+
+function setColor(index: number, key: string | null) {
+  const next = props.modelValue.slice()
+  next[index] = { ...next[index], color_key: key || null }
+  emitNext(next)
+}
 </script>
 
 <template>
@@ -123,9 +136,8 @@ function makePrimary(index: number) {
     <p v-if="label" class="text-sm font-medium mb-2">{{ label }}</p>
 
     <div class="flex flex-wrap gap-3">
+      <div v-for="(slot, i) in modelValue" :key="slot.id" class="flex flex-col gap-1">
       <div
-        v-for="(slot, i) in modelValue"
-        :key="slot.id"
         class="relative w-[7.2rem] h-[7.2rem] rounded-lg border border-gray-200 dark:border-sidebar bg-gray-50 dark:bg-sidebar-surface overflow-hidden group"
       >
         <img
@@ -168,6 +180,17 @@ function makePrimary(index: number) {
             {{ t('common.delete') }}
           </button>
         </div>
+      </div>
+        <!-- * Per-image color assignment (only when the product has colors). -->
+        <select
+          v-if="hasColors"
+          :value="slot.color_key ?? ''"
+          class="w-[7.2rem] px-1.5 py-1 rounded-md border border-gray-300 dark:border-sidebar bg-transparent text-xs focus:ring-2 focus:ring-brand-primary focus:outline-none"
+          @change="setColor(i, ($event.target as HTMLSelectElement).value || null)"
+        >
+          <option value="">{{ t('admin.products.colors.imageAll') }}</option>
+          <option v-for="c in colors" :key="c.key" :value="c.key">{{ c.name || '—' }}</option>
+        </select>
       </div>
 
       <label

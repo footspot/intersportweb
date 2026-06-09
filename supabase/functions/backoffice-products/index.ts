@@ -22,7 +22,7 @@ import { validatePricing, type DiscountSource } from '../_shared/pricing.ts'
 import { parseMultipartFiles, uploadImage, removeImage } from '../_shared/multipart.ts'
 
 const BUCKET = 'product-images'
-const MAX_IMAGES = 5
+const MAX_IMAGES = 10
 
 type FlockingKind = 'none' | 'members' | 'supporters'
 type BundleAxis = 'primary' | 'secondary'
@@ -33,6 +33,17 @@ interface VariantPayload {
   stock: number
   sku?: string | null
   footspot_size?: string | null
+  // * References a color in `colors[]` by its client `key` (null = no color).
+  color_key?: string | null
+}
+
+// * A color variant. New colors carry only a client `key`; existing ones also
+// * carry their DB `id`. Variants and images reference colors by `key`.
+interface ColorPayload {
+  id?: string
+  key: string
+  name: string
+  hex: string
 }
 
 interface BundleComponentPayload {
@@ -49,6 +60,8 @@ interface OptionPayload {
 interface ImageSlot {
   existing?: string
   file_key?: string
+  // * References a color in `colors[]` by its client `key` (null = every color).
+  color_key?: string | null
 }
 
 interface ProductData {
@@ -76,29 +89,64 @@ interface ProductData {
   variants?: VariantPayload[]
   components?: BundleComponentPayload[]
   options?: OptionPayload[]
+  colors?: ColorPayload[]
   image_slots?: ImageSlot[]
 }
 
 const PRODUCT_SELECT =
-  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position), options:product_options(id, name, price, position)'
+  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position), colors:product_colors(id, name, hex, position)'
 
 function normaliseVariants(vs: VariantPayload[] | undefined): VariantPayload[] | string {
   if (!Array.isArray(vs) || vs.length === 0) return 'at least one variant is required'
+  // * Size is unique per color, so dedupe on (color_key, size) rather than size.
   const seen = new Set<string>()
   for (const v of vs) {
     if (!v?.size?.trim()) return 'variant size cannot be empty'
-    const size = v.size.trim().toLowerCase()
-    if (seen.has(size)) return `duplicate size: ${v.size.trim()}`
-    seen.add(size)
+    const key = `${v.color_key ?? ''}::${v.size.trim().toLowerCase()}`
+    if (seen.has(key)) return `duplicate size: ${v.size.trim()}`
+    seen.add(key)
     if (!Number.isFinite(v.stock) || v.stock < 0) return 'variant stock must be >= 0'
   }
   return vs.map((v) => ({
-    ...v,
+    id: v.id,
     size: v.size.trim(),
     stock: Math.floor(Number(v.stock)),
     sku: v.sku?.trim() || null,
     footspot_size: v.footspot_size && v.footspot_size.trim() !== '' ? v.footspot_size.trim() : null,
+    color_key: v.color_key && v.color_key.trim() !== '' ? v.color_key.trim() : null,
   }))
+}
+
+// * Validate the color variants. Returns the cleaned list (possibly empty) or
+// * an error string. Colors are optional, so undefined/null → [].
+function normaliseColors(cs: ColorPayload[] | undefined | null): ColorPayload[] | string {
+  if (cs === undefined || cs === null) return []
+  if (!Array.isArray(cs)) return 'colors must be an array'
+  const seenKey = new Set<string>()
+  const seenName = new Set<string>()
+  const out: ColorPayload[] = []
+  for (const c of cs) {
+    if (!c?.key || typeof c.key !== 'string') return 'color key required'
+    if (seenKey.has(c.key)) return `duplicate color key: ${c.key}`
+    seenKey.add(c.key)
+    const name = (c.name ?? '').trim()
+    if (!name) return 'color name cannot be empty'
+    if (seenName.has(name.toLowerCase())) return `duplicate color: ${name}`
+    seenName.add(name.toLowerCase())
+    const hex = (c.hex ?? '').trim()
+    if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) return `invalid color hex: ${hex}`
+    out.push({ id: c.id, key: c.key, name, hex })
+  }
+  return out
+}
+
+// * Ensure every color reference (from variants/images) points at a defined
+// * color key. Returns an error string or null.
+function colorRefError(refs: (string | null | undefined)[], definedKeys: Set<string>): string | null {
+  for (const r of refs) {
+    if (r && !definedKeys.has(r)) return `unknown color reference: ${r}`
+  }
+  return null
 }
 
 function normaliseComponents(
@@ -155,50 +203,63 @@ function normaliseSlots(
     const hasFile = typeof s?.file_key === 'string' && s.file_key.length > 0
     if (hasExisting && hasFile) return 'slot cannot have both existing and file_key'
     if (!hasExisting && !hasFile) return 'slot must have either existing or file_key'
+    const color_key = s.color_key && s.color_key.trim() !== '' ? s.color_key.trim() : null
     if (hasExisting) {
       if (seenExisting.has(s.existing!)) return 'duplicate existing image path'
       seenExisting.add(s.existing!)
-      out.push({ existing: s.existing })
+      out.push({ existing: s.existing, color_key })
     } else {
       if (seenFile.has(s.file_key!)) return 'duplicate file_key'
       seenFile.add(s.file_key!)
       if (!(s.file_key! in files)) return `missing file for slot: ${s.file_key}`
-      out.push({ file_key: s.file_key })
+      out.push({ file_key: s.file_key, color_key })
     }
   }
   return out
 }
 
-// * Upload each new file, returning the final ordered path list + any paths
-// * actually uploaded (so we can clean up on failure).
+// * An image ready for the DB: its final storage path + the color it belongs to.
+interface ResolvedImage {
+  image_path: string
+  color_key: string | null
+}
+
+// * Upload each new file, returning the final ordered image list (path +
+// * color_key) + any paths actually uploaded (so we can clean up on failure).
 async function applySlotsToStorage(
   sb: ReturnType<typeof serviceClient>,
   slots: ImageSlot[],
   files: Record<string, File>,
-): Promise<{ paths: string[]; uploaded: string[] }> {
-  const paths: string[] = []
+): Promise<{ items: ResolvedImage[]; uploaded: string[] }> {
+  const items: ResolvedImage[] = []
   const uploaded: string[] = []
   for (const s of slots) {
     if (s.existing) {
-      paths.push(s.existing)
+      items.push({ image_path: s.existing, color_key: s.color_key ?? null })
     } else {
       const path = await uploadImage(sb, BUCKET, files[s.file_key!])
       uploaded.push(path)
-      paths.push(path)
+      items.push({ image_path: path, color_key: s.color_key ?? null })
     }
   }
-  return { paths, uploaded }
+  return { items, uploaded }
 }
 
 async function replaceProductImages(
   sb: ReturnType<typeof serviceClient>,
   productId: string,
-  paths: string[],
+  items: ResolvedImage[],
+  keyToId: Map<string, string>,
 ) {
   const { error: dErr } = await sb.from('product_images').delete().eq('product_id', productId)
   if (dErr) throw dErr
-  if (paths.length === 0) return
-  const rows = paths.map((image_path, position) => ({ product_id: productId, image_path, position }))
+  if (items.length === 0) return
+  const rows = items.map((it, position) => ({
+    product_id: productId,
+    image_path: it.image_path,
+    position,
+    color_id: it.color_key ? keyToId.get(it.color_key) ?? null : null,
+  }))
   const { error: iErr } = await sb.from('product_images').insert(rows)
   if (iErr) throw iErr
 }
@@ -228,6 +289,50 @@ async function cleanupUploads(
   paths: string[],
 ): Promise<void> {
   for (const p of paths) await removeImage(sb, BUCKET, p)
+}
+
+// * Upsert the product's colors (diff by id) and return a map from each payload
+// * `key` to its resolved DB id. Colors absent from the payload are deleted —
+// * cascade-removing their size variants and nulling their image links. Pass an
+// * empty list to clear all colors (e.g. when a product becomes a pack).
+async function resolveColors(
+  sb: ReturnType<typeof serviceClient>,
+  productId: string,
+  colors: ColorPayload[],
+): Promise<Map<string, string>> {
+  const keyToId = new Map<string, string>()
+  const keepIds = new Set<string>()
+  for (const [i, c] of colors.entries()) {
+    if (c.id) {
+      const { error } = await sb
+        .from('product_colors')
+        .update({ name: c.name, hex: c.hex, position: i })
+        .eq('id', c.id)
+        .eq('product_id', productId)
+      if (error) throw error
+      keyToId.set(c.key, c.id)
+      keepIds.add(c.id)
+    } else {
+      const { data: ins, error } = await sb
+        .from('product_colors')
+        .insert({ product_id: productId, name: c.name, hex: c.hex, position: i })
+        .select('id')
+        .single()
+      if (error) throw error
+      keyToId.set(c.key, ins.id)
+      keepIds.add(ins.id)
+    }
+  }
+  const { data: existing } = await sb
+    .from('product_colors')
+    .select('id')
+    .eq('product_id', productId)
+  const toDelete = (existing ?? []).map((r: any) => r.id).filter((id: string) => !keepIds.has(id))
+  if (toDelete.length > 0) {
+    const { error } = await sb.from('product_colors').delete().in('id', toDelete)
+    if (error) throw error
+  }
+  return keyToId
 }
 
 function productRow(body: ProductData) {
@@ -411,13 +516,24 @@ Deno.serve(async (req) => {
         variants = v
       }
 
+      // * Colors only apply to regular products (packs carry none).
+      const colorsRes = isPack ? [] : normaliseColors(data.colors)
+      if (typeof colorsRes === 'string') return jsonResponse({ error: colorsRes }, { status: 400 })
+      const colors: ColorPayload[] = colorsRes
+      const definedKeys = new Set(colors.map((c) => c.key))
+      const refErr = colorRefError(
+        [...variants.map((v) => v.color_key), ...slotsResult.map((s) => s.color_key)],
+        definedKeys,
+      )
+      if (refErr) return jsonResponse({ error: refErr }, { status: 400 })
+
       // * Upload all new files first so the failure path is just storage cleanup.
       let uploadedPaths: string[] = []
-      let finalPaths: string[] = []
+      let finalItems: ResolvedImage[] = []
       try {
         const r = await applySlotsToStorage(sb, slotsResult, files)
         uploadedPaths = r.uploaded
-        finalPaths = r.paths
+        finalItems = r.items
       } catch (e) {
         await cleanupUploads(sb, uploadedPaths)
         throw e
@@ -434,8 +550,11 @@ Deno.serve(async (req) => {
       }
 
       try {
-        if (finalPaths.length > 0) {
-          await replaceProductImages(sb, product.id, finalPaths)
+        // * Insert colors first so images + variants can resolve their color_id.
+        const keyToId = await resolveColors(sb, product.id, colors)
+
+        if (finalItems.length > 0) {
+          await replaceProductImages(sb, product.id, finalItems, keyToId)
         }
 
         await replaceProductOptions(sb, product.id, optionsResult)
@@ -458,9 +577,16 @@ Deno.serve(async (req) => {
             components.map((c) => c.component_product_id),
           )
         } else {
-          const { error: vErr } = await sb
-            .from('product_variants')
-            .insert(variants.map((v) => ({ ...v, product_id: product.id })))
+          const { error: vErr } = await sb.from('product_variants').insert(
+            variants.map((v) => ({
+              product_id: product.id,
+              size: v.size,
+              stock: v.stock,
+              sku: v.sku ?? null,
+              footspot_size: v.footspot_size ?? null,
+              color_id: v.color_key ? keyToId.get(v.color_key) ?? null : null,
+            })),
+          )
           if (vErr) throw vErr
         }
       } catch (e) {
@@ -525,6 +651,18 @@ Deno.serve(async (req) => {
         variants = v
       }
 
+      // * Colors only apply to regular products (packs carry none). Like
+      // * variants/image_slots, the whole set is replaced on every save.
+      const colorsRes = isPack ? [] : normaliseColors(data.colors)
+      if (typeof colorsRes === 'string') return jsonResponse({ error: colorsRes }, { status: 400 })
+      const colors: ColorPayload[] = colorsRes
+      const definedKeys = new Set(colors.map((c) => c.key))
+      const refErr = colorRefError(
+        [...variants.map((v) => v.color_key), ...slotsResult.map((s) => s.color_key)],
+        definedKeys,
+      )
+      if (refErr) return jsonResponse({ error: refErr }, { status: 400 })
+
       const { data: current, error: cErr } = await sb
         .from('products')
         .select('is_pack, name, club_id, product_images(image_path)')
@@ -545,15 +683,16 @@ Deno.serve(async (req) => {
       }
 
       let uploadedPaths: string[] = []
-      let finalPaths: string[] = []
+      let finalItems: ResolvedImage[] = []
       try {
         const r = await applySlotsToStorage(sb, slotsResult, files)
         uploadedPaths = r.uploaded
-        finalPaths = r.paths
+        finalItems = r.items
       } catch (e) {
         await cleanupUploads(sb, uploadedPaths)
         throw e
       }
+      const finalPaths = finalItems.map((i) => i.image_path)
 
       try {
         const { error: pErr } = await sb
@@ -562,7 +701,12 @@ Deno.serve(async (req) => {
           .eq('id', data.id)
         if (pErr) throw pErr
 
-        await replaceProductImages(sb, data.id!, finalPaths)
+        // * Resolve colors before images/variants so they can map color_id.
+        // * Removed colors cascade-drop their variants here, so the variant
+        // * diff below operates on the surviving set.
+        const keyToId = await resolveColors(sb, data.id!, colors)
+
+        await replaceProductImages(sb, data.id!, finalItems, keyToId)
 
         if (optionsProvided) await replaceProductOptions(sb, data.id!, optionsResult)
 
@@ -624,7 +768,13 @@ Deno.serve(async (req) => {
 
           const keepIds = new Set<string>()
           for (const v of variants) {
-            const row = { size: v.size, stock: v.stock, sku: v.sku ?? null, footspot_size: v.footspot_size ?? null }
+            const row = {
+              size: v.size,
+              stock: v.stock,
+              sku: v.sku ?? null,
+              footspot_size: v.footspot_size ?? null,
+              color_id: v.color_key ? keyToId.get(v.color_key) ?? null : null,
+            }
             if (v.id) {
               keepIds.add(v.id)
               const { error: uErr } = await sb

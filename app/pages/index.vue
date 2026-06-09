@@ -28,6 +28,30 @@ await useAsyncData('home-bootstrap', async () => {
   ])
   return true
 })
+
+// * SEO — homepage meta + Organization JSON-LD (logo, name, contact surface).
+const siteUrl = useRuntimeConfig().public.siteUrl || 'https://www.intersportclubidf.com'
+const homeDescription =
+  'Boutique en ligne Intersport Club IDF : maillots, textiles et équipements personnalisés pour les clubs sportifs d\'Île-de-France. Livraison Colissimo ou retrait club.'
+
+useSeoMeta({
+  title: 'Intersport Club IDF — Équipements personnalisés pour clubs sportifs',
+  description: homeDescription,
+  ogTitle: 'Intersport Club IDF',
+  ogDescription: homeDescription,
+  ogImage: `${siteUrl}/shop-logo.png`,
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+})
+
+useSchemaOrg([
+  defineOrganization({
+    name: 'Intersport Club IDF',
+    logo: `${siteUrl}/logo_compose.svg`,
+    description: homeDescription,
+  }),
+  defineWebSite({ name: 'Intersport Club IDF' }),
+])
 </script>
 
 <template>

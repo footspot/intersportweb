@@ -3,9 +3,30 @@
 // * the visitor enters the shop via the "Boutique Club" entry card. Keeps the
 // * dynamic slide-height measurement so the viewport grows/shrinks per slide.
 import { useHomeFlowCtx } from '~/composables/useHomeFlow'
+import type { Sport } from '~/stores/sports'
 
 const flow = useHomeFlowCtx()
 const { t } = flow
+
+// * Readable text color (dark ink vs white) for a given background hex, picked
+// * by perceived luminance so the sport name + icon stay legible on any tile.
+function readableText(hex: string): string {
+  const m = hex.replace('#', '')
+  const r = parseInt(m.slice(0, 2), 16)
+  const g = parseInt(m.slice(2, 4), 16)
+  const b = parseInt(m.slice(4, 6), 16)
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return lum > 0.6 ? '#111827' : '#ffffff'
+}
+
+// * Inline style for a tile that has a custom background. Selected tiles frame
+// * themselves with the contrast color; unselected use the background itself.
+function sportTileStyle(s: Sport): Record<string, string> {
+  if (!s.background_color) return {}
+  const text = readableText(s.background_color)
+  const selected = flow.selectedSportId.value === s.id
+  return { backgroundColor: s.background_color, color: text, borderColor: selected ? text : s.background_color }
+}
 
 // * currentSlide 1 = sports, 2 = clubs. Only show during the actual shop flow
 // * (browsing sports/clubs = 'idle', or a club selected = 'products') — never
@@ -94,17 +115,19 @@ const header = computed(() => {
                 type="button"
                 class="group relative flex-[0_0_180px] h-[110px] rounded-[14px] border-2 flex flex-col items-center justify-center gap-2 cursor-pointer overflow-hidden transition-all select-none"
                 :class="
-                  flow.selectedSportId.value === s.id
-                    ? 'border-ink bg-ink text-white shadow-lg'
-                    : 'border-gray-200 dark:border-sidebar bg-page dark:bg-sidebar hover:border-ink dark:hover:border-accent hover:-translate-y-1'
+                  s.background_color
+                    ? (flow.selectedSportId.value === s.id ? 'shadow-lg' : 'hover:-translate-y-1')
+                    : (flow.selectedSportId.value === s.id
+                        ? 'border-ink bg-ink text-white shadow-lg'
+                        : 'border-gray-200 dark:border-sidebar bg-page dark:bg-sidebar hover:border-ink dark:hover:border-accent hover:-translate-y-1')
                 "
+                :style="sportTileStyle(s)"
                 @click="flow.pickSport(s)"
               >
                 <div v-if="flow.sportIconUrl(s.icon_path)" class="relative z-[1] w-10 h-10 flex items-center justify-center">
                   <img
                     :src="flow.sportIconUrl(s.icon_path)!"
                     class="w-9 h-9 object-contain rounded-lg"
-                    :class="flow.selectedSportId.value === s.id ? 'brightness-0 invert' : ''"
                     :alt="flow.sportName(s)"
                   >
                 </div>

@@ -1,0 +1,74 @@
+# * Netlify 301 redirects — migration from the old Wix site to the Nuxt app.
+# * Goal: preserve the SEO authority of URLs already indexed by Google.
+# * Source: the old sitemap (intersportclubidf.com/sitemap.xml), captured 2026-06.
+# *
+# * NOTE: /contact and /livraison-et-retour keep the SAME path on the new app,
+# * so they are intentionally NOT redirected — the new pages serve them directly.
+
+# --- Legal pages: direct 1:1 equivalents -------------------------------------
+/conditions-gnrale-de-vente        /cgv               301!
+/politique-de-confidentialité      /confidentialite   301!
+/politique-de-confidentialit%C3%A9 /confidentialite   301!
+
+# --- Shop / catalog entry points ---------------------------------------------
+/boutique             /   301
+/shop                 /   301
+/online-store         /   301
+/catalogues           /   301
+/category/all-products /  301
+/destockage           /   301
+/destockage-club      /   301
+
+# --- Sport & category landing pages (no per-sport route in the new app) -------
+/football             /   301
+/handball             /   301
+/rugby                /   301
+/basket               /   301
+/judo                 /   301
+/tennis-de-table      /   301
+/volley-ball          /   301
+/petanque             /   301
+/gymnastique          /   301
+/multisport           /   301
+/sport-collectif      /   301
+/sport-individuel     /   301
+/materiel             /   301
+/textile-divers       /   301
+/winter               /   301
+/training             /   301
+/lady                 /   301
+/coupe-et-medaille    /   301
+/personnalisation     /   301
+/guide-de-taille      /   301
+/guide-taille-errea   /   301
+
+# --- Club pages (no per-club public page in the new app) ----------------------
+/gazeran-football-c1jqr      /   301
+/velizy-football             /   301
+/velizy-handball             /   301
+/fc-boissy-st-yon            /   301
+/aunay-fc                    /   301
+/fc-vallee-78                /   301
+/croissy-sur-seine-football  /   301
+/rueil-football              /   301
+/montgeron-football          /   301
+/asmb-tennis-de-table        /   301
+/ivry-football               /   301
+/bois-colombes-handball      /   301
+/poissy-handball             /   301
+/clamart-football            /   301
+/racing-club-de-neauphle     /   301
+/bam-boxe                    /   301
+/comite                      /   301
+/sohsvc                      /   301
+/3a                          /   301
+/sfcbn1                      /   301
+/opb                         /   301
+/fc93                        /   301
+
+# --- "About / qui sommes-nous" variants --------------------------------------
+/about-1        /   301
+/about-1-1      /   301
+/propos1-c1pzi  /   301
+/propos1-c2ze   /   301
+/propos1-cyll   /   301

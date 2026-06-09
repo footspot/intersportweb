@@ -27,6 +27,7 @@ export interface CartLine {
   image_path: string | null
   size: string                       // * primary size (bundle) or variant size
   secondary_size: string | null      // * secondary size for bundles
+  color: string | null               // * color variant name (display only; null = no color)
   quantity: number
   max_stock: number
   unit_price_paid: number             // * post-discount price the buyer pays (incl. flocking add-on)
@@ -37,6 +38,9 @@ export interface CartLine {
   footspot_discount_pct: number       // * Footspot club discount layered on top (0 = none)
   flocking: FlockingOptions
   flocking_addon: number
+  // * Custom paid options the buyer ticked (snapshot). Price baked into unit_price_paid.
+  selected_options: { id: string; name: string; price: number }[]
+  options_addon: number
 }
 
 interface CartState {
@@ -67,10 +71,13 @@ export const useCartStore = defineStore('cart', () => {
     variantId: string | null              // * null for bundles
     size: string
     secondarySize?: string | null
+    color?: string | null                  // * color variant name (display only)
+    colorImagePath?: string | null         // * color's image, snapshotted onto the line
     maxStock: number
     quantity: number
     flocking?: FlockingOptions
     flockingAddon?: number
+    options?: Array<{ id: string; name: string; price: number }>  // * selected paid options
     footspotDiscountPct?: number           // * Footspot club discount for this product
   }) {
     const {
@@ -78,10 +85,13 @@ export const useCartStore = defineStore('cart', () => {
       variantId,
       size,
       secondarySize = null,
+      color = null,
+      colorImagePath = null,
       maxStock,
       quantity,
       flocking,
       flockingAddon = 0,
+      options = [],
       footspotDiscountPct = 0,
     } = opts
     const pricing = computeUnitPricing({
@@ -95,10 +105,19 @@ export const useCartStore = defineStore('cart', () => {
     // * flocking add-on. create-order recomputes this server-side identically.
     const discountedUnit = applyClubDiscount(pricing.unit_price_paid, footspotPct)
     const addon = Math.max(0, Number(flockingAddon) || 0)
+    // * Custom paid options: snapshot + summed surcharge. Charged on top, no fund.
+    const cleanOptions = (options ?? []).map((o) => ({
+      id: o.id,
+      name: o.name,
+      price: Math.max(0, Number(o.price) || 0),
+    }))
+    const optionsAddon = cleanOptions.reduce((s, o) => s + o.price, 0)
+    // * Distinct option selections are distinct cart lines.
+    const optionsKey = cleanOptions.map((o) => o.id).sort().join(',')
     // * Bundle lines don't have a single variantId, so include size axes in the key.
     const lineId = variantId
-      ? `${product.id}::${variantId}::${flockingKey(flocking)}::${addon}`
-      : `${product.id}::pack::${size}::${secondarySize ?? ''}::${flockingKey(flocking)}::${addon}`
+      ? `${product.id}::${variantId}::${flockingKey(flocking)}::${addon}::${optionsKey}`
+      : `${product.id}::pack::${size}::${secondarySize ?? ''}::${flockingKey(flocking)}::${addon}::${optionsKey}`
     const existing = state.value.lines.find((l) => l.line_id === lineId)
     const clampedQty = (current: number) =>
       Math.max(1, Math.min(maxStock, current + quantity))
@@ -115,12 +134,14 @@ export const useCartStore = defineStore('cart', () => {
         club_id: product.club_id,
         reference: product.reference,
         name: product.name,
-        image_path: primaryImagePath(product),
+        // * Prefer the picked color's image so the cart thumbnail matches.
+        image_path: colorImagePath ?? primaryImagePath(product),
         size,
         secondary_size: secondarySize?.trim() || null,
+        color: color?.trim() || null,
         quantity: Math.max(1, Math.min(maxStock, quantity)),
         max_stock: maxStock,
-        unit_price_paid: discountedUnit + addon,
+        unit_price_paid: discountedUnit + addon + optionsAddon,
         selling_price: Number(product.selling_price),
         buying_price: Number(product.buying_price),
         discount_percent: Number(product.discount_percent ?? 0),
@@ -132,6 +153,8 @@ export const useCartStore = defineStore('cart', () => {
           number: flocking?.number?.trim() || null,
         },
         flocking_addon: addon,
+        selected_options: cleanOptions,
+        options_addon: optionsAddon,
       })
     }
   }

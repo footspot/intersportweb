@@ -58,6 +58,74 @@ export function applyClubDiscount(unitPrice: number, discountPct: number): numbe
   return round2(Number(unitPrice) * (1 - pct / 100))
 }
 
+// * ---------------------------------------------------------------------------
+// * Line add-ons — flocking customisation + custom paid options.
+// *
+// * Add-ons are charged ON TOP of the catalogue unit price and do NOT affect the
+// * club fund (the fund stays based on catalogue margin). The cart and the server
+// * recompute them identically from trusted product data, so the checkout price
+// * can be validated instead of trusted blindly. Mirrors the client helpers in
+// * app/components/home/FlockingOptions.vue and the cart store.
+// * ---------------------------------------------------------------------------
+
+export interface FlockingSelection {
+  name?: string | null
+  initial?: string | null
+  number?: string | null
+}
+
+export interface FlockingConfig {
+  flocking_kind?: 'none' | 'members' | 'supporters' | null
+  flocking_members_name_price?: number | null
+  flocking_members_initials_price?: number | null
+  flocking_supporter_price?: number | null
+}
+
+// * Per-unit flocking surcharge for a selection, given the product's config.
+export function computeFlockingAddon(
+  p: FlockingConfig,
+  f: FlockingSelection | null | undefined,
+): number {
+  const kind = p.flocking_kind ?? 'none'
+  if (kind === 'members') {
+    return round2(
+      (f?.name ? Number(p.flocking_members_name_price || 0) : 0) +
+        (f?.initial ? Number(p.flocking_members_initials_price || 0) : 0),
+    )
+  }
+  if (kind === 'supporters') {
+    return f?.name || f?.number ? round2(Number(p.flocking_supporter_price || 0)) : 0
+  }
+  return 0
+}
+
+export interface ProductOptionRow {
+  id: string
+  name: string
+  price: number
+}
+
+// * Resolve the selected option ids against the product's own options. Unknown
+// * ids (e.g. an option deleted since add-to-cart) are ignored. Returns the
+// * per-unit surcharge plus {name, price} snapshots for the order record.
+export function resolveOptions(
+  productOptions: ProductOptionRow[],
+  selectedIds: string[] | null | undefined,
+): { addon: number; selected: { name: string; price: number }[] } {
+  if (!Array.isArray(selectedIds) || selectedIds.length === 0) return { addon: 0, selected: [] }
+  const byId = new Map(productOptions.map((o) => [o.id, o]))
+  const selected: { name: string; price: number }[] = []
+  let addon = 0
+  for (const id of selectedIds) {
+    const o = byId.get(id)
+    if (!o) continue
+    const price = Number(o.price) || 0
+    addon += price
+    selected.push({ name: o.name, price })
+  }
+  return { addon: round2(addon), selected }
+}
+
 // * Validate pricing inputs for server-side integrity checks.
 export function validatePricing(input: PricingInput): string | null {
   if (!Number.isFinite(input.buying_price) || input.buying_price < 0) {

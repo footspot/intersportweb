@@ -12,6 +12,7 @@ import type { DiscountSource } from '~/composables/usePricingPreview'
 import type { DraftVariant } from './VariantStockEditor.vue'
 import type { DraftBundleComponent } from './BundleComponentsEditor.vue'
 import type { GallerySlot } from './GalleryEditor.vue'
+import type { DraftColor } from './ProductColorsEditor.vue'
 
 interface Props {
   modelValue: boolean
@@ -60,6 +61,7 @@ const availableFrom = ref<string>('')
 const footspotCategory = ref<string>('')
 const variants = ref<DraftVariant[]>([])
 const options = ref<DraftOption[]>([])
+const colors = ref<DraftColor[]>([])
 
 const FOOTSPOT_CATEGORIES = [
   'jersey', 'shorts', 'socks', 'ball', 'cone', 'bib',
@@ -113,6 +115,23 @@ watch(autoBundleBuyingPrice, (v) => {
   if (v != null) buyingPrice.value = Number(v.toFixed(2))
 })
 
+// * When colors change, drop any variant/image references to a color that no
+// * longer exists. Variants fall back to the first remaining color (or null
+// * when none left); images fall back to "all colors" (null).
+watch(
+  () => colors.value.map((c) => c.key),
+  (keys) => {
+    const valid = new Set(keys)
+    const fallback = keys[0] ?? null
+    variants.value = variants.value.map((v) =>
+      v.color_key && !valid.has(v.color_key) ? { ...v, color_key: fallback } : v,
+    )
+    gallerySlots.value = gallerySlots.value.map((s) =>
+      s.color_key && !valid.has(s.color_key) ? { ...s, color_key: null } : s,
+    )
+  },
+)
+
 watch(
   () => props.modelValue,
   (open) => {
@@ -124,8 +143,11 @@ watch(
     category.value = p?.category ?? ''
     detailsFr.value = p?.details?.fr ?? ''
     detailsEn.value = p?.details?.en ?? ''
+    // * Existing colors use their DB id as the client `key`, so variants and
+    // * images can reference them by the same value they carry in color_id.
+    colors.value = (p?.colors ?? []).map((c) => ({ id: c.id, key: c.id, name: c.name, hex: c.hex }))
     gallerySlots.value =
-      p?.images?.map((img) => ({ id: img.id, existing: img.image_path })) ?? []
+      p?.images?.map((img) => ({ id: img.id, existing: img.image_path, color_key: img.color_id })) ?? []
     buyingPrice.value = Number(p?.buying_price ?? 0)
     sellingPrice.value = Number(p?.selling_price ?? 0)
     discountPercent.value = Number(p?.discount_percent ?? 0)
@@ -141,8 +163,8 @@ watch(
     availableFrom.value = p?.available_from ?? ''
     footspotCategory.value = p?.footspot_category ?? ''
     variants.value = p?.variants?.length
-      ? p.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock, sku: v.sku, footspot_size: v.footspot_size }))
-      : [{ size: '', stock: 0, sku: null, footspot_size: null }]
+      ? p.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock, sku: v.sku, footspot_size: v.footspot_size, color_key: v.color_id }))
+      : [{ size: '', stock: 0, sku: null, footspot_size: null, color_key: null }]
     options.value = (p?.options ?? []).map((o) => ({ name: o.name, price: Number(o.price) }))
     bundleComponents.value = (p?.bundle_components ?? []).map((bc) => ({
       component_product_id: bc.component_product_id,
@@ -206,6 +228,15 @@ async function save() {
       errorMsg.value = t('admin.products.errors.variantRequired')
       return
     }
+    if (colors.value.some((c) => !c.name.trim())) {
+      errorMsg.value = t('admin.products.errors.colorNameRequired')
+      return
+    }
+    // * When colors are defined, every size row must belong to one.
+    if (colors.value.length > 0 && variants.value.some((v) => !v.color_key)) {
+      errorMsg.value = t('admin.products.errors.variantColorRequired')
+      return
+    }
   }
 
   saving.value = true
@@ -218,9 +249,9 @@ async function save() {
       if (s.file) {
         const key = `imageFile_${s.id}`
         files[key] = s.file
-        imageSlots.push({ file_key: key })
+        imageSlots.push({ file_key: key, color_key: s.color_key ?? null })
       } else if (s.existing) {
-        imageSlots.push({ existing: s.existing })
+        imageSlots.push({ existing: s.existing, color_key: s.color_key ?? null })
       }
     }
 
@@ -253,6 +284,10 @@ async function save() {
         name: o.name.trim(),
         price: Math.max(0, Number(o.price) || 0),
       })),
+      // * Colors only ride along for regular products; packs carry none.
+      colors: isPack.value
+        ? []
+        : colors.value.map((c) => ({ id: c.id, key: c.key, name: c.name.trim(), hex: c.hex })),
     }
 
     const payload: ProductPayload = isPack.value
@@ -272,6 +307,7 @@ async function save() {
             stock: v.stock,
             sku: v.sku,
             footspot_size: v.footspot_size ?? null,
+            color_key: v.color_key ?? null,
           })),
         }
 
@@ -407,12 +443,27 @@ async function save() {
         </label>
       </div>
 
-      <AdminProductsGalleryEditor
-        v-model="gallerySlots"
-        bucket="product-images"
-        :label="t('admin.products.image')"
-        :club-logo-url="selectedClubLogoUrl"
-      />
+      <!-- Description (optional, FR/EN) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-sm font-medium">{{ t('admin.products.detailsFr') }}</span>
+          <textarea
+            v-model="detailsFr"
+            rows="3"
+            :placeholder="t('admin.products.detailsPlaceholder')"
+            class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none resize-y"
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium">{{ t('admin.products.detailsEn') }}</span>
+          <textarea
+            v-model="detailsEn"
+            rows="3"
+            :placeholder="t('admin.products.detailsPlaceholder')"
+            class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none resize-y"
+          />
+        </label>
+      </div>
 
       <!-- Pack toggle -->
       <div class="border-t border-gray-100 dark:border-sidebar pt-4 space-y-3">
@@ -480,8 +531,21 @@ async function save() {
         </div>
       </div>
 
-      <!-- Variants (non-pack) OR Bundle composition (pack) -->
-      <div class="border-t border-gray-100 dark:border-sidebar pt-4">
+      <!-- Colors → Images → Sizes (non-pack) / Images → Composition (pack).
+           The image picker sits between colors and sizes so staff define the
+           colors first, attach each photo to a color, then build the size rows
+           per color. -->
+      <div class="border-t border-gray-100 dark:border-sidebar pt-4 space-y-4">
+        <AdminProductsProductColorsEditor v-if="!isPack" v-model="colors" />
+
+        <AdminProductsGalleryEditor
+          v-model="gallerySlots"
+          bucket="product-images"
+          :label="t('admin.products.image')"
+          :club-logo-url="selectedClubLogoUrl"
+          :colors="isPack ? [] : colors"
+        />
+
         <AdminProductsBundleComponentsEditor
           v-if="isPack"
           v-model="bundleComponents"
@@ -491,6 +555,7 @@ async function save() {
           v-else
           v-model="variants"
           :footspot-enabled="!!footspotCategory"
+          :colors="colors"
         />
       </div>
 

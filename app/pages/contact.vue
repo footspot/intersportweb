@@ -8,6 +8,15 @@ const contact = useContactStore()
 
 await useAsyncData('public-contact', async () => { await contact.fetch(); return true })
 
+// * SEO — contact page meta.
+useSeoMeta({
+  title: () => `${t('contactPage.title', 'Contact')} — Intersport Club IDF`,
+  description:
+    'Contactez Intersport Club IDF pour vos commandes d\'équipements et textiles personnalisés de club sportif.',
+  ogTitle: 'Contact — Intersport Club IDF',
+  twitterCard: 'summary',
+})
+
 const info = computed(() => contact.info)
 
 // * Contact form — posts to the rate-limited `contact-message` edge function.
