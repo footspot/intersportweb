@@ -56,6 +56,10 @@ export interface ProductOption {
   name: string
   price: number
   position: number
+  // * When true the storefront shows an optional free-text input (the customer
+  // * can type e.g. a jersey number). `input_label` is the prompt next to it.
+  allow_custom_input: boolean
+  input_label: string | null
 }
 
 // * Multipart slot descriptor for create/update requests. Position 0 = primary.
@@ -116,7 +120,7 @@ export type ProductPayload = Omit<
     }
   >
   components?: Array<{ component_product_id: string; axis: BundleAxis; quantity: number }>
-  options?: Array<{ name: string; price: number }>
+  options?: Array<{ name: string; price: number; allow_custom_input?: boolean; input_label?: string | null }>
   colors?: ColorPayload[]
   image_slots?: ImageSlot[]
 }
@@ -196,7 +200,7 @@ export const useProductsStore = defineStore('products', {
         const { data, error } = await client
           .from('products')
           .select(
-            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position), colors:product_colors(id, name, hex, position)',
+            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position, allow_custom_input, input_label), colors:product_colors(id, name, hex, position)',
           )
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: false })
@@ -245,6 +249,47 @@ export const useProductsStore = defineStore('products', {
       })
       if (error) throw error
       this.items = this.items.filter((p) => p.id !== id)
+    },
+
+    // * Persist a new sort_order for a set of products (admin drag-and-drop,
+    // * scoped to one club). Updates the local copies optimistically.
+    async reorder(order: Array<{ id: string; sort_order: number }>) {
+      const { error } = await invokeEdge<{ ok: true }>('backoffice-products/reorder', {
+        method: 'POST',
+        body: { order },
+      })
+      if (error) throw new Error(error.message)
+      for (const { id, sort_order } of order) {
+        const p = this.items.find((x) => x.id === id)
+        if (p) p.sort_order = sort_order
+      }
+    },
+
+    // * Bulk rename (to = new name) or delete (to = null) a free-text category
+    // * across every product that uses it. Patches local copies on success.
+    async updateCategory(from: string, to: string | null) {
+      const { data, error } = await invokeEdge<{ ok: true; affected: number }>(
+        'backoffice-products/update-category',
+        { method: 'POST', body: { from, to } },
+      )
+      if (error) throw new Error(error.message)
+      const next = to && to.trim() ? to.trim() : null
+      for (const p of this.items) {
+        if (p.category === from) p.category = next
+      }
+      return data?.affected ?? 0
+    },
+
+    // * Deep-copy a product into a new hidden draft and prepend it locally.
+    // * Returns the new product so the caller can open it for editing.
+    async duplicate(id: string) {
+      const { data, error } = await invokeEdge<{ product: Product }>('backoffice-products/duplicate', {
+        method: 'POST',
+        body: { id },
+      })
+      if (error) throw new Error(error.message)
+      if (data?.product) this.items.unshift(enrich(data.product))
+      return data?.product ?? null
     },
 
     async toggleClearance(product: Product) {

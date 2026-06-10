@@ -321,7 +321,10 @@ Deno.serve(async (req) => {
                 .filter(Boolean)
                 .join(' · ')
               const optNames = Array.isArray(it.selected_options)
-                ? it.selected_options.map((o: any) => o?.name).filter(Boolean).join(', ')
+                ? it.selected_options
+                    .map((o: any) => (o?.value ? `${o.name} : ${o.value}` : o?.name))
+                    .filter(Boolean)
+                    .join(', ')
                 : ''
               const sub = [
                 it.color || '',

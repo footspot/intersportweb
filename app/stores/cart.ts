@@ -39,7 +39,8 @@ export interface CartLine {
   flocking: FlockingOptions
   flocking_addon: number
   // * Custom paid options the buyer ticked (snapshot). Price baked into unit_price_paid.
-  selected_options: { id: string; name: string; price: number }[]
+  // * `value` holds the optional free-text the buyer typed (input-enabled options).
+  selected_options: { id: string; name: string; price: number; value?: string | null }[]
   options_addon: number
 }
 
@@ -77,7 +78,7 @@ export const useCartStore = defineStore('cart', () => {
     quantity: number
     flocking?: FlockingOptions
     flockingAddon?: number
-    options?: Array<{ id: string; name: string; price: number }>  // * selected paid options
+    options?: Array<{ id: string; name: string; price: number; value?: string | null }>  // * selected paid options
     footspotDiscountPct?: number           // * Footspot club discount for this product
   }) {
     const {
@@ -110,10 +111,11 @@ export const useCartStore = defineStore('cart', () => {
       id: o.id,
       name: o.name,
       price: Math.max(0, Number(o.price) || 0),
+      value: o.value?.trim() || null,
     }))
     const optionsAddon = cleanOptions.reduce((s, o) => s + o.price, 0)
-    // * Distinct option selections are distinct cart lines.
-    const optionsKey = cleanOptions.map((o) => o.id).sort().join(',')
+    // * Distinct option selections (incl. typed value) are distinct cart lines.
+    const optionsKey = cleanOptions.map((o) => `${o.id}:${o.value ?? ''}`).sort().join(',')
     // * Bundle lines don't have a single variantId, so include size axes in the key.
     const lineId = variantId
       ? `${product.id}::${variantId}::${flockingKey(flocking)}::${addon}::${optionsKey}`

@@ -47,6 +47,7 @@ async function toggleClearanceFlag(p: Product) {
 
 const showForm = ref(false)
 const editing = ref<Product | null>(null)
+const showCategories = ref(false)
 
 const confirmOpen = ref(false)
 const deleting = ref<Product | null>(null)
@@ -57,6 +58,18 @@ const previewOpen = ref(false)
 const previewing = ref<Product | null>(null)
 
 const togglingIds = ref<string[]>([])
+const duplicatingIds = ref<string[]>([])
+const savingOrder = ref(false)
+
+// * Drag-to-reorder is only offered on a clean single-club view — reordering a
+// * search/visibility-filtered subset would produce a confusing partial order.
+const reorderable = computed(
+  () =>
+    clubFilter.value !== 'all' &&
+    !search.value.trim() &&
+    visibility.value === 'all' &&
+    !clearanceOnly.value,
+)
 
 await useAsyncData('admin-products-page', async () => {
   await Promise.all([clubs.fetchAll(), products.fetchAll(), settings.fetchAll()])
@@ -125,6 +138,33 @@ async function toggleVisible(p: Product) {
     togglingIds.value = togglingIds.value.filter((id) => id !== p.id)
   }
 }
+
+// * Persist the new product order (one club). The committed list is the
+// * displayed order; sort_order becomes its index.
+async function onReorder(ordered: Product[]) {
+  savingOrder.value = true
+  try {
+    await products.reorder(ordered.map((p, idx) => ({ id: p.id, sort_order: idx })))
+  } catch (err) {
+    console.error(err)
+    await products.fetchAll()
+  } finally {
+    savingOrder.value = false
+  }
+}
+
+// * Duplicate a product into a hidden draft, then open it for editing.
+async function duplicate(p: Product) {
+  duplicatingIds.value = [...duplicatingIds.value, p.id]
+  try {
+    const copy = await products.duplicate(p.id)
+    if (copy) openEdit(copy)
+  } catch (err) {
+    console.error(err)
+  } finally {
+    duplicatingIds.value = duplicatingIds.value.filter((id) => id !== p.id)
+  }
+}
 </script>
 
 <template>
@@ -144,6 +184,14 @@ async function toggleVisible(p: Product) {
           />
           <UIcon name="i-lucide-search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-sidebar text-sm font-medium hover:bg-gray-50 dark:hover:bg-sidebar"
+          @click="showCategories = true"
+        >
+          <UIcon name="i-lucide-tags" class="w-4 h-4" />
+          <span>{{ t('admin.products.categoryManager.button') }}</span>
+        </button>
         <button
           type="button"
           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary-dark"
@@ -278,24 +326,35 @@ async function toggleVisible(p: Product) {
     <div v-if="products.loading" class="p-10 text-center text-gray-500">
       {{ t('common.loading') }}
     </div>
+    <template v-else>
+    <p v-if="reorderable" class="flex items-center gap-1.5 text-xs text-gray-500 -mb-2">
+      <UIcon name="i-lucide-grip-vertical" class="w-3.5 h-3.5" />
+      {{ savingOrder ? t('admin.products.savingOrder') : t('admin.products.reorderHint') }}
+    </p>
     <AdminProductsProductTable
-      v-else
       :products="filtered"
       :clubs="clubs.items"
       :toggling-ids="togglingIds"
       :toggling-clearance-ids="togglingClearance"
+      :duplicating-ids="duplicatingIds"
+      :reorderable="reorderable"
       @edit="openEdit"
       @delete="askDelete"
       @toggle-visible="toggleVisible"
       @toggle-clearance="toggleClearanceFlag"
       @preview="openPreview"
+      @duplicate="duplicate"
+      @reorder="onReorder"
     />
+    </template>
 
     <AdminProductsProductFormModal
       v-model="showForm"
       :product="editing"
       @saved="products.fetchAll()"
     />
+
+    <AdminProductsCategoryManagerModal v-model="showCategories" />
 
     <AdminProductsCardPreviewModal
       v-model="previewOpen"

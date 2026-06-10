@@ -261,6 +261,11 @@ async function onSubmit() {
           quantity: l.quantity,
           flocking: l.flocking,
           option_ids: (l.selected_options ?? []).map((o) => o.id),
+          option_values: Object.fromEntries(
+            (l.selected_options ?? [])
+              .filter((o) => o.value)
+              .map((o) => [o.id, o.value as string]),
+          ),
         })),
         delivery_method: deliveryMethod.value,
         shipping_address: mergedShipping,
@@ -505,7 +510,7 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
                   {{ [l.flocking.name, l.flocking.initial, l.flocking.number ? '#' + l.flocking.number : null].filter(Boolean).join(' · ') }}
                 </div>
                 <div v-if="l.selected_options?.length" class="text-xs text-gray-500 truncate">
-                  + {{ l.selected_options.map((o) => o.name).join(', ') }}
+                  + {{ l.selected_options.map((o) => (o.value ? `${o.name} : ${o.value}` : o.name)).join(', ') }}
                 </div>
               </div>
               <span class="shrink-0 font-medium">{{ fmt(l.unit_price_paid * l.quantity) }}</span>

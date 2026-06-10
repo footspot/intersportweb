@@ -103,25 +103,44 @@ export interface ProductOptionRow {
   id: string
   name: string
   price: number
+  // * When true, the option carries an optional free-text value typed by the
+  // * customer (e.g. a jersey number). The value never affects the price.
+  allow_custom_input?: boolean
+}
+
+export interface ResolvedOption {
+  name: string
+  price: number
+  // * Customer-entered value, only kept for options that allow custom input.
+  value?: string | null
 }
 
 // * Resolve the selected option ids against the product's own options. Unknown
 // * ids (e.g. an option deleted since add-to-cart) are ignored. Returns the
-// * per-unit surcharge plus {name, price} snapshots for the order record.
+// * per-unit surcharge plus {name, price, value?} snapshots for the order record.
+// * `optionValues` maps option id → customer-typed value; it's only honoured for
+// * options flagged `allow_custom_input` and never changes the surcharge.
 export function resolveOptions(
   productOptions: ProductOptionRow[],
   selectedIds: string[] | null | undefined,
-): { addon: number; selected: { name: string; price: number }[] } {
+  optionValues?: Record<string, string> | null,
+): { addon: number; selected: ResolvedOption[] } {
   if (!Array.isArray(selectedIds) || selectedIds.length === 0) return { addon: 0, selected: [] }
   const byId = new Map(productOptions.map((o) => [o.id, o]))
-  const selected: { name: string; price: number }[] = []
+  const selected: ResolvedOption[] = []
   let addon = 0
   for (const id of selectedIds) {
     const o = byId.get(id)
     if (!o) continue
     const price = Number(o.price) || 0
     addon += price
-    selected.push({ name: o.name, price })
+    const row: ResolvedOption = { name: o.name, price }
+    if (o.allow_custom_input) {
+      const raw = optionValues?.[id]
+      const value = typeof raw === 'string' ? raw.trim() : ''
+      row.value = value || null
+    }
+    selected.push(row)
   }
   return { addon: round2(addon), selected }
 }

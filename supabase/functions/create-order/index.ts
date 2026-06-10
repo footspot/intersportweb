@@ -39,6 +39,8 @@ interface CartLineIn {
   flocking?: { name?: string | null; initial?: string | null; number?: string | null }
   // * Ids of the custom paid options the buyer ticked (validated server-side).
   option_ids?: string[]
+  // * Optional free-text values for input-enabled options, keyed by option id.
+  option_values?: Record<string, string>
 }
 
 interface ShippingAddress {
@@ -184,15 +186,20 @@ Deno.serve(async (req) => {
     const productMap = new Map((products ?? []).map((p: any) => [p.id, p]))
 
     // * Custom paid options per product (for server-side add-on pricing).
-    const optionsMap = new Map<string, { id: string; name: string; price: number }[]>()
+    const optionsMap = new Map<string, { id: string; name: string; price: number; allow_custom_input: boolean }[]>()
     {
       const { data: opts } = await sb
         .from('product_options')
-        .select('id, product_id, name, price')
+        .select('id, product_id, name, price, allow_custom_input')
         .in('product_id', productIds)
       for (const o of opts ?? []) {
         const list = optionsMap.get((o as any).product_id) ?? []
-        list.push({ id: (o as any).id, name: (o as any).name, price: Number((o as any).price) })
+        list.push({
+          id: (o as any).id,
+          name: (o as any).name,
+          price: Number((o as any).price),
+          allow_custom_input: !!(o as any).allow_custom_input,
+        })
         optionsMap.set((o as any).product_id, list)
       }
     }
@@ -273,7 +280,7 @@ Deno.serve(async (req) => {
       unitPaid: number          // * post-footspot-discount price the buyer pays (incl. add-ons)
       fundPerUnit: number       // * club fund credit per unit, post-discount (excludes add-ons)
       color: string | null
-      selectedOptions: { name: string; price: number }[]
+      selectedOptions: { name: string; price: number; value?: string | null }[]
       product: any
       flocking: CartLineIn['flocking']
       bundleComponents?: Array<{
@@ -325,6 +332,7 @@ Deno.serve(async (req) => {
       const { addon: optionsAddon, selected: selectedOptions } = resolveOptions(
         optionsMap.get(product.id) ?? [],
         line.option_ids,
+        line.option_values,
       )
       const unitPaid = Number((unitDiscounted + flockingAddon + optionsAddon).toFixed(2))
 

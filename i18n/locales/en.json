@@ -335,7 +335,8 @@
       },
       "color": "Color",
       "options": {
-        "title": "Options"
+        "title": "Options",
+        "inputPlaceholder": "Your entry (optional)"
       }
     }
   },
@@ -539,6 +540,15 @@
       "category": "Category",
       "categoryPlaceholder": "jersey, training, accessory, lifestyle…",
       "categoryHint": "Reuse an existing category to group products (shared across clubs).",
+      "categoryManager": {
+        "button": "Categories",
+        "title": "Manage categories",
+        "hint": "Rename or delete a category. The change applies to every product using it.",
+        "empty": "No categories yet.",
+        "count": "{n} product(s)",
+        "rename": "Rename",
+        "deleteConfirm": "Remove this category from {n} product(s)?"
+      },
       "image": "Product images",
       "gallery": {
         "primary": "Primary",
@@ -593,6 +603,9 @@
       "visible": "Visible in shop",
       "hide": "Hide",
       "show": "Show",
+      "duplicate": "Duplicate",
+      "reorderHint": "Drag and drop rows to reorder products in the shop.",
+      "savingOrder": "Saving order…",
       "stockTotal": "Total stock: {n}",
       "searchPlaceholder": "Search by name or reference…",
       "noClubsHint": "Create a club first so you can add products.",
@@ -715,7 +728,11 @@
         "empty": "No options yet. Click \"Add option\".",
         "name": "Name",
         "namePlaceholder": "e.g. Gift wrap",
-        "price": "Price"
+        "price": "Price",
+        "allowInput": "Customer text field (optional)",
+        "inputLabel": "Field label",
+        "inputLabelPlaceholder": "e.g. Jersey number",
+        "inputHint": "Customers can enter a value (e.g. a number). Filling it in stays optional."
       },
       "errors": {
         "clubRequired": "Select a club.",

@@ -335,7 +335,8 @@
       },
       "color": "Couleur",
       "options": {
-        "title": "Options"
+        "title": "Options",
+        "inputPlaceholder": "Votre saisie (facultatif)"
       }
     }
   },
@@ -539,6 +540,15 @@
       "category": "Catégorie",
       "categoryPlaceholder": "maillot, training, accessoire, lifestyle…",
       "categoryHint": "Réutilisez une catégorie existante pour regrouper les produits (partagée entre les clubs).",
+      "categoryManager": {
+        "button": "Catégories",
+        "title": "Gérer les catégories",
+        "hint": "Renommez ou supprimez une catégorie. La modification s'applique à tous les produits qui l'utilisent.",
+        "empty": "Aucune catégorie pour l'instant.",
+        "count": "{n} produit(s)",
+        "rename": "Renommer",
+        "deleteConfirm": "Supprimer cette catégorie de {n} produit(s) ?"
+      },
       "image": "Images du produit",
       "gallery": {
         "primary": "Principale",
@@ -593,6 +603,9 @@
       "visible": "Visible sur la boutique",
       "hide": "Masquer",
       "show": "Afficher",
+      "duplicate": "Dupliquer",
+      "reorderHint": "Glissez-déposez les lignes pour réordonner les produits de la boutique.",
+      "savingOrder": "Enregistrement de l'ordre…",
       "stockTotal": "Stock total : {n}",
       "searchPlaceholder": "Rechercher par nom ou référence…",
       "noClubsHint": "Créez d'abord un club pour ajouter des produits.",
@@ -715,7 +728,11 @@
         "empty": "Aucune option. Cliquez sur « Ajouter une option ».",
         "name": "Nom",
         "namePlaceholder": "ex. Emballage cadeau",
-        "price": "Prix"
+        "price": "Prix",
+        "allowInput": "Champ texte client (optionnel)",
+        "inputLabel": "Libellé du champ",
+        "inputLabelPlaceholder": "ex. Numéro de maillot",
+        "inputHint": "Le client pourra saisir une valeur (ex. un numéro). La saisie reste facultative."
       },
       "errors": {
         "clubRequired": "Sélectionnez un club.",

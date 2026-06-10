@@ -19,7 +19,7 @@ interface OrderItem {
   size: string
   secondary_size: string | null
   color: string | null
-  selected_options: { name: string; price: number }[]
+  selected_options: { name: string; price: number; value?: string | null }[]
   unit_price_paid: number
   status: string
   flocking_name: string | null
@@ -237,7 +237,7 @@ const timeline = computed<TimelineStep[]>(() => {
                 {{ [it.flocking_name, it.flocking_initial, it.flocking_number].filter(Boolean).join(' · ') }}
               </p>
               <p v-if="it.selected_options?.length" class="text-xs text-gray-500">
-                + {{ it.selected_options.map((o) => o.name).join(', ') }}
+                + {{ it.selected_options.map((o) => (o.value ? `${o.name} : ${o.value}` : o.name)).join(', ') }}
               </p>
             </div>
             <p class="font-medium">{{ fmt(it.unit_price_paid * it.quantity) }}</p>

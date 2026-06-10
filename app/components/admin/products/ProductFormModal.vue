@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { useProductsStore, type FlockingKind, type ImageSlot, type Product, type ProductPayload } from '~/stores/products'
 
-// * Draft row for the dynamic paid-options editor (name + price). No id is
-// * threaded back: the whole set is replaced on every save.
+// * Draft row for the dynamic paid-options editor (name + price + optional
+// * customer input). No id is threaded back: the whole set is replaced on save.
 interface DraftOption {
   name: string
   price: number
+  // * When true, customers see an optional free-text field (e.g. jersey number).
+  allow_custom_input: boolean
+  input_label: string
 }
 import { useClubsStore } from '~/stores/clubs'
 import type { DiscountSource } from '~/composables/usePricingPreview'
@@ -165,7 +168,12 @@ watch(
     variants.value = p?.variants?.length
       ? p.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock, sku: v.sku, footspot_size: v.footspot_size, color_key: v.color_id }))
       : [{ size: '', stock: 0, sku: null, footspot_size: null, color_key: null }]
-    options.value = (p?.options ?? []).map((o) => ({ name: o.name, price: Number(o.price) }))
+    options.value = (p?.options ?? []).map((o) => ({
+      name: o.name,
+      price: Number(o.price),
+      allow_custom_input: !!o.allow_custom_input,
+      input_label: o.input_label ?? '',
+    }))
     bundleComponents.value = (p?.bundle_components ?? []).map((bc) => ({
       component_product_id: bc.component_product_id,
       axis: bc.axis,
@@ -181,7 +189,7 @@ function close() {
 }
 
 function addOption() {
-  options.value.push({ name: '', price: 0 })
+  options.value.push({ name: '', price: 0, allow_custom_input: false, input_label: '' })
 }
 
 function removeOption(index: number) {
@@ -283,6 +291,8 @@ async function save() {
       options: options.value.map((o) => ({
         name: o.name.trim(),
         price: Math.max(0, Number(o.price) || 0),
+        allow_custom_input: o.allow_custom_input,
+        input_label: o.allow_custom_input ? (o.input_label.trim() || null) : null,
       })),
       // * Colors only ride along for regular products; packs carry none.
       colors: isPack.value
@@ -648,38 +658,56 @@ async function save() {
         <div
           v-for="(opt, i) in options"
           :key="i"
-          class="flex items-end gap-2"
+          class="rounded-lg border border-gray-200 dark:border-sidebar p-3 space-y-3"
         >
-          <label class="block flex-1">
-            <span class="text-sm font-medium">{{ t('admin.products.options.name') }}</span>
+          <div class="flex items-end gap-2">
+            <label class="block flex-1">
+              <span class="text-sm font-medium">{{ t('admin.products.options.name') }}</span>
+              <input
+                v-model="opt.name"
+                type="text"
+                :placeholder="t('admin.products.options.namePlaceholder')"
+                class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+              />
+            </label>
+            <label class="block w-32">
+              <span class="text-sm font-medium">{{ t('admin.products.options.price') }}</span>
+              <div class="flex items-center gap-2 mt-1">
+                <input
+                  v-model.number="opt.price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+                />
+                <span class="text-gray-500">€</span>
+              </div>
+            </label>
+            <button
+              type="button"
+              class="p-2 mb-0.5 rounded-lg text-gray-400 hover:text-brand-secondary hover:bg-brand-secondary/5"
+              :title="t('common.delete')"
+              @click="removeOption(i)"
+            >
+              <UIcon name="i-lucide-trash-2" class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- * Optional free-text input the customer can fill (e.g. a number) -->
+          <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+            <input v-model="opt.allow_custom_input" type="checkbox" class="w-4 h-4 accent-brand-primary" />
+            <span>{{ t('admin.products.options.allowInput') }}</span>
+          </label>
+          <label v-if="opt.allow_custom_input" class="block">
+            <span class="text-sm font-medium">{{ t('admin.products.options.inputLabel') }}</span>
             <input
-              v-model="opt.name"
+              v-model="opt.input_label"
               type="text"
-              :placeholder="t('admin.products.options.namePlaceholder')"
+              :placeholder="t('admin.products.options.inputLabelPlaceholder')"
               class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
             />
+            <p class="text-xs text-gray-500 mt-1">{{ t('admin.products.options.inputHint') }}</p>
           </label>
-          <label class="block w-32">
-            <span class="text-sm font-medium">{{ t('admin.products.options.price') }}</span>
-            <div class="flex items-center gap-2 mt-1">
-              <input
-                v-model.number="opt.price"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
-              />
-              <span class="text-gray-500">€</span>
-            </div>
-          </label>
-          <button
-            type="button"
-            class="p-2 mb-0.5 rounded-lg text-gray-400 hover:text-brand-secondary hover:bg-brand-secondary/5"
-            :title="t('common.delete')"
-            @click="removeOption(i)"
-          >
-            <UIcon name="i-lucide-trash-2" class="w-4 h-4" />
-          </button>
         </div>
       </div>
 

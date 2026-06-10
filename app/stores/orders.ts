@@ -46,7 +46,7 @@ export interface OrderItem {
   // * Color variant name snapshot (display only; null = no color).
   color: string | null
   // * Custom paid options snapshot (display only; price baked into unit_price_paid).
-  selected_options: { name: string; price: number }[]
+  selected_options: { name: string; price: number; value?: string | null }[]
   buying_price_snapshot: number
   selling_price_snapshot: number
   unit_price_paid: number

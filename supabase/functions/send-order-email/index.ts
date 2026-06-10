@@ -120,6 +120,12 @@ function renderHtml(opts: {
       const flocking = [it.flocking_name, it.flocking_initial, it.flocking_number && `#${it.flocking_number}`]
         .filter(Boolean)
         .join(' · ')
+      const options = Array.isArray(it.selected_options)
+        ? it.selected_options
+            .map((o: any) => (o?.value ? `${o.name} : ${o.value}` : o?.name))
+            .filter(Boolean)
+            .join(', ')
+        : ''
       const oos = it.status === 'refunded_oos'
       return `
         <tr style="border-top:1px solid #eee;${oos ? 'opacity:0.6;' : ''}">
@@ -128,6 +134,7 @@ function renderHtml(opts: {
             <div style="font-size:12px;color:#888">
               ${l.size} ${it.size} · ×${it.quantity}
               ${flocking ? `· ${l.flocking}: ${flocking}` : ''}
+              ${options ? `· ${options}` : ''}
             </div>
             ${oos ? `<div style="font-size:11px;color:#e30b0c">${l.outOfStock}</div>` : ''}
           </td>

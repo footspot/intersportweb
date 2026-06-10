@@ -52,6 +52,16 @@ export default defineNuxtConfig({
     '/admin/**': { ssr: false },
   },
 
+  // * Nitro's dependency tracer drops `unhead/server` from the serverless
+  // * bundle (it copies unhead/plugins + unhead/utils but not unhead/server),
+  // * so SSR crashes with ERR_MODULE_NOT_FOUND: unhead/dist/server.mjs on
+  // * Netlify. Inlining unhead into the server chunks sidesteps the trace gap.
+  nitro: {
+    externals: {
+      inline: ['unhead'],
+    },
+  },
+
   css: ['~/assets/css/main.css'],
 
   supabase: {

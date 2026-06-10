@@ -58,7 +58,7 @@ const flockingLabel = computed(() => {
             <span v-if="flockingLabel"> · {{ flockingLabel }}</span>
           </div>
           <div v-if="line.selected_options?.length" class="text-xs text-gray-500 truncate">
-            + {{ line.selected_options.map((o) => o.name).join(', ') }}
+            + {{ line.selected_options.map((o) => (o.value ? `${o.name} : ${o.value}` : o.name)).join(', ') }}
           </div>
         </div>
         <button

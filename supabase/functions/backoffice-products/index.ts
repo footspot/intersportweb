@@ -55,6 +55,10 @@ interface BundleComponentPayload {
 interface OptionPayload {
   name: string
   price?: number
+  // * When true the storefront shows an optional free-text input for this
+  // * option; `input_label` is the prompt next to it.
+  allow_custom_input?: boolean
+  input_label?: string | null
 }
 
 interface ImageSlot {
@@ -94,7 +98,7 @@ interface ProductData {
 }
 
 const PRODUCT_SELECT =
-  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position), colors:product_colors(id, name, hex, position)'
+  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position, allow_custom_input, input_label), colors:product_colors(id, name, hex, position)'
 
 function normaliseVariants(vs: VariantPayload[] | undefined): VariantPayload[] | string {
   if (!Array.isArray(vs) || vs.length === 0) return 'at least one variant is required'
@@ -182,7 +186,10 @@ function normaliseOptions(os: OptionPayload[] | undefined | null): OptionPayload
     if (!o?.name?.trim()) return 'option name cannot be empty'
     const price = Number(o.price ?? 0)
     if (!Number.isFinite(price) || price < 0) return 'option price must be >= 0'
-    out.push({ name: o.name.trim(), price: Math.max(0, price) })
+    const allowInput = !!o.allow_custom_input
+    // * Keep the input label only when the input is enabled.
+    const inputLabel = allowInput ? (o.input_label?.trim() || null) : null
+    out.push({ name: o.name.trim(), price: Math.max(0, price), allow_custom_input: allowInput, input_label: inputLabel })
   }
   return out
 }
@@ -279,6 +286,8 @@ async function replaceProductOptions(
     name: o.name,
     price: o.price ?? 0,
     position,
+    allow_custom_input: !!o.allow_custom_input,
+    input_label: o.allow_custom_input ? (o.input_label ?? null) : null,
   }))
   const { error: iErr } = await sb.from('product_options').insert(rows)
   if (iErr) throw iErr
@@ -454,6 +463,158 @@ async function emitBundleLockNotifications(
   }
 }
 
+// * Pick a reference that doesn't collide with an existing product (the column
+// * is UNIQUE). Appends "-COPIE" then a counter until a free slot is found.
+async function uniqueReference(
+  sb: ReturnType<typeof serviceClient>,
+  base: string,
+): Promise<string> {
+  for (let i = 1; i < 1000; i++) {
+    const candidate = i === 1 ? `${base}-COPIE` : `${base}-COPIE-${i}`
+    const { data } = await sb.from('products').select('id').eq('reference', candidate).maybeSingle()
+    if (!data) return candidate
+  }
+  // * Extremely unlikely fallback: random suffix.
+  return `${base}-COPIE-${crypto.randomUUID().slice(0, 6)}`
+}
+
+// * Copy a stored gallery image to a fresh path, returning the new path.
+async function copyStorageImage(
+  sb: ReturnType<typeof serviceClient>,
+  fromPath: string,
+): Promise<string> {
+  const ext = (fromPath.split('.').pop() || 'bin').toLowerCase()
+  const toPath = `${crypto.randomUUID()}.${ext}`
+  const { error } = await sb.storage.from(BUCKET).copy(fromPath, toPath)
+  if (error) throw error
+  return toPath
+}
+
+// * Deep-copy a product into a new hidden draft. Returns the full new product
+// * row (PRODUCT_SELECT shape) or null if the source doesn't exist.
+async function duplicateProduct(
+  sb: ReturnType<typeof serviceClient>,
+  sourceId: string,
+): Promise<any | null> {
+  const { data: src, error: sErr } = await sb
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('id', sourceId)
+    .single()
+  if (sErr || !src) return null
+
+  // * 1. Product row — clone scalar fields, force hidden + unique reference.
+  const reference = await uniqueReference(sb, (src as any).reference)
+  const insertRow = {
+    club_id: (src as any).club_id,
+    name: (src as any).name,
+    reference,
+    details: (src as any).details ?? null,
+    category: (src as any).category ?? null,
+    buying_price: (src as any).buying_price,
+    selling_price: (src as any).selling_price,
+    discount_percent: (src as any).discount_percent ?? 0,
+    discount_source: (src as any).discount_source ?? null,
+    flocking_kind: (src as any).flocking_kind ?? 'none',
+    flocking_members_name_price: (src as any).flocking_members_name_price ?? 0,
+    flocking_members_initials_price: (src as any).flocking_members_initials_price ?? 0,
+    flocking_supporter_price: (src as any).flocking_supporter_price ?? 0,
+    is_pack: !!(src as any).is_pack,
+    // * Always hidden so the admin can finish editing before publishing.
+    is_visible: false,
+    is_on_clearance: !!(src as any).is_on_clearance,
+    weight_grams: (src as any).weight_grams ?? 0,
+    available_from: (src as any).available_from ?? null,
+    footspot_category: (src as any).footspot_category ?? null,
+    sort_order: (src as any).sort_order ?? 0,
+  }
+  const { data: product, error: pErr } = await sb.from('products').insert(insertRow).select().single()
+  if (pErr) throw pErr
+
+  // * Track storage copies so we can clean them up if a later step fails.
+  const copiedPaths: string[] = []
+  try {
+    // * 2. Colors — insert and build old color id → new color id map.
+    const colorIdMap = new Map<string, string>()
+    for (const c of ((src as any).colors ?? [])) {
+      const { data: ins, error } = await sb
+        .from('product_colors')
+        .insert({ product_id: product.id, name: c.name, hex: c.hex, position: c.position ?? 0 })
+        .select('id')
+        .single()
+      if (error) throw error
+      colorIdMap.set(c.id, ins.id)
+    }
+
+    // * 3. Gallery images — copy each storage file then insert the row.
+    for (const img of ((src as any).images ?? [])) {
+      const newPath = await copyStorageImage(sb, img.image_path)
+      copiedPaths.push(newPath)
+      const { error } = await sb.from('product_images').insert({
+        product_id: product.id,
+        image_path: newPath,
+        position: img.position ?? 0,
+        color_id: img.color_id ? colorIdMap.get(img.color_id) ?? null : null,
+      })
+      if (error) throw error
+    }
+
+    // * 4. Paid options.
+    for (const o of ((src as any).options ?? [])) {
+      const { error } = await sb.from('product_options').insert({
+        product_id: product.id,
+        name: o.name,
+        price: o.price ?? 0,
+        position: o.position ?? 0,
+        allow_custom_input: !!o.allow_custom_input,
+        input_label: o.allow_custom_input ? (o.input_label ?? null) : null,
+      })
+      if (error) throw error
+    }
+
+    if ((src as any).is_pack) {
+      // * 5a. Bundle composition (no own variants).
+      const rows = ((src as any).bundle_components ?? []).map((bc: any) => ({
+        bundle_product_id: product.id,
+        component_product_id: bc.component_product_id,
+        axis: bc.axis,
+        quantity: bc.quantity ?? 1,
+      }))
+      if (rows.length) {
+        const { error } = await sb.from('bundle_components').insert(rows)
+        if (error) throw error
+      }
+    } else {
+      // * 5b. Size variants — SKU cleared (UNIQUE), color id remapped.
+      const rows = ((src as any).variants ?? []).map((v: any) => ({
+        product_id: product.id,
+        size: v.size,
+        stock: v.stock,
+        sku: null,
+        footspot_size: v.footspot_size ?? null,
+        color_id: v.color_id ? colorIdMap.get(v.color_id) ?? null : null,
+      }))
+      if (rows.length) {
+        const { error } = await sb.from('product_variants').insert(rows)
+        if (error) throw error
+      }
+    }
+  } catch (e) {
+    // * Roll back: drop the partial product (cascades children) + copied files.
+    await sb.from('products').delete().eq('id', product.id)
+    await cleanupUploads(sb, copiedPaths)
+    throw e
+  }
+
+  const { data: full, error: fErr } = await sb
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('id', product.id)
+    .single()
+  if (fErr) throw fErr
+  return full
+}
+
 Deno.serve(async (req) => {
   const pre = handlePreflight(req)
   if (pre) return pre
@@ -463,10 +624,60 @@ Deno.serve(async (req) => {
 
   const sb = serviceClient()
   const url = new URL(req.url)
+  // * Sub-action off the URL path segment (e.g. /backoffice-products/reorder),
+  // * mirroring admin-sports. Empty for the plain CRUD endpoint.
+  const action = url.pathname.split('/').filter(Boolean)[1] ?? ''
   const contentType = req.headers.get('content-type') ?? ''
   const isMultipart = contentType.startsWith('multipart/form-data')
 
   try {
+    // * Reorder — persist a new sort_order for a set of products (JSON only).
+    // * Used by the admin drag-and-drop product ordering, scoped to one club.
+    if (req.method === 'POST' && action === 'reorder') {
+      const body = (await req.json()) as { order?: Array<{ id: string; sort_order: number }> }
+      if (!Array.isArray(body?.order)) {
+        return jsonResponse({ error: 'invalid order payload' }, { status: 400 })
+      }
+      const updates = body.order.map(({ id, sort_order }) =>
+        sb.from('products').update({ sort_order }).eq('id', id),
+      )
+      const results = await Promise.all(updates)
+      const failed = results.find((r) => r.error)
+      if (failed?.error) throw failed.error
+      return jsonResponse({ ok: true })
+    }
+
+    // * Update-category — bulk rename or delete a free-text product category
+    // * (JSON only). Categories aren't a table: they're the distinct strings on
+    // * products.category, so "rename" rewrites every matching row and "delete"
+    // * (empty `to`) nulls them out. Renaming onto an existing name merges them.
+    if (req.method === 'POST' && action === 'update-category') {
+      const body = (await req.json()) as { from?: string; to?: string | null }
+      const from = (body?.from ?? '').trim()
+      if (!from) return jsonResponse({ error: 'from required' }, { status: 400 })
+      const to = typeof body?.to === 'string' ? body.to.trim() : ''
+      const next = to === '' ? null : to
+      const { data, error } = await sb
+        .from('products')
+        .update({ category: next })
+        .eq('category', from)
+        .select('id')
+      if (error) throw error
+      return jsonResponse({ ok: true, affected: data?.length ?? 0 })
+    }
+
+    // * Duplicate — deep-copy a product into a new, hidden draft (JSON only).
+    // * Copies pricing/flocking fields, colors, size variants (SKU cleared —
+    // * SKUs are UNIQUE), paid options, gallery images (storage files copied),
+    // * and bundle composition. The admin edits + publishes the copy afterwards.
+    if (req.method === 'POST' && action === 'duplicate') {
+      const body = (await req.json()) as { id?: string }
+      if (!body?.id) return jsonResponse({ error: 'id required' }, { status: 400 })
+      const newProduct = await duplicateProduct(sb, body.id)
+      if (!newProduct) return jsonResponse({ error: 'product not found' }, { status: 404 })
+      return jsonResponse({ product: newProduct }, { status: 201 })
+    }
+
     if (req.method === 'POST') {
       const { data, files } = isMultipart
         ? await parseMultipartFiles<ProductData>(req)

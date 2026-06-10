@@ -206,7 +206,7 @@ const trackingUrl = computed(() => {
                 </div>
                 <div v-if="it.selected_options?.length" class="text-xs text-brand-primary mt-1">
                   {{ t('admin.orders.detail.options') }}:
-                  {{ it.selected_options.map((o) => o.name).join(', ') }}
+                  {{ it.selected_options.map((o) => (o.value ? `${o.name} : ${o.value}` : o.name)).join(', ') }}
                 </div>
                 <div class="text-xs text-gray-500 mt-1">
                   {{ t('admin.orders.detail.buying') }}: {{ fmt(it.buying_price_snapshot) }} ·

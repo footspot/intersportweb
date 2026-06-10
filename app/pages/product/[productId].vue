@@ -46,12 +46,19 @@ const flockingAddon = ref(0)
 const feedback = ref<{ tone: 'ok' | 'err'; msg: string } | null>(null)
 
 // * Custom paid options (multi-select). Each ticked option adds its price.
+// * Input-enabled options also carry an optional free-text value the buyer types.
 const selectedOptionIds = ref<string[]>([])
+const optionValues = reactive<Record<string, string>>({})
 const productOptions = computed(() => product.value?.options ?? [])
 const selectedOptions = computed(() =>
   productOptions.value
     .filter((o) => selectedOptionIds.value.includes(o.id))
-    .map((o) => ({ id: o.id, name: o.name, price: Number(o.price) })),
+    .map((o) => ({
+      id: o.id,
+      name: o.name,
+      price: Number(o.price),
+      value: o.allow_custom_input ? (optionValues[o.id]?.trim() || null) : null,
+    })),
 )
 const optionsAddon = computed(() => selectedOptions.value.reduce((s, o) => s + o.price, 0))
 function toggleOption(id: string) {
@@ -169,6 +176,7 @@ watch(
     flocking.value = { name: null, initial: null, number: null }
     flockingAddon.value = 0
     selectedOptionIds.value = []
+    for (const k of Object.keys(optionValues)) delete optionValues[k]
     selectedImageIndex.value = 0
   },
   { immediate: true },
@@ -511,20 +519,26 @@ useSchemaOrg([
             <UIcon name="i-lucide-plus-circle" class="w-4 h-4 text-brand-primary" />
             <span class="uppercase tracking-wider text-xs">{{ t('storefront.product.options.title') }}</span>
           </div>
-          <label
-            v-for="o in productOptions"
-            :key="o.id"
-            class="flex items-center gap-2 text-sm cursor-pointer"
-          >
+          <div v-for="o in productOptions" :key="o.id" class="space-y-1.5">
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                class="w-4 h-4 accent-brand-primary"
+                :checked="selectedOptionIds.includes(o.id)"
+                @change="toggleOption(o.id)"
+              />
+              <span class="font-medium">{{ o.name }}</span>
+              <span class="text-brand-secondary text-xs">(+{{ fmt(Number(o.price)) }})</span>
+            </label>
+            <!-- * Optional free-text the buyer can type when the option allows it -->
             <input
-              type="checkbox"
-              class="w-4 h-4 accent-brand-primary"
-              :checked="selectedOptionIds.includes(o.id)"
-              @change="toggleOption(o.id)"
+              v-if="o.allow_custom_input && selectedOptionIds.includes(o.id)"
+              v-model="optionValues[o.id]"
+              type="text"
+              :placeholder="o.input_label || t('storefront.product.options.inputPlaceholder')"
+              class="ml-6 w-[calc(100%-1.5rem)] px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
             />
-            <span class="font-medium">{{ o.name }}</span>
-            <span class="text-brand-secondary text-xs">(+{{ fmt(Number(o.price)) }})</span>
-          </label>
+          </div>
         </div>
 
         <div
