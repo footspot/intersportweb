@@ -3,6 +3,9 @@
     "name": "Intersport Club IDF",
     "tagline": "La boutique officielle de votre club"
   },
+  "intro": {
+    "skip": "Passer"
+  },
   "nav": {
     "home": "Accueil",
     "shop": "Boutique",

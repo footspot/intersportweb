@@ -3,6 +3,9 @@
     "name": "Intersport Club IDF",
     "tagline": "Your club's official shop"
   },
+  "intro": {
+    "skip": "Skip"
+  },
   "nav": {
     "home": "Home",
     "shop": "Shop",
