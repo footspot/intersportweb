@@ -14,11 +14,22 @@ function normalizeAnimation(v: unknown): string {
   return ANIMATIONS.includes(s) ? s : 'zoom'
 }
 
+// * Card kinds; anything else falls back to 'image'.
+const KINDS = ['image', 'product']
+function normalizeKind(v: unknown): string {
+  const s = typeof v === 'string' ? v : ''
+  return KINDS.includes(s) ? s : 'image'
+}
+
 interface SlideData {
   id?: string
   title?: string | null
+  subtitle?: string | null
   sort_order?: number
   animation?: string
+  card_kind?: string
+  product_id?: string | null
+  sport_id?: string | null
 }
 
 Deno.serve(async (req) => {
@@ -39,17 +50,29 @@ Deno.serve(async (req) => {
         ? await parseMultipart<SlideData>(req, 'image')
         : { data: (await req.json()) as SlideData, file: null as File | null }
 
-      if (!file) return jsonResponse({ error: 'image required' }, { status: 400 })
+      const kind = normalizeKind(data?.card_kind)
+      // * Image cards must carry an image. Product cards may omit it and fall
+      // * back to the linked product's primary image on the storefront.
+      if (kind === 'image' && !file) {
+        return jsonResponse({ error: 'image required' }, { status: 400 })
+      }
+      if (kind === 'product' && !data?.product_id) {
+        return jsonResponse({ error: 'product required' }, { status: 400 })
+      }
 
-      const imagePath = await uploadImage(sb, BUCKET, file)
+      const imagePath = file ? await uploadImage(sb, BUCKET, file) : null
 
       const { data: slide, error } = await sb
         .from('home_slides')
         .insert({
           image_path: imagePath,
           title: data?.title?.toString().trim() || null,
+          subtitle: data?.subtitle?.toString().trim() || null,
           sort_order: data?.sort_order ?? 0,
           animation: normalizeAnimation(data?.animation),
+          card_kind: kind,
+          product_id: kind === 'product' ? data?.product_id ?? null : null,
+          sport_id: kind === 'product' ? data?.sport_id ?? null : null,
         })
         .select()
         .single()
@@ -77,8 +100,19 @@ Deno.serve(async (req) => {
 
       const patch: Record<string, unknown> = {}
       if (data.title !== undefined) patch.title = data.title?.toString().trim() || null
+      if (data.subtitle !== undefined) patch.subtitle = data.subtitle?.toString().trim() || null
       if (data.sort_order !== undefined) patch.sort_order = data.sort_order
       if (data.animation !== undefined) patch.animation = normalizeAnimation(data.animation)
+      if (data.card_kind !== undefined) {
+        const kind = normalizeKind(data.card_kind)
+        patch.card_kind = kind
+        // * Keep the product link consistent with the chosen kind.
+        patch.product_id = kind === 'product' ? data.product_id ?? null : null
+        patch.sport_id = kind === 'product' ? data.sport_id ?? null : null
+      } else {
+        if (data.product_id !== undefined) patch.product_id = data.product_id
+        if (data.sport_id !== undefined) patch.sport_id = data.sport_id
+      }
 
       let newImagePath: string | null = null
       if (file) {

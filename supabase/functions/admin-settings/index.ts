@@ -9,6 +9,8 @@ import { parseMultipartFiles, uploadImage, removeImage } from '../_shared/multip
 // * The three static entry cards whose cover image + text color are configurable.
 const ENTRY_CARDS = ['catalog', 'shop', 'clearance'] as const
 const ENTRY_COVER_BUCKET = 'entry-card-covers'
+// * Hero launch video lives in the public carousel bucket alongside slide images.
+const HERO_VIDEO_BUCKET = 'home-carousel'
 
 interface SettingsPayload {
   clearance_active?: boolean
@@ -16,6 +18,12 @@ interface SettingsPayload {
   promo_banner_url?: string | null
   promo_banner_active?: boolean
   carousel_autoplay_seconds?: number
+  // * "Les bons plans du moment" featured carousel: show/hide + custom title.
+  bons_plans_active?: boolean
+  bons_plans_title?: string | null
+  // * Hero: show/hide the card deck + clear the admin launch video.
+  hero_show_cards?: boolean
+  clear_hero_video?: boolean
   // * Static entry-card personalization (text colors + clear-cover flags).
   catalog_text_color?: string | null
   shop_text_color?: string | null
@@ -54,6 +62,7 @@ Deno.serve(async (req) => {
 
   // * Track uploads so we can roll them back if the DB write fails.
   const uploaded: string[] = []
+  let uploadedVideo: string | null = null
 
   try {
     const { body, files } = isMultipart
@@ -70,6 +79,12 @@ Deno.serve(async (req) => {
       patch.promo_banner_url = body.promo_banner_url?.trim() || null
     }
     if (body.promo_banner_active !== undefined) patch.promo_banner_active = !!body.promo_banner_active
+    if (body.bons_plans_active !== undefined) patch.bons_plans_active = !!body.bons_plans_active
+    // * Trim title to null so an empty field falls back to the i18n default.
+    if (body.bons_plans_title !== undefined) {
+      patch.bons_plans_title = body.bons_plans_title?.trim() || null
+    }
+    if (body.hero_show_cards !== undefined) patch.hero_show_cards = !!body.hero_show_cards
     // * Carousel dwell time: clamp to the 1–60s the DB CHECK allows.
     if (body.carousel_autoplay_seconds !== undefined) {
       const n = Math.round(Number(body.carousel_autoplay_seconds))
@@ -83,14 +98,26 @@ Deno.serve(async (req) => {
       if (body[gradientField] !== undefined) patch[`${key}_cover_gradient`] = !!body[gradientField]
     }
 
-    // * Fetch current row (id + existing cover paths so we can replace/clear them).
+    // * Fetch current row (id + existing cover/video paths so we can replace/clear them).
     const coverCols = ENTRY_CARDS.map((k) => `${k}_cover_image_path`).join(', ')
     const { data: existing } = await sb
       .from('site_settings')
-      .select(`id, ${coverCols}`)
+      .select(`id, hero_video_path, ${coverCols}`)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+
+    // * Hero launch video: new upload, explicit clear, else leave untouched.
+    let staleVideo: string | null = null
+    const previousVideo = (existing as Record<string, string | null> | null)?.hero_video_path ?? null
+    if (files['hero_video']) {
+      uploadedVideo = await uploadImage(sb, HERO_VIDEO_BUCKET, files['hero_video'])
+      patch.hero_video_path = uploadedVideo
+      if (previousVideo) staleVideo = previousVideo
+    } else if (body.clear_hero_video) {
+      patch.hero_video_path = null
+      if (previousVideo) staleVideo = previousVideo
+    }
 
     // * Per-card cover: new upload, explicit clear, else leave untouched.
     const staleCovers: string[] = []
@@ -130,13 +157,15 @@ Deno.serve(async (req) => {
       result = data
     }
 
-    // * Write succeeded — drop replaced/cleared covers.
+    // * Write succeeded — drop replaced/cleared covers + video.
     for (const p of staleCovers) await removeImage(sb, ENTRY_COVER_BUCKET, p)
+    if (staleVideo) await removeImage(sb, HERO_VIDEO_BUCKET, staleVideo)
 
     return jsonResponse({ settings: result }, existing?.id ? {} : { status: 201 })
   } catch (err) {
-    // * Roll back any just-uploaded covers so they don't orphan in storage.
+    // * Roll back any just-uploaded covers/video so they don't orphan in storage.
     for (const p of uploaded) await removeImage(sb, ENTRY_COVER_BUCKET, p)
+    if (uploadedVideo) await removeImage(sb, HERO_VIDEO_BUCKET, uploadedVideo)
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[admin-settings]', msg)
     return jsonResponse({ error: msg }, { status: 500 })

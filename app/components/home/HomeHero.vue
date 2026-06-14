@@ -1,38 +1,58 @@
 <script setup lang="ts">
-// * Navy hero banner — split in two like the mockup: left panel (#1b2a6b) holds
-// * the copy + stats, right panel (#0f1a40) holds the auto-zooming carousel.
+// * Hero — the redesigned "stadium" centerpiece (see design_handoff_accueil).
+// * A near-black banner with a default navy radial gradient, moving diagonal
+// * stripes, a cursor-following red glow, the admin-managed card deck, two
+// * floating stickers, and a bottom word-marquee. The smoke band (separate
+// * component) is pulled up over the hero's bottom edge by the page.
+// *
+// * First-launch brand intro: the smoke-and-logo clip plays once over the hero,
+// * then dissipates to reveal the live shop. It never blocks — the rest of the
+// * page stays interactive while it runs.
 import { useHomeFlowCtx } from '~/composables/useHomeFlow'
 
 const flow = useHomeFlowCtx()
 const { t } = flow
 
-// * First-launch brand intro — the smoke-and-logo clip plays once per session
-// * over the hero, then dissipates to reveal the live shop. It never blocks:
-// * the rest of the page stays fully interactive while it runs.
-// * Decide up-front (synchronously, before first paint) whether the intro should
-// * play, so its layer is part of the hero's first render and covers the banner
-// * from frame 1. Deferring this to onMounted let the banner paint first and the
-// * curtain fade in over it — a visible ~1s flash of the shop before the video.
-// * Plays on every load/reload (no once-per-session flag) — only reduced-motion
-// * suppresses it.
+// * Launch clip — admin-uploaded video (Carousel tab) or the bundled fallback.
+const heroVideoSrc = computed(() => flow.siteSettings.heroVideoUrl || '/intro-intersport.mp4')
+
+// * Bottom-marquee words (decorative). Duplicated thrice in the track for a
+// * seamless loop; alternating items render as outline text.
+const marqueeWords = computed(() => [
+  t('storefront.home.heroMarquee1'),
+  t('storefront.home.heroMarquee2'),
+  t('storefront.home.heroMarquee3'),
+  t('storefront.home.heroMarquee4'),
+  t('storefront.home.heroMarquee5'),
+  t('storefront.home.heroMarquee6'),
+])
+
+// * Whether the launch intro should play. Reduced-motion suppresses it.
 function shouldPlayIntro() {
   if (!import.meta.client) return false
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   return !reduced
 }
 
-const showIntro = ref(shouldPlayIntro())
+// * Start `true` on BOTH server and first client render so the intro covers the
+// * hero from frame 1 — no flash of the shop, and the deck fans out hidden
+// * behind it. Identical initial markup → no hydration mismatch. Reduced-motion
+// * is handled in onMounted by removing the layer instantly (transition off).
+const showIntro = ref(true)
+// * Lets us drop the intro with no animation for reduced-motion users.
+const introCss = ref(true)
 const videoEl = ref<HTMLVideoElement | null>(null)
+const heroEl = ref<HTMLElement | null>(null)
+const glowEl = ref<HTMLElement | null>(null)
 
 function endIntro() {
   if (!showIntro.value) return
   showIntro.value = false
 }
 
-// * Kick playback, retrying once — muted autoplay can be refused on the first
-// * call before the `muted` property settles. We do NOT tear the layer down on
-// * failure; the smoke entrance + first frame still read, and the safety timer
-// * (or @ended) closes it.
+// * Kick playback, retrying once — muted autoplay can be refused before the
+// * `muted` property settles. We never tear the layer down on failure; the
+// * smoke entrance still reads, and the safety timer (or @ended) closes it.
 async function startPlayback() {
   const v = videoEl.value
   if (!v) return
@@ -48,8 +68,24 @@ async function startPlayback() {
   }
 }
 
+// * Red glow follows the cursor across the hero (parallax). Skipped on touch /
+// * reduced-motion.
+function onHeroPointer(e: PointerEvent) {
+  const hero = heroEl.value
+  const glow = glowEl.value
+  if (!hero || !glow) return
+  const r = hero.getBoundingClientRect()
+  glow.style.right = r.width - (e.clientX - r.left) - 310 + 'px'
+  glow.style.top = e.clientY - r.top - 310 + 'px'
+}
+
 onMounted(async () => {
-  if (!showIntro.value) return
+  // * Reduced-motion: tear the intro down immediately, with no leave animation.
+  if (!shouldPlayIntro()) {
+    introCss.value = false
+    showIntro.value = false
+    return
+  }
   await nextTick()
   await startPlayback()
   // * Safety net: if the clip never plays or never fires `ended`, don't leave the
@@ -59,77 +95,62 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="hero relative flex flex-col lg:flex-row items-stretch min-h-[400px] overflow-hidden">
-    <!-- Left panel — copy + stats -->
-    <div class="hero-left flex-1 bg-ink text-white px-6 md:px-12 py-12 md:py-14 flex flex-col justify-center">
-      <div class="hero-eyebrow flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase text-white/55 mb-3.5">
-        {{ t('storefront.home.heroEyebrow') }}
-      </div>
+  <section
+    ref="heroEl"
+    class="hero relative overflow-hidden text-white"
+    @pointermove="onHeroPointer"
+  >
+    <!-- * Default navy radial background (fallback behind the media carousel) -->
+    <div class="hero-grad"></div>
+    <!-- * Full-bleed media carousel (admin-managed images + videos) -->
+    <HomeHeroBanner
+      v-if="flow.heroBanner.sorted.length"
+      :items="flow.heroBanner.sorted"
+      :interval="flow.siteSettings.carouselAutoplaySeconds"
+      :active="!showIntro"
+      class="z-0"
+    />
+    <!-- * Legibility scrim over the media so the deck + marquee read -->
+    <div v-if="flow.heroBanner.sorted.length" class="hero-banner-scrim"></div>
+    <!-- * Moving diagonal stripes -->
+    <div class="hero-stripes"></div>
+    <!-- * Cursor-following red glow -->
+    <div ref="glowEl" class="hero-glow"></div>
 
-      <h1 class="font-heading text-4xl md:text-5xl lg:text-[56px] font-extrabold leading-[1.0] uppercase mb-[18px]">
-        {{ t('storefront.home.heroTitlePre') }}
-        <em class="not-italic text-accent">{{ t('storefront.home.heroTitleAccent') }}</em>
-        {{ t('storefront.home.heroTitlePost') }}
-      </h1>
+    <div class="hero-in relative z-[2]">
+      <HomeHeroDeck
+        v-if="flow.siteSettings.heroShowCards && flow.carousel.sorted.length"
+        :slides="flow.carousel.sorted"
+        :interval="flow.siteSettings.carouselAutoplaySeconds"
+        class="mx-auto"
+      />
+    </div>
 
-      <p class="text-[15px] text-white/70 leading-[1.65] max-w-[400px] mb-8">
-        {{ t('storefront.home.heroSubtitle') }}
-      </p>
-
-      <button
-        type="button"
-        class="hero-btn inline-flex items-center gap-2.5 bg-accent text-white font-heading font-bold text-base uppercase tracking-[0.05em] px-7 py-3 rounded-lg w-fit transition-transform hover:-translate-y-0.5"
-        @click="flow.pickEntry('shop')"
-      >
-        <UIcon name="i-lucide-arrow-right" class="w-[18px] h-[18px]" />
-        {{ t('storefront.home.heroButton') }}
-      </button>
-
-      <div class="flex gap-10 mt-11 pt-[26px] border-t border-white/15">
-        <div>
-          <div class="font-heading text-[30px] font-extrabold leading-none">
-            {{ flow.stats.value.clubs }}<span class="text-accent">+</span>
-          </div>
-          <div class="text-[10px] font-semibold tracking-[0.1em] uppercase text-white/45 mt-1.5">
-            {{ t('storefront.home.statsClubs') }}
-          </div>
-        </div>
-        <div>
-          <div class="font-heading text-[30px] font-extrabold leading-none">
-            {{ flow.stats.value.products }}<span class="text-accent">+</span>
-          </div>
-          <div class="text-[10px] font-semibold tracking-[0.1em] uppercase text-white/45 mt-1.5">
-            {{ t('storefront.home.statsProducts') }}
-          </div>
-        </div>
-        <div>
-          <div class="font-heading text-[30px] font-extrabold leading-none">
-            {{ flow.stats.value.sports }}
-          </div>
-          <div class="text-[10px] font-semibold tracking-[0.1em] uppercase text-white/45 mt-1.5">
-            {{ t('storefront.home.statsSports') }}
-          </div>
-        </div>
+    <!-- * Bottom word-marquee — hidden while the launch video plays -->
+    <div class="hero-marq relative z-[2]" :class="{ 'hide-for-video': showIntro }">
+      <div class="hm-track">
+        <template v-for="rep in 3" :key="rep">
+          <span
+            v-for="(w, i) in marqueeWords"
+            :key="`${rep}-${i}`"
+            class="hm-item font-heading"
+            :class="{ out: i % 2 === 1 }"
+          >
+            {{ w }}<span class="hm-dot"></span>
+          </span>
+        </template>
       </div>
     </div>
 
-    <!-- Right panel — #0f1a40, carousel sits inside as a square -->
-    <div class="hero-right relative flex-shrink-0 w-full lg:w-[520px] min-h-[320px] lg:min-h-0 bg-ink overflow-hidden flex items-center justify-center p-5 md:p-6">
-      <HomeHeroCarousel :slides="flow.carousel.sorted" :interval="flow.siteSettings.carouselAutoplaySeconds" />
-    </div>
-
-    <!-- * First-launch cinematic intro — the smoke fills the whole hero, then
-         * clears to reveal the live shop underneath. Covers only the hero band,
-         * so the page stays scrollable and the header stays clickable. -->
-    <Transition name="intro-curtain">
-      <div
-        v-if="showIntro"
-        class="intro-layer absolute inset-0 z-20 bg-ink"
-      >
+    <!-- * First-launch cinematic intro — smoke fills the hero, then clears to
+         reveal the live shop. Covers only the hero band, so the page stays
+         scrollable and the header stays clickable. -->
+    <Transition name="intro-curtain" :css="introCss">
+      <div v-if="showIntro" class="intro-layer absolute inset-0 z-20">
         <video
           ref="videoEl"
           class="absolute inset-0 h-full w-full object-cover"
-          src="/intro-intersport.mp4"
+          :src="heroVideoSrc"
           muted
           playsinline
           autoplay
@@ -138,8 +159,7 @@ onMounted(async () => {
           @ended="endIntro"
           @error="endIntro"
         />
-        <!-- * Side scrim so the smoke bleeds into the navy copy panel seamlessly -->
-        <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink/70 via-transparent to-ink/40"></div>
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/40"></div>
         <button
           type="button"
           class="absolute bottom-4 right-4 z-10 rounded-full bg-white/15 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-white/25"
@@ -153,18 +173,143 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.hero-eyebrow::before {
-  content: '';
-  width: 24px;
-  height: 2px;
-  background: #e8251f;
-  display: inline-block;
+.hero {
+  background: #05081a;
+  isolation: isolate;
+  min-height: 72vh;
+  display: flex;
+  flex-direction: column;
 }
-.hero-btn {
-  box-shadow: 0 10px 24px -8px rgba(232, 37, 31, 0.6);
+@media (max-width: 980px) {
+  .hero {
+    min-height: 0;
+  }
 }
-/* * Smoke gathers in — the layer eases up from a soft, slightly-zoomed blur so
- * the cut to the video is imperceptible against the hero behind it. */
+.hero-grad {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    130% 120% at 82% -10%,
+    #1e51a8 0%,
+    #164194 40%,
+    #0e2a60 80%
+  );
+}
+.hero-stripes {
+  position: absolute;
+  inset: -30% -15%;
+  z-index: 0;
+  opacity: 0.5;
+  background: repeating-linear-gradient(
+    -58deg,
+    transparent 0 30px,
+    rgba(255, 255, 255, 0.04) 30px 32px
+  );
+  animation: slidestripes 20s linear infinite;
+}
+@keyframes slidestripes {
+  to {
+    transform: translateX(64px);
+  }
+}
+.hero-banner-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.18) 38%,
+    rgba(0, 0, 0, 0.34) 100%
+  );
+}
+.hero-glow {
+  position: absolute;
+  z-index: 0;
+  width: 620px;
+  height: 620px;
+  right: -150px;
+  top: -180px;
+  background: radial-gradient(circle, var(--color-accent) 0%, transparent 62%);
+  opacity: 0.26;
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.hero-in {
+  width: 100%;
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 64px 40px 0;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+@media (max-width: 980px) {
+  .hero-in {
+    padding: 48px 20px 0;
+    min-height: 0;
+  }
+}
+
+/* * Bottom word-marquee — pinned to the very bottom of the hero (flex column). */
+.hero-marq {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.18);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.hero-marq.hide-for-video {
+  opacity: 0;
+  transform: translateY(24px);
+  pointer-events: none;
+}
+.hm-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  animation: marq 22s linear infinite;
+  padding: 12px 0;
+}
+.hm-item {
+  font-weight: 900;
+  font-size: 26px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
+  padding: 0 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 26px;
+}
+.hm-item.out {
+  color: transparent;
+  -webkit-text-stroke: 1.4px rgba(255, 255, 255, 0.4);
+}
+.hm-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+@media (max-width: 620px) {
+  .hm-item {
+    font-size: 20px;
+  }
+}
+@keyframes marq {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* * Smoke gathers in / dissipates around the intro clip */
 .intro-curtain-enter-active {
   transition: opacity 1s ease, transform 1.1s cubic-bezier(0.22, 1, 0.36, 1),
     filter 1s ease;
@@ -175,9 +320,6 @@ onMounted(async () => {
   transform: scale(1.06);
   filter: blur(16px);
 }
-/* * Smoke dissipates — on end the whole layer billows out (scale + blur + fade)
- * over a long, gentle curve, uncovering the live hero underneath like smoke
- * clearing in a stadium. */
 .intro-curtain-leave-active {
   transition: opacity 1.4s ease, transform 1.4s cubic-bezier(0.22, 1, 0.36, 1),
     filter 1.4s ease;
@@ -187,5 +329,15 @@ onMounted(async () => {
   opacity: 0;
   transform: scale(1.14);
   filter: blur(18px);
+}
+.intro-layer {
+  background: #05081a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stripes,
+  .hm-track {
+    animation: none;
+  }
 }
 </style>

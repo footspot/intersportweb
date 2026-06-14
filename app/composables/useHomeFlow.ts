@@ -8,10 +8,12 @@ import { useClubsStore, type Club } from '~/stores/clubs'
 import { useProductsStore, type Product } from '~/stores/products'
 import { useCatalogStore } from '~/stores/catalog'
 import { useCarouselStore } from '~/stores/carousel'
+import { useHeroBannerStore } from '~/stores/heroBanner'
 import { useHomeSectionsStore, type HomeSection } from '~/stores/homeSections'
 import { useClubAccessStore } from '~/stores/clubAccess'
 import { useSiteSettingsStore } from '~/stores/siteSettings'
 import { useProductDiscountsStore } from '~/stores/productDiscounts'
+import { useFeaturedProductsStore } from '~/stores/featuredProducts'
 import { computeUnitPricing, applyClubDiscount } from '~/composables/usePricingPreview'
 
 export type HomeMode = 'idle' | 'catalog' | 'clearance' | 'home-section' | 'products'
@@ -27,10 +29,12 @@ export function useHomeFlow() {
   const products = useProductsStore()
   const catalog = useCatalogStore()
   const carousel = useCarouselStore()
+  const heroBanner = useHeroBannerStore()
   const homeSections = useHomeSectionsStore()
   const access = useClubAccessStore()
   const siteSettings = useSiteSettingsStore()
   const productDiscounts = useProductDiscountsStore()
+  const featuredProducts = useFeaturedProductsStore()
 
   // * UI state
   const currentSlide = ref<0 | 1 | 2>(0) // * 0=entry, 1=sports, 2=clubs
@@ -89,6 +93,18 @@ export function useHomeFlow() {
   )
   const clearanceVisible = computed(
     () => siteSettings.clearanceActive && clearanceProducts.value.length > 0,
+  )
+
+  // * ── "Les bons plans du moment" ──
+  // * Admin-ordered roster resolved to live, visible products (drops hidden /
+  // * deleted picks). Render order follows the featured_products sort_order.
+  const bonsPlansProducts = computed<Product[]>(() =>
+    featuredProducts.orderedProductIds
+      .map((id) => products.byId(id))
+      .filter((p): p is Product => !!p && p.is_visible),
+  )
+  const bonsPlansVisible = computed(
+    () => siteSettings.bonsPlansActive && bonsPlansProducts.value.length > 0,
   )
 
   // * ── Hero stats ──
@@ -320,9 +336,11 @@ export function useHomeFlow() {
     products,
     catalog,
     carousel,
+    heroBanner,
     homeSections,
     siteSettings,
     productDiscounts,
+    featuredProducts,
     // * state
     currentSlide,
     mode,
@@ -335,6 +353,8 @@ export function useHomeFlow() {
     // * computed
     clearanceProducts,
     clearanceVisible,
+    bonsPlansProducts,
+    bonsPlansVisible,
     stats,
     sportClubs,
     clubProducts,

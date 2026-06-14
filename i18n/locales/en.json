@@ -290,6 +290,40 @@
       },
       "homeSection": {
         "empty": "No links available in this section yet."
+      },
+      "stickerFlocking": "Flocking included",
+      "stickerDelivery": "48h delivery",
+      "deckPlaceholder": "product visual",
+      "heroMarquee1": "Equip your club in style",
+      "heroMarquee2": "Sports",
+      "heroMarquee3": "Official gear",
+      "heroMarquee4": "Personalization",
+      "heroMarquee5": "Your club shop",
+      "heroMarquee6": "Clubs",
+      "tickerFlocking": "Flocking & personalization included",
+      "tickerOfficial": "Certified official equipment",
+      "brandsLabel": "Our partner brands",
+      "bonsPlans": {
+        "eyebrow": "Deals to grab",
+        "title": "The best deals right now",
+        "placeholder": "Product visual",
+        "add": "Add"
+      },
+      "previewBadge": "Preview — read only",
+      "ctaTitle": "Ready to equip your club?",
+      "ctaText": "Create your club shop in minutes and launch your first group order.",
+      "ctaButton": "Get started",
+      "kitDesigner": {
+        "kicker": "Customization",
+        "title": "Design your club's kit",
+        "desc": "Jerseys, shorts and socks in your team's colours — colours, patterns, name & number printing. Design your kit on the official Nike Team tool, then order with your club.",
+        "feature1": "Colours & patterns",
+        "feature2": "Name & number printing",
+        "feature3": "Club logo",
+        "cta": "Customize my kit",
+        "note": "Official Nike Team tool — opens in a new tab",
+        "poweredBy": "Powered by Nike Team Football",
+        "nikeVisit": "Visit Nike"
       }
     },
     "soldOut": "Sold out",
@@ -440,6 +474,7 @@
       "carousel": "Carousel",
       "entryCards": "Home cards",
       "homeSections": "Home sections",
+      "bonsPlans": "Deals",
       "contact": "Contact",
       "settings": "Settings",
       "viewSite": "View site"
@@ -1337,7 +1372,10 @@
     },
     "personalization": {
       "title": "Personalization",
-      "subtitle": "Customize the storefront: home carousel, home sections and contact details."
+      "subtitle": "Customize the storefront: home carousel, home sections and contact details.",
+      "previewHome": "Preview home",
+      "previewDesktop": "Desktop",
+      "previewMobile": "Mobile"
     },
     "carousel": {
       "title": "Home carousel",
@@ -1368,11 +1406,58 @@
       "preview": {
         "label": "Live preview",
         "hint": "This is how the banner appears on the shop side.",
-        "empty": "Add a slide to see the preview."
+        "empty": "Add a slide to see the preview.",
+        "cardsHidden": "Cards hidden"
       },
       "errors": {
-        "imageRequired": "Please pick an image."
-      }
+        "imageRequired": "Please pick an image.",
+        "productRequired": "Select a product."
+      },
+      "kindLabel": "Card type",
+      "productLabel": "Linked product",
+      "productPlaceholder": "Select a product",
+      "sportLabel": "Sport (badge)",
+      "sportPlaceholder": "None",
+      "sportHint": "Shown as a badge on the product card.",
+      "subtitleLabel": "Subtitle (optional)",
+      "subtitlePlaceholder": "e.g. Flocking & club logo included",
+      "imageOptional": "Image (optional)",
+      "imageProductHint": "If empty, the product's main image is used.",
+      "kinds": {
+        "image": "Image",
+        "product": "Product"
+      },
+      "showCardsLabel": "Show cards (carousel)",
+      "showCardsHint": "Show or hide the animated card deck in the hero banner.",
+      "heroVideoLabel": "Intro video (on launch)",
+      "heroVideoHint": "Clip played once over the banner. Empty = default video.",
+      "heroVideoCurrent": "Custom video active",
+      "heroVideoNone": "No custom video (default video used)",
+      "heroVideoChoose": "Choose a video",
+      "heroVideoRemove": "Remove",
+      "bannerTitle": "Full-screen banner (images & videos)",
+      "bannerSubtitle": "Looping background media across the whole banner, behind the cards.",
+      "bannerAdd": "Add media",
+      "bannerEmpty": "No media. The banner uses the default background.",
+      "bannerNew": "New",
+      "bannerSave": "Publish banner",
+      "bannerDiscard": "Discard",
+      "bannerUnsaved": "Unpublished changes — visible only in the preview.",
+      "kindVideo": "Video"
+    },
+    "bonsPlans": {
+      "title": "Deals",
+      "subtitle": "The \"best deals right now\" carousel on the home page. Pick and order the featured products.",
+      "active": "Show the section on the home page",
+      "titleLabel": "Section title",
+      "titleHint": "Leave empty to use the default title.",
+      "saved": "Saved",
+      "products": "Featured products",
+      "productsHint": "Reorder with the arrows. Only visible products are shown.",
+      "pickPlaceholder": "Choose a product to add…",
+      "add": "Add",
+      "empty": "No products selected yet.",
+      "remove": "Remove"
     },
     "homeSections": {
       "title": "Home sections",
@@ -1542,7 +1627,8 @@
     "empty": "No results",
     "deleteKeyword": "delete",
     "typeToConfirm": "Type {keyword} to confirm.",
-    "next": "Next"
+    "next": "Next",
+    "previous": "Previous"
   },
   "publicOrder": {
     "thanks": "Thanks for your order!",

@@ -20,6 +20,12 @@ export interface SiteSettings {
   clearance_cover_image_path: string | null
   clearance_text_color: string | null
   clearance_cover_gradient: boolean
+  // * Hero: admin launch video (null → bundled default) + show/hide the deck.
+  hero_video_path: string | null
+  hero_show_cards: boolean
+  // * "Les bons plans du moment" featured carousel: visibility + custom title.
+  bons_plans_active: boolean
+  bons_plans_title: string | null
   updated_at: string
 }
 
@@ -52,6 +58,18 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
   const promoBannerUrl = computed(() => settings.value?.promo_banner_url ?? null)
   // * Carousel dwell time in seconds; falls back to 3 when the row predates the feature.
   const carouselAutoplaySeconds = computed(() => settings.value?.carousel_autoplay_seconds ?? 3)
+  // * Hero deck visibility — defaults to shown when the row predates the feature.
+  const heroShowCards = computed(() => settings.value?.hero_show_cards !== false)
+  // * Featured "bons plans" carousel — hidden by default until an admin enables it.
+  const bonsPlansActive = computed(() => !!settings.value?.bons_plans_active)
+  const bonsPlansTitle = computed(() => settings.value?.bons_plans_title ?? null)
+  // * Public URL of the admin launch video, or null → caller uses the bundled clip.
+  const heroVideoUrl = computed(() => {
+    const path = settings.value?.hero_video_path
+    if (!path) return null
+    const { data } = useSupabaseClient().storage.from('home-carousel').getPublicUrl(path)
+    return data?.publicUrl ?? null
+  })
 
   async function fetchAll() {
     loading.value = true
@@ -82,6 +100,8 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
         | 'promo_banner_url'
         | 'promo_banner_active'
         | 'carousel_autoplay_seconds'
+        | 'bons_plans_active'
+        | 'bons_plans_title'
       >
     >,
   ) {
@@ -96,6 +116,30 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
 
   async function toggleClearance() {
     return update({ clearance_active: !clearanceActive.value })
+  }
+
+  // * Hero settings — show/hide the deck and/or replace/clear the launch video.
+  // * Sends multipart when a video File is present, plain JSON otherwise.
+  async function updateHero(payload: {
+    hero_show_cards?: boolean
+    hero_video?: File | null
+    clear_hero_video?: boolean
+  }) {
+    const { hero_video, ...rest } = payload
+    let body: FormData | typeof rest = rest
+    if (hero_video) {
+      const fd = new FormData()
+      fd.append('data', JSON.stringify(rest))
+      fd.append('hero_video', hero_video)
+      body = fd
+    }
+    const { data, error: err } = await invokeEdge<{ settings: SiteSettings }>(
+      'admin-settings',
+      { method: 'PUT', body },
+    )
+    if (err) throw new Error(err.message)
+    if (data?.settings) settings.value = data.settings
+    return data?.settings
   }
 
   // * Static entry cards (catalog/shop/clearance) cover + text color. Sends
@@ -129,9 +173,14 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     promoBannerText,
     promoBannerUrl,
     carouselAutoplaySeconds,
+    heroShowCards,
+    bonsPlansActive,
+    bonsPlansTitle,
+    heroVideoUrl,
     fetchAll,
     update,
     toggleClearance,
     updateEntryCards,
+    updateHero,
   }
 })

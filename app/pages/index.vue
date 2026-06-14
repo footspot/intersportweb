@@ -14,6 +14,12 @@ provide(HomeFlowKey, flow)
 
 const instagram = useInstagramStore()
 
+// * Admin preview mode (`/?preview`): renders the full home exactly as a visitor
+// * first sees it (intro video → hero banner → carousel → marquee → …) but fully
+// * non-interactive, so admins can review the render from /admin/personalization.
+const route = useRoute()
+const isPreview = computed(() => route.query.preview !== undefined)
+
 await useAsyncData('home-bootstrap', async () => {
   await Promise.all([
     flow.sports.fetchAll(),
@@ -21,9 +27,11 @@ await useAsyncData('home-bootstrap', async () => {
     flow.products.fetchAll(),
     flow.catalog.fetchAll(),
     flow.carousel.fetchAll(),
+    flow.heroBanner.fetchAll(),
     flow.homeSections.fetchAll(),
     flow.siteSettings.fetchAll(),
     flow.productDiscounts.fetchAll(),
+    flow.featuredProducts.fetchAll(),
     instagram.fetchAll(),
   ])
   return true
@@ -55,8 +63,20 @@ useSchemaOrg([
 </script>
 
 <template>
-  <div class="home-page bg-page dark:bg-sidebar-bg text-[#1a1a2e] dark:text-gray-100">
+  <div
+    class="home-page bg-page dark:bg-sidebar-bg text-[#1a1a2e] dark:text-gray-100"
+    :class="{ 'home-preview': isPreview }"
+  >
+    <!-- * Read-only badge while in admin preview mode -->
+    <div v-if="isPreview" class="preview-badge">
+      <UIcon name="i-lucide-eye" class="w-4 h-4" />
+      {{ flow.t('storefront.home.previewBadge') }}
+    </div>
+
     <HomeHero />
+    <!-- * Smoke band pulls itself up over the hero's bottom edge (negative margin) -->
+    <HomeSmokeBand />
+
     <HomeEntrySection />
     <HomeShopCarousel />
 
@@ -65,7 +85,15 @@ useSchemaOrg([
     <HomeLinksSection />
     <HomeProductsSection />
 
+    <!-- * Below the products: new design — partner marquee → bons plans → about → big CTA -->
+    <HomeBrandMarquee />
+    <HomeBonsPlans />
+
+    <!-- * Nike Team kit configurator launcher (Nike forbids iframing → opens in a new tab) -->
+    <HomeKitDesigner />
+
     <HomeAbout />
+    <HomeCtaStrip />
 
     <!-- * Latest official Instagram post — renders only when the worker cached one -->
     <HomeInstagramLatest />
@@ -78,3 +106,30 @@ useSchemaOrg([
     />
   </div>
 </template>
+
+<style scoped>
+/* * Preview mode — block every interaction so the render can be reviewed safely. */
+.home-preview {
+  pointer-events: none;
+  user-select: none;
+}
+.preview-badge {
+  position: fixed;
+  z-index: 60;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgba(3, 49, 249, 0.92);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
+}
+</style>

@@ -6,6 +6,11 @@ const cartOpen = useState('customer:cart-open', () => false)
 
 <template>
   <div class="min-h-screen flex flex-col bg-white dark:bg-sidebar-bg text-gray-900 dark:text-gray-100">
+    <ClientOnly>
+      <LayoutAppScrollProgress />
+      <LayoutAppCustomCursor />
+    </ClientOnly>
+
     <LayoutAppHeader />
     <main class="flex-1">
       <slot />

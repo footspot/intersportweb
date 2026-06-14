@@ -49,12 +49,12 @@ const showDropdown = computed(() => search.open.value && search.query.value.trim
 
 <template>
   <div ref="root" class="relative hidden md:block flex-1">
-    <div class="flex items-center gap-1.5 bg-[#f2f2f2] dark:bg-sidebar-surface rounded-xl p-1 ring-1 ring-transparent focus-within:ring-ink/30 dark:focus-within:ring-white/15 transition-shadow">
+    <div class="flex items-center gap-1.5 bg-[#f2f2f2] dark:bg-sidebar-surface rounded-xl p-0.5 ring-1 ring-transparent focus-within:ring-ink/30 dark:focus-within:ring-white/15 transition-shadow">
       <!-- Sport selector — branded filter chip -->
       <div class="sport-select relative shrink-0">
         <select
           v-model="search.sportId.value"
-          class="appearance-none bg-ink/[0.07] dark:bg-white/[0.06] text-ink dark:text-gray-100 text-[13px] font-semibold rounded-lg pl-3 pr-7 py-2 max-w-[160px] outline-none cursor-pointer hover:bg-ink/[0.12] dark:hover:bg-white/10 transition-colors"
+          class="appearance-none bg-ink/[0.07] dark:bg-white/[0.06] text-ink dark:text-gray-100 text-[13px] font-semibold rounded-lg pl-3 pr-7 py-1.5 max-w-[160px] outline-none cursor-pointer hover:bg-ink/[0.12] dark:hover:bg-white/10 transition-colors"
           :aria-label="t('storefront.search.allSports')"
         >
           <option :value="null">{{ t('storefront.search.allSports') }}</option>

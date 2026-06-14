@@ -119,7 +119,7 @@ const accentCss = flow.accentCss
             </span>
             <span
               v-else-if="p.flocking_kind !== 'none'"
-              class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-brand-green text-white"
+              class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-accent text-white"
             >
               {{ t('storefront.home.badgeFlocking') }}
             </span>

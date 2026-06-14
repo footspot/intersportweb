@@ -290,6 +290,40 @@
       },
       "homeSection": {
         "empty": "Aucun lien disponible dans cette section pour le moment."
+      },
+      "stickerFlocking": "Floquage inclus",
+      "stickerDelivery": "Livraison 48h",
+      "deckPlaceholder": "visuel produit",
+      "heroMarquee1": "Équipez votre club avec style",
+      "heroMarquee2": "Sports",
+      "heroMarquee3": "Équipement officiel",
+      "heroMarquee4": "Personnalisation",
+      "heroMarquee5": "Votre boutique du club",
+      "heroMarquee6": "Clubs",
+      "tickerFlocking": "Floquage & personnalisation inclus",
+      "tickerOfficial": "Équipements officiels certifiés",
+      "brandsLabel": "Nos marques partenaires",
+      "bonsPlans": {
+        "eyebrow": "Offres à saisir",
+        "title": "Les bons plans du moment",
+        "placeholder": "Visuel produit",
+        "add": "Ajouter"
+      },
+      "previewBadge": "Aperçu — lecture seule",
+      "ctaTitle": "Prêt à équiper votre club ?",
+      "ctaText": "Créez votre boutique club en quelques minutes et lancez votre première commande groupée.",
+      "ctaButton": "Démarrer maintenant",
+      "kitDesigner": {
+        "kicker": "Personnalisation",
+        "title": "Crée la tenue de ton club",
+        "desc": "Maillots, shorts et chaussettes aux couleurs de ton équipe — couleurs, motifs, floquage nom & numéro. Conçois ta tenue sur l'outil officiel Nike Team, puis commande avec ton club.",
+        "feature1": "Couleurs & motifs",
+        "feature2": "Floquage nom & numéro",
+        "feature3": "Logo du club",
+        "cta": "Personnaliser ma tenue",
+        "note": "Outil officiel Nike Team — s'ouvre dans un nouvel onglet",
+        "poweredBy": "Propulsé par Nike Team Football",
+        "nikeVisit": "Visiter Nike"
       }
     },
     "soldOut": "Épuisé",
@@ -440,6 +474,7 @@
       "carousel": "Carrousel",
       "entryCards": "Cartes d'accueil",
       "homeSections": "Sections accueil",
+      "bonsPlans": "Bons plans",
       "contact": "Contact",
       "settings": "Paramètres",
       "viewSite": "Voir le site"
@@ -1337,7 +1372,10 @@
     },
     "personalization": {
       "title": "Personnalisation",
-      "subtitle": "Personnalisez la boutique : carrousel d'accueil, sections d'accueil et coordonnées."
+      "subtitle": "Personnalisez la boutique : carrousel d'accueil, sections d'accueil et coordonnées.",
+      "previewHome": "Aperçu de l'accueil",
+      "previewDesktop": "Bureau",
+      "previewMobile": "Mobile"
     },
     "carousel": {
       "title": "Carrousel d'accueil",
@@ -1368,11 +1406,58 @@
       "preview": {
         "label": "Aperçu en direct",
         "hint": "Voici comment la bannière apparaît côté boutique.",
-        "empty": "Ajoutez une slide pour voir l'aperçu."
+        "empty": "Ajoutez une slide pour voir l'aperçu.",
+        "cardsHidden": "Cartes masquées"
       },
       "errors": {
-        "imageRequired": "Sélectionnez une image."
-      }
+        "imageRequired": "Sélectionnez une image.",
+        "productRequired": "Sélectionnez un produit."
+      },
+      "kindLabel": "Type de carte",
+      "productLabel": "Produit lié",
+      "productPlaceholder": "Sélectionnez un produit",
+      "sportLabel": "Sport (badge)",
+      "sportPlaceholder": "Aucun",
+      "sportHint": "Affiché en badge sur la carte produit.",
+      "subtitleLabel": "Sous-titre (optionnel)",
+      "subtitlePlaceholder": "Ex. Floquage & logo club inclus",
+      "imageOptional": "Image (optionnelle)",
+      "imageProductHint": "Si vide, l'image principale du produit est utilisée.",
+      "kinds": {
+        "image": "Image",
+        "product": "Produit"
+      },
+      "showCardsLabel": "Afficher les cartes (carrousel)",
+      "showCardsHint": "Affiche ou masque le jeu de cartes animées dans la bannière.",
+      "heroVideoLabel": "Vidéo d'intro (au lancement)",
+      "heroVideoHint": "Clip joué une fois par-dessus la bannière. Vide = vidéo par défaut.",
+      "heroVideoCurrent": "Vidéo personnalisée active",
+      "heroVideoNone": "Aucune vidéo personnalisée (vidéo par défaut utilisée)",
+      "heroVideoChoose": "Choisir une vidéo",
+      "heroVideoRemove": "Retirer",
+      "bannerTitle": "Bannière plein écran (images & vidéos)",
+      "bannerSubtitle": "Média de fond défilant sur toute la bannière, derrière les cartes.",
+      "bannerAdd": "Ajouter un média",
+      "bannerEmpty": "Aucun média. La bannière utilise le fond par défaut.",
+      "bannerNew": "Nouveau",
+      "bannerSave": "Publier la bannière",
+      "bannerDiscard": "Annuler",
+      "bannerUnsaved": "Modifications non publiées — visibles uniquement dans l'aperçu.",
+      "kindVideo": "Vidéo"
+    },
+    "bonsPlans": {
+      "title": "Bons plans",
+      "subtitle": "Le carrousel « Les bons plans du moment » sur la page d'accueil. Choisissez et ordonnez les produits mis en avant.",
+      "active": "Afficher la section sur la page d'accueil",
+      "titleLabel": "Titre de la section",
+      "titleHint": "Laissez vide pour utiliser le titre par défaut.",
+      "saved": "Enregistré",
+      "products": "Produits mis en avant",
+      "productsHint": "Réordonnez avec les flèches. Seuls les produits visibles s'affichent.",
+      "pickPlaceholder": "Choisir un produit à ajouter…",
+      "add": "Ajouter",
+      "empty": "Aucun produit sélectionné.",
+      "remove": "Retirer"
     },
     "homeSections": {
       "title": "Sections accueil",
@@ -1542,7 +1627,8 @@
     "empty": "Aucun résultat",
     "deleteKeyword": "supprimer",
     "typeToConfirm": "Tapez {keyword} pour confirmer.",
-    "next": "Suivant"
+    "next": "Suivant",
+    "previous": "Précédent"
   },
   "publicOrder": {
     "thanks": "Merci pour votre commande !",

@@ -61,6 +61,13 @@
     font-family: var(--font-body);
   }
 
+  /* * Never let a wide child (hero deck, marquees, decorative bleed) cause a
+   * page-wide horizontal scroll on mobile. `clip` (not `hidden`) doesn't create
+   * a scroll container, so position:sticky keeps working. */
+  body {
+    overflow-x: clip;
+  }
+
   h1,
   h2,
   h3,

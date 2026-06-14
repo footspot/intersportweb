@@ -5,20 +5,32 @@ import { invokeEdge } from '~/composables/useEdgeFunction'
 
 export type SlideAnimation = 'zoom' | 'soccer' | 'basketball'
 
+// * 'image' = plain full-bleed image card. 'product' = rich product card linked
+// * to a product + its sport (badge, name, price, discount, click-through).
+export type SlideKind = 'image' | 'product'
+
 export interface HomeSlide {
   id: string
-  image_path: string
+  image_path: string | null
   title: string | null
+  subtitle: string | null
   sort_order: number
   animation: SlideAnimation
+  card_kind: SlideKind
+  product_id: string | null
+  sport_id: string | null
   created_at: string
 }
 
 export interface SlideInput {
   id?: string
   title?: string | null
+  subtitle?: string | null
   sort_order?: number
   animation?: SlideAnimation
+  card_kind?: SlideKind
+  product_id?: string | null
+  sport_id?: string | null
   file?: File | null
 }
 
