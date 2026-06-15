@@ -4,6 +4,7 @@ import {
   usePromoCodesStore,
   type PromoCode,
   type PromoAbsorbsBy,
+  type PromoScope,
 } from '~/stores/promoCodes'
 
 interface Props {
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const store = usePromoCodesStore()
 
 const code = ref('')
@@ -26,6 +28,9 @@ const absorbsBy = ref<PromoAbsorbsBy>('intersport')
 const validFrom = ref('')
 const validUntil = ref('')
 const note = ref('')
+const scope = ref<PromoScope>('global')
+const scopeClubId = ref('')
+const scopeProductIds = ref<string[]>([])
 const saving = ref(false)
 const errorMsg = ref<string | null>(null)
 
@@ -48,6 +53,9 @@ watch(
     validFrom.value = toDateInput(p?.valid_from ?? null)
     validUntil.value = toDateInput(p?.valid_until ?? null)
     note.value = p?.note ?? ''
+    scope.value = p?.scope ?? 'global'
+    scopeClubId.value = p?.club_id ?? ''
+    scopeProductIds.value = [...(p?.scope_product_ids ?? [])]
     errorMsg.value = null
   },
   { immediate: true },
@@ -57,10 +65,25 @@ function close() {
   if (!saving.value) emit('update:modelValue', false)
 }
 
+// * Build the scope slice of the payload, validating client-side first so the
+// *   admin gets an inline message before the round-trip.
+function scopePayload() {
+  if (scope.value === 'club' && !scopeClubId.value) throw new Error('scope_club_required')
+  if (scope.value === 'products' && scopeProductIds.value.length === 0) {
+    throw new Error('scope_products_required')
+  }
+  return {
+    scope: scope.value,
+    club_id: scope.value === 'global' ? null : scopeClubId.value || null,
+    scope_product_ids: scope.value === 'products' ? scopeProductIds.value : [],
+  }
+}
+
 async function submit() {
   errorMsg.value = null
   saving.value = true
   try {
+    const sc = scopePayload()
     if (isEdit.value && props.promoCode) {
       await store.update({
         id: props.promoCode.id,
@@ -69,6 +92,7 @@ async function submit() {
         valid_from: validFrom.value || null,
         valid_until: validUntil.value || null,
         note: note.value.trim() || null,
+        ...sc,
       })
     } else {
       if (!code.value.trim()) throw new Error('invalid_code')
@@ -82,6 +106,7 @@ async function submit() {
         valid_from: validFrom.value || null,
         valid_until: validUntil.value || null,
         note: note.value.trim() || null,
+        ...sc,
       })
     }
     emit('saved')
@@ -92,7 +117,10 @@ async function submit() {
     else if (m === 'invalid_code') errorMsg.value = t('admin.promo.errors.invalidCode')
     else if (m === 'invalid_amount') errorMsg.value = t('admin.promo.errors.invalidAmount')
     else if (m === 'invalid_min_subtotal') errorMsg.value = t('admin.promo.errors.invalidMin')
-    else errorMsg.value = m
+    else if (m === 'scope_club_required') errorMsg.value = t('admin.promo.errors.scopeClubRequired')
+    else if (m === 'scope_products_required') errorMsg.value = t('admin.promo.errors.scopeProductsRequired')
+    else if (m === 'scope_products_multi_club') errorMsg.value = t('admin.promo.errors.scopeMultiClub')
+    else errorMsg.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }
@@ -192,6 +220,12 @@ async function submit() {
           />
         </label>
       </div>
+
+      <AdminPromoCodesScopeSelector
+        v-model:scope="scope"
+        v-model:club-id="scopeClubId"
+        v-model:product-ids="scopeProductIds"
+      />
 
       <label class="block">
         <span class="text-sm font-medium">{{ t('admin.promo.field.note') }}</span>

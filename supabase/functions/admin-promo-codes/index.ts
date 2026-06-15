@@ -23,6 +23,8 @@ import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { verifyAdmin } from '../_shared/auth.ts'
 import { serviceClient } from '../_shared/supabase.ts'
 
+type PromoScope = 'global' | 'club' | 'products'
+
 interface PromoPayload {
   id?: string
   code?: string
@@ -33,6 +35,8 @@ interface PromoPayload {
   valid_until?: string | null
   note?: string | null
   club_id?: string | null
+  scope?: PromoScope
+  scope_product_ids?: string[] | null
 }
 
 interface BatchPayload {
@@ -45,9 +49,51 @@ interface BatchPayload {
   valid_until?: string | null
   note?: string | null
   club_id?: string | null
+  scope?: PromoScope
+  scope_product_ids?: string[] | null
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+interface ResolvedScope {
+  scope: PromoScope
+  club_id: string | null
+  scope_product_ids: string[]
+}
+
+// * Resolve + validate the scope of a code from an admin payload.
+// *   - global   → club_id stays optional (branding only), no products.
+// *   - club     → club_id required.
+// *   - products → a non-empty product list, all belonging to ONE club; that
+// *                club is derived and stored in club_id (single-club packs).
+async function resolveScope(
+  sb: ReturnType<typeof serviceClient>,
+  body: PromoPayload | BatchPayload,
+): Promise<ResolvedScope | { error: string }> {
+  const scope: PromoScope =
+    body.scope === 'club' || body.scope === 'products' ? body.scope : 'global'
+  const clubId = body.club_id && UUID_RE.test(body.club_id) ? body.club_id : null
+
+  if (scope === 'global') {
+    return { scope, club_id: clubId, scope_product_ids: [] }
+  }
+  if (scope === 'club') {
+    if (!clubId) return { error: 'scope_club_required' }
+    return { scope, club_id: clubId, scope_product_ids: [] }
+  }
+  // * scope === 'products'
+  const raw = Array.isArray(body.scope_product_ids) ? body.scope_product_ids : []
+  const ids = Array.from(
+    new Set(raw.filter((x): x is string => typeof x === 'string' && UUID_RE.test(x))),
+  )
+  if (ids.length === 0) return { error: 'scope_products_required' }
+  const { data: prods, error } = await sb.from('products').select('id, club_id').in('id', ids)
+  if (error) return { error: 'scope_products_invalid' }
+  if (!prods || prods.length !== ids.length) return { error: 'scope_products_invalid' }
+  const clubs = new Set((prods as Array<{ club_id: string }>).map((p) => p.club_id))
+  if (clubs.size !== 1) return { error: 'scope_products_multi_club' }
+  return { scope, club_id: (prods as Array<{ club_id: string }>)[0]!.club_id, scope_product_ids: ids }
+}
 
 function sanitiseCode(raw: string | undefined): string | null {
   if (!raw) return null
@@ -108,7 +154,7 @@ Deno.serve(async (req) => {
         const { data, error } = await sb
           .from('promo_codes')
           .select(
-            'batch_id, amount, min_subtotal, absorbs_by, valid_from, valid_until, note, club_id, created_at, created_by, used_at',
+            'batch_id, amount, min_subtotal, absorbs_by, valid_from, valid_until, note, club_id, scope, scope_product_ids, created_at, created_by, used_at',
           )
           .not('batch_id', 'is', null)
           .order('created_at', { ascending: false })
@@ -123,6 +169,8 @@ Deno.serve(async (req) => {
           valid_until: string | null
           note: string | null
           club_id: string | null
+          scope: PromoScope
+          scope_product_ids: string[] | null
           created_at: string
           created_by: string | null
           used_at: string | null
@@ -140,6 +188,8 @@ Deno.serve(async (req) => {
           valid_until: string | null
           note: string | null
           club_id: string | null
+          scope: PromoScope
+          scope_product_ids: string[] | null
           created_at: string
           created_by: string | null
         }>()
@@ -160,6 +210,8 @@ Deno.serve(async (req) => {
               valid_until: r.valid_until,
               note: r.note,
               club_id: r.club_id,
+              scope: r.scope,
+              scope_product_ids: r.scope_product_ids ?? [],
               created_at: r.created_at,
               created_by: r.created_by,
             })
@@ -226,7 +278,10 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: 'invalid_min_subtotal' }, { status: 400 })
         }
         const absorbsBy = body.absorbs_by === 'club' ? 'club' : 'intersport'
-        const clubId = body.club_id && UUID_RE.test(body.club_id) ? body.club_id : null
+        const scoped = await resolveScope(sb, body)
+        if ('error' in scoped) {
+          return jsonResponse({ error: scoped.error }, { status: 400 })
+        }
 
         const batchId = crypto.randomUUID()
         const sharedRow = {
@@ -236,7 +291,9 @@ Deno.serve(async (req) => {
           valid_from: body.valid_from || null,
           valid_until: body.valid_until || null,
           note: body.note?.trim() || null,
-          club_id: clubId,
+          club_id: scoped.club_id,
+          scope: scoped.scope,
+          scope_product_ids: scoped.scope_product_ids,
           batch_id: batchId,
           created_by: guard.id,
         }
@@ -261,7 +318,7 @@ Deno.serve(async (req) => {
           const { data, error } = await sb
             .from('promo_codes')
             .insert(toInsert)
-            .select('id, code, amount, min_subtotal, absorbs_by, valid_from, valid_until, note, used_at, used_by_order_id, used_by_email, created_at, batch_id, club_id')
+            .select('id, code, amount, min_subtotal, absorbs_by, valid_from, valid_until, note, used_at, used_by_order_id, used_by_email, created_at, batch_id, club_id, scope, scope_product_ids')
           if (!error) {
             inserted = inserted.concat(data ?? [])
             toInsert = []
@@ -316,7 +373,10 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'invalid_min_subtotal' }, { status: 400 })
       }
       const absorbsBy = body.absorbs_by === 'club' ? 'club' : 'intersport'
-      const clubId = body.club_id && UUID_RE.test(body.club_id) ? body.club_id : null
+      const scoped = await resolveScope(sb, body)
+      if ('error' in scoped) {
+        return jsonResponse({ error: scoped.error }, { status: 400 })
+      }
 
       const { data, error } = await sb
         .from('promo_codes')
@@ -328,7 +388,9 @@ Deno.serve(async (req) => {
           valid_from: body.valid_from || null,
           valid_until: body.valid_until || null,
           note: body.note?.trim() || null,
-          club_id: clubId,
+          club_id: scoped.club_id,
+          scope: scoped.scope,
+          scope_product_ids: scoped.scope_product_ids,
           created_by: guard.id,
         })
         .select()
@@ -377,7 +439,18 @@ Deno.serve(async (req) => {
       if (body.valid_from !== undefined) patch.valid_from = body.valid_from || null
       if (body.valid_until !== undefined) patch.valid_until = body.valid_until || null
       if (body.note !== undefined) patch.note = body.note?.trim() || null
-      if (body.club_id !== undefined) {
+      // * Scope edit: when `scope` is present we re-resolve all three columns
+      // *   together (club_id is derived for product packs). Otherwise a bare
+      // *   club_id change only touches branding on a global code.
+      if (body.scope !== undefined) {
+        const scoped = await resolveScope(sb, body)
+        if ('error' in scoped) {
+          return jsonResponse({ error: scoped.error }, { status: 400 })
+        }
+        patch.scope = scoped.scope
+        patch.club_id = scoped.club_id
+        patch.scope_product_ids = scoped.scope_product_ids
+      } else if (body.club_id !== undefined) {
         patch.club_id = body.club_id && UUID_RE.test(body.club_id) ? body.club_id : null
       }
 

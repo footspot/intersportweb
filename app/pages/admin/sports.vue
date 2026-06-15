@@ -6,6 +6,7 @@ import { useSportsStore, type Sport } from '~/stores/sports'
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t, locale } = useI18n()
+const { edgeErrorMessage, notifyEdgeError } = useEdgeError()
 const sports = useSportsStore()
 const client = useSupabaseClient()
 
@@ -65,7 +66,7 @@ async function doDelete() {
     if (err?.code === 'sport_has_clubs' || err?.message === 'sport_has_clubs') {
       deleteError.value = t('admin.sports.errors.hasClubs')
     } else {
-      deleteError.value = err instanceof Error ? err.message : t('auth.errors.generic')
+      deleteError.value = edgeErrorMessage(err)
     }
   } finally {
     confirmBusy.value = false
@@ -102,7 +103,7 @@ async function commitOrder() {
     const order = rows.value.map((r, idx) => ({ id: r.id, sort_order: idx }))
     await sports.reorder(order)
   } catch (err) {
-    console.error(err)
+    notifyEdgeError(err)
     await sports.fetchAll()
   } finally {
     savingOrder.value = false

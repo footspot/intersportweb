@@ -25,8 +25,10 @@ const guest = ref<GuestIdentity>({ first_name: '', last_name: '', email: '', pho
 interface AppliedPromo {
   promo_code_id: string
   code: string
-  amount: number
+  amount: number // * eligible discount actually applied (already capped)
+  full_amount: number
   absorbs_by: 'intersport' | 'club'
+  scope: 'global' | 'club' | 'products'
 }
 const appliedPromo = ref<AppliedPromo | null>(null)
 

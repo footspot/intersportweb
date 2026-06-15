@@ -12,6 +12,7 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const ordersStore = useOrdersStore()
 const toast = useToast()
 
@@ -92,7 +93,7 @@ async function applyStatus() {
   } catch (err) {
     toast.add({
       title: t('admin.orders.status.changeFailed'),
-      description: err instanceof Error ? err.message : '',
+      description: edgeErrorMessage(err),
       color: 'error',
     })
   } finally {

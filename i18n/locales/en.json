@@ -10,6 +10,7 @@
     "home": "Home",
     "shop": "Shop",
     "catalog": "Catalog",
+    "clearance": "Clearance",
     "contact": "Contact",
     "whoWeAre": "About us",
     "orders": "My orders",
@@ -33,7 +34,8 @@
     "weekdays": "Monday to Friday",
     "saturday": "Saturday",
     "byAppointment": "By appointment",
-    "copyright": "by INTERSPORT CLUB IDF"
+    "copyright": "INTERSPORT CLUB IDF",
+    "madeBy": "Made by FootSpot"
   },
   "cart": {
     "title": "My cart",
@@ -64,8 +66,10 @@
         "expired": "This code has expired.",
         "below_min_subtotal": "Cart is below the required minimum.",
         "below_min_subtotal_v": "This code requires a cart of at least {min}.",
-        "unknown": "Validation failed."
-      }
+        "unknown": "Validation failed.",
+        "not_applicable_to_cart": "This code doesn't apply to any item in your cart."
+      },
+      "partial": "{full} code — {applied} applied to eligible items."
     }
   },
   "checkout": {
@@ -202,11 +206,25 @@
       "name": "Name",
       "email": "Email",
       "subject": "Subject",
+      "subjectChoose": "Choose a subject",
+      "subjects": {
+        "quote": "Request a quote",
+        "question": "Ask a question",
+        "order": "Order"
+      },
+      "clubName": "Club name",
+      "clubNamePlaceholder": "Your club's name",
+      "sportsLabel": "Sports",
+      "sportsHint": "Enter the sport(s) concerned",
+      "sportsPlaceholder": "e.g. Football, Basketball…",
       "message": "Message",
       "send": "Send",
       "sending": "Sending…",
       "success": "Your message has been sent. We'll get back to you shortly.",
       "required": "Name and email are required.",
+      "subjectRequired": "Please choose a subject.",
+      "clubRequired": "Please enter your club name.",
+      "sportsRequired": "Please enter the sport(s) concerned.",
       "invalidEmail": "Invalid email address.",
       "rateLimited": "Too many messages sent. Please try again later.",
       "error": "Something went wrong. Please try again."
@@ -418,6 +436,82 @@
     }
   },
   "admin": {
+    "edgeErrors": {
+      "_title": "Action failed",
+      "_generic": "The action couldn’t be completed. Please try again, and contact support if it keeps happening.",
+      "club_has_products": "Can’t delete this club: it still has products attached. Move or delete those products first.",
+      "club_is_footspot_linked": "Can’t delete this club while it’s still linked to Footspot. Unlink it on the Footspot page first.",
+      "sport_has_clubs": "Can’t delete this sport: clubs are still linked to it. Remove those clubs first.",
+      "product_has_orders": "Can’t delete this product: it’s linked to existing orders. Hide it instead.",
+      "product_locked_in_bundle": "Can’t delete this product: it’s a component of one or more packs. Remove it from those packs first.",
+      "product not found": "Product not found. It may have already been deleted.",
+      "already_featured": "This product is already in the featured list.",
+      "last_admin": "Action blocked: at least one active administrator must remain.",
+      "cannot_delete_admin": "You can only delete your own administrator account, not another admin’s.",
+      "code_already_used": "Can’t modify or delete this promo code: it has already been used.",
+      "code_already_exists": "This promo code already exists. Choose another code.",
+      "batch_has_used_codes": "Can’t delete this batch: some of its codes have already been used.",
+      "code_collision_retry_exhausted": "Couldn’t generate unique codes. Please try again.",
+      "not_found": "Item not found. It may have already been deleted.",
+      "invalid_code": "Invalid code (3–32 characters: letters, digits, “-” or “_”).",
+      "invalid_amount": "Invalid amount.",
+      "invalid_min_subtotal": "Minimum cart amount must be greater than or equal to the discount.",
+      "invalid_count": "Invalid quantity (1–1000).",
+      "invalid_prefix": "Invalid prefix (letters, digits, “-” or “_”; 16 characters max).",
+      "invalid_batch_id": "Invalid batch.",
+      "club_not_found": "Club not found.",
+      "club_id required": "Please select a club.",
+      "sport_id required": "Please select a sport.",
+      "name required": "A name is required.",
+      "email required": "An email address is required.",
+      "invalid_email": "Invalid email address.",
+      "email_taken": "This email address is already used by another account.",
+      "wrong_password": "Current password is incorrect.",
+      "weak_password": "Password must be at least 8 characters.",
+      "password must be at least 4 characters": "Password must be at least 4 characters.",
+      "password required when protected": "A password is required when access protection is enabled.",
+      "password_required": "A password is required when access protection is enabled.",
+      "password_too_short": "Password must be at least 4 characters.",
+      "role must be admin or employee": "Role must be admin or employee.",
+      "reason required": "A reason is required.",
+      "amount must be a positive number": "Amount must be a positive number.",
+      "type must be manual_credit or manual_debit": "Invalid transaction type.",
+      "insufficient_balance": "Insufficient fund balance for this debit.",
+      "bad_amount": "Amount must be a positive number.",
+      "bad_direction": "Invalid transaction type.",
+      "bad_label": "Invalid label.",
+      "order_not_found": "Order not found.",
+      "order not found": "Order not found.",
+      "order_not_awaiting_pickup": "This order isn’t awaiting pickup.",
+      "order_not_paid": "This order isn’t paid yet.",
+      "not_ready_to_ship": "This order isn’t ready to ship (it must be paid with a shipping label generated).",
+      "not_a_colissimo_order": "This isn’t a Colissimo delivery order.",
+      "not_a_pickup_order": "This isn’t a pickup order.",
+      "lyra_refund_failed": "The payment provider refused the refund. Please try again later.",
+      "systempay_not_configured": "Payments aren’t configured. Contact support.",
+      "colissimo_not_configured": "Colissimo isn’t configured. Contact support.",
+      "not_configured": "This feature isn’t configured. Contact support.",
+      "no_active_link": "No active Footspot link for this club.",
+      "event_not_found": "Event not found.",
+      "forbidden_cross_club": "This action isn’t allowed for this club.",
+      "invalid_input": "Invalid input.",
+      "invalid_payload": "Invalid data sent. Please refresh and try again.",
+      "discount_out_of_range": "Discount must be a whole number between 0 and 80%.",
+      "batch_rejected": "One or more discounts were rejected. Check the values and try again.",
+      "slogan_too_long": "Slogan is too long (80 characters max).",
+      "slogan_invalid_chars": "Slogan can’t contain line breaks.",
+      "invalid_color": "Invalid colour (use a #RRGGBB hex value).",
+      "update_failed": "The update couldn’t be saved. Please try again.",
+      "lookup_failed": "Lookup failed. Please try again.",
+      "upsert_failed": "Save failed. Please try again.",
+      "forbidden": "You don’t have permission to do this.",
+      "backoffice_required": "Back-office access is required.",
+      "Back-office role required": "Back-office access is required.",
+      "invalid_session": "Your session has expired. Please sign in again.",
+      "Invalid session": "Your session has expired. Please sign in again.",
+      "Profile disabled": "Your account is disabled. Contact an administrator.",
+      "no recipient": "This order has no email address to send to."
+    },
     "dashboard": {
       "title": "Dashboard",
       "breadcrumb": "Admin / Overview",
@@ -1057,9 +1151,10 @@
       },
       "created": {
         "title": "Account created successfully",
+        "emailed": "Credentials have been emailed to {email}.",
         "password": "Temporary password",
         "magicLink": "Login page",
-        "hint": "Share these details with the account holder. They won't be shown again."
+        "emailFailed": "Email delivery failed. Share these details with the account holder — they won't be shown again."
       },
       "errors": {
         "emailRequired": "Email is required.",
@@ -1250,7 +1345,8 @@
         "absorbs": "Absorbed by",
         "window": "Window",
         "status": "Status",
-        "actions": "Actions"
+        "actions": "Actions",
+        "scope": "Scope"
       },
       "status": {
         "active": "Active",
@@ -1279,7 +1375,10 @@
         "codeExists": "This code already exists.",
         "invalidCode": "Invalid code (3–32 chars, letters/digits/_/-).",
         "invalidAmount": "Invalid amount.",
-        "invalidMin": "Minimum cart must be greater than or equal to the discount amount."
+        "invalidMin": "Minimum cart must be greater than or equal to the discount amount.",
+        "scopeClubRequired": "Select a club for this code.",
+        "scopeProductsRequired": "Select at least one product.",
+        "scopeMultiClub": "All pack products must belong to the same club."
       },
       "tabs": {
         "single": "Single codes",
@@ -1344,6 +1443,21 @@
         "voucherNoExpiry": "No expiry date",
         "voucherSingleUse": "Single-use code",
         "voucherClubFor": "For club {club}"
+      },
+      "scope": {
+        "label": "Code scope",
+        "global": "Global",
+        "club": "Club",
+        "products": "Product pack",
+        "globalHint": "Applies to any cart.",
+        "clubHint": "Only discounts the chosen club's products.",
+        "productsHint": "Only discounts a hand-picked set of one club's products.",
+        "pickSport": "Sport",
+        "pickClub": "Club",
+        "selectedCount": "{n} selected",
+        "searchProducts": "Search a product…",
+        "noProducts": "No products for this club.",
+        "packLabel": "Pack ({n}) · {club}"
       }
     },
     "banner": {
@@ -1437,9 +1551,12 @@
       "heroVideoNone": "No custom video (default video used)",
       "heroVideoChoose": "Choose a video",
       "heroVideoRemove": "Remove",
+      "heroVideoFormats": "Accepted formats: MP4, WebM — {max} MB max.",
+      "fileTooLarge": "File too large ({size} MB). Maximum: {max} MB.",
       "bannerTitle": "Full-screen banner (images & videos)",
       "bannerSubtitle": "Looping background media across the whole banner, behind the cards.",
       "bannerAdd": "Add media",
+      "bannerFormats": "Images (JPG, PNG, WebP): {img} MB max — Videos (MP4, WebM): {vid} MB max.",
       "bannerEmpty": "No media. The banner uses the default background.",
       "bannerNew": "New",
       "bannerSave": "Publish banner",
@@ -1626,6 +1743,7 @@
     "preview": "Preview",
     "close": "Close",
     "loading": "Loading…",
+    "uploading": "Uploading…",
     "empty": "No results",
     "deleteKeyword": "delete",
     "typeToConfirm": "Type {keyword} to confirm.",

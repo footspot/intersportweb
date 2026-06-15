@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const clubs = useClubsStore()
 const sports = useSportsStore()
 const client = useSupabaseClient()
@@ -142,7 +143,7 @@ async function save() {
     emit('saved')
     emit('update:modelValue', false)
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }

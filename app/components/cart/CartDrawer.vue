@@ -4,7 +4,7 @@ import { useCartStore } from '~/stores/cart'
 interface Props {
   modelValue: boolean
 }
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 
 const { t } = useI18n()
@@ -18,6 +18,28 @@ async function goToCheckout() {
   close()
   await navigateTo('/checkout')
 }
+
+// * Close on Escape + lock background scroll while the drawer is open, so on
+// * mobile (where the panel is near full-width) it can't feel "stuck".
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') close()
+}
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (!import.meta.client) return
+    document.body.style.overflow = open ? 'hidden' : ''
+    if (open) window.addEventListener('keydown', onKeydown)
+    else window.removeEventListener('keydown', onKeydown)
+  },
+)
+
+onBeforeUnmount(() => {
+  if (!import.meta.client) return
+  document.body.style.overflow = ''
+  window.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <template>
@@ -28,9 +50,10 @@ async function goToCheckout() {
     leave-to-class="opacity-0"
   >
     <div v-if="modelValue" class="fixed inset-0 z-40 flex justify-end">
-      <div class="flex-1 bg-black/50" @click="close" />
+      <!-- * Always-tappable backdrop (kept on mobile so a tap outside dismisses) -->
+      <div class="flex-1 min-w-[40px] bg-black/50" @click="close" />
       <aside
-        class="w-full max-w-md bg-white dark:bg-sidebar-surface h-full flex flex-col shadow-card-lg"
+        class="w-[88%] max-w-md bg-white dark:bg-sidebar-surface h-full flex flex-col shadow-card-lg"
         @click.stop
       >
         <div class="px-5 py-4 border-b border-gray-100 dark:border-sidebar flex items-center justify-between">
@@ -41,7 +64,7 @@ async function goToCheckout() {
           </h3>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+            class="p-2 rounded-lg text-gray-700 dark:text-gray-100 bg-gray-100 dark:bg-sidebar hover:bg-gray-200 dark:hover:bg-sidebar-bg transition-colors"
             :aria-label="t('common.cancel')"
             @click="close"
           >

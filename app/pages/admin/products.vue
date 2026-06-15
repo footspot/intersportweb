@@ -7,6 +7,7 @@ import { useSiteSettingsStore } from '~/stores/siteSettings'
 definePageMeta({ layout: 'admin', middleware: ['backoffice'], ssr: false })
 
 const { t } = useI18n()
+const { edgeErrorMessage, notifyEdgeError } = useEdgeError()
 const products = useProductsStore()
 const clubs = useClubsStore()
 const settings = useSiteSettingsStore()
@@ -28,7 +29,7 @@ async function toggleClearanceMaster() {
   try {
     await settings.toggleClearance()
   } catch (err) {
-    console.error(err)
+    notifyEdgeError(err)
   } finally {
     togglingClearanceMaster.value = false
   }
@@ -39,7 +40,7 @@ async function toggleClearanceFlag(p: Product) {
   try {
     await products.toggleClearance(p)
   } catch (err) {
-    console.error(err)
+    notifyEdgeError(err)
   } finally {
     togglingClearance.value = togglingClearance.value.filter((id) => id !== p.id)
   }
@@ -121,7 +122,7 @@ async function doDelete() {
     if (err?.message === 'product_has_orders') {
       deleteError.value = t('admin.products.errors.hasOrders')
     } else {
-      deleteError.value = err instanceof Error ? err.message : t('auth.errors.generic')
+      deleteError.value = edgeErrorMessage(err)
     }
   } finally {
     confirmBusy.value = false
@@ -133,7 +134,7 @@ async function toggleVisible(p: Product) {
   try {
     await products.toggleVisibility(p)
   } catch (err) {
-    console.error(err)
+    notifyEdgeError(err)
   } finally {
     togglingIds.value = togglingIds.value.filter((id) => id !== p.id)
   }
@@ -146,7 +147,7 @@ async function onReorder(ordered: Product[]) {
   try {
     await products.reorder(ordered.map((p, idx) => ({ id: p.id, sort_order: idx })))
   } catch (err) {
-    console.error(err)
+    notifyEdgeError(err)
     await products.fetchAll()
   } finally {
     savingOrder.value = false
@@ -160,7 +161,7 @@ async function duplicate(p: Product) {
     const copy = await products.duplicate(p.id)
     if (copy) openEdit(copy)
   } catch (err) {
-    console.error(err)
+    notifyEdgeError(err)
   } finally {
     duplicatingIds.value = duplicatingIds.value.filter((id) => id !== p.id)
   }

@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const fund = useFundStore()
 
 const amount = ref(0)
@@ -70,7 +71,7 @@ async function save() {
     emit('saved')
     emit('update:modelValue', false)
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }

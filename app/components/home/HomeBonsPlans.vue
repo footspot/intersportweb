@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // * "Les bons plans du moment" — admin hand-picked product carousel. Renders
 // * only when the section is enabled and at least one (visible) product is
-// * featured. Horizontal scroll with snap + prev/next arrows; each card links to
-// * the product page. Roster + title/visibility are managed from
+// * featured. The track scrolls on its own, infinitely (a duplicated list driven
+// * by rAF), pausing on hover so cards stay readable/clickable. Holding an arrow
+// * accelerates the scroll in that direction; releasing returns to the gentle
+// * base speed. Roster + title/visibility are managed from
 // * /admin/personalization → "Bons plans".
 import type { Product } from '~/stores/products'
 import { useHomeFlowCtx } from '~/composables/useHomeFlow'
@@ -14,18 +16,57 @@ const title = computed(
   () => flow.siteSettings.bonsPlansTitle || t('storefront.home.bonsPlans.title'),
 )
 
-const scroller = ref<HTMLElement | null>(null)
+const products = computed(() => flow.bonsPlansProducts.value)
 
-// * Scroll roughly one "page" (the visible width) in either direction.
-function scrollBy(dir: 1 | -1) {
-  const el = scroller.value
-  if (!el) return
-  el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.8), behavior: 'smooth' })
-}
+// * Doubled so wrapping at the half-width loops seamlessly.
+const loop = computed(() => [...products.value, ...products.value])
 
 function productName(p: Product) {
   return p.name[locale.value as 'fr' | 'en'] ?? p.name.fr
 }
+
+// ── Infinite scroll engine (rAF) ──
+const track = ref<HTMLElement | null>(null)
+const paused = ref(false) // * hover pause
+const reverse = ref(false) // * current drift direction
+const boosting = ref(false) // * an arrow is being held
+
+const BASE_PXS = 42 // * gentle idle speed (px/s)
+const BOOST_PXS = 280 // * speed while an arrow is held
+
+let raf = 0
+let last = 0
+let offset = 0
+
+function frame(ts: number) {
+  const dt = last ? (ts - last) / 1000 : 0
+  last = ts
+  const el = track.value
+  if (el && !paused.value) {
+    const half = el.scrollWidth / 2 || 1
+    const speed = (boosting.value ? BOOST_PXS : BASE_PXS) * (reverse.value ? -1 : 1)
+    offset += speed * dt
+    if (offset >= half) offset -= half
+    else if (offset < 0) offset += half
+    el.style.transform = `translateX(${-offset}px)`
+  }
+  raf = requestAnimationFrame(frame)
+}
+
+// * Hold an arrow → boost in that direction; release → keep direction, base speed.
+function press(dir: 1 | -1) {
+  reverse.value = dir === -1
+  boosting.value = true
+}
+function release() {
+  boosting.value = false
+}
+
+onMounted(() => {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+  raf = requestAnimationFrame(frame)
+})
+onBeforeUnmount(() => cancelAnimationFrame(raf))
 </script>
 
 <template>
@@ -52,30 +93,41 @@ function productName(p: Product) {
         <button
           type="button"
           class="bp-arrow"
+          :class="{ 'is-active': boosting && reverse }"
           :aria-label="t('common.previous')"
-          @click="scrollBy(-1)"
+          @pointerdown.prevent="press(-1)"
+          @pointerup="release"
+          @pointerleave="release"
+          @pointercancel="release"
         >
           <UIcon name="i-lucide-chevron-left" class="w-5 h-5" />
         </button>
         <button
           type="button"
           class="bp-arrow"
+          :class="{ 'is-active': boosting && !reverse }"
           :aria-label="t('common.next')"
-          @click="scrollBy(1)"
+          @pointerdown.prevent="press(1)"
+          @pointerup="release"
+          @pointerleave="release"
+          @pointercancel="release"
         >
           <UIcon name="i-lucide-chevron-right" class="w-5 h-5" />
         </button>
       </div>
     </div>
 
-    <!-- * Horizontal snap-scroll track -->
-    <div ref="scroller" class="bp-track flex gap-4 overflow-x-auto pt-2 pb-3 -mx-1 px-1">
-      <NuxtLink
-        v-for="p in flow.bonsPlansProducts.value"
-        :key="p.id"
-        :to="`/product/${p.id}`"
-        class="bp-card group bg-white dark:bg-sidebar-surface rounded-2xl overflow-hidden border border-gray-200 dark:border-sidebar no-underline text-inherit transition-all hover:-translate-y-1 hover:shadow-card-lg hover:border-accent/50"
-      >
+    <!-- * Infinite auto-scrolling track (duplicated list, driven by rAF) -->
+    <div class="bp-viewport" @mouseenter="paused = true" @mouseleave="paused = false">
+      <div ref="track" class="bp-track">
+        <NuxtLink
+          v-for="(p, i) in loop"
+          :key="`${p.id}-${i}`"
+          :to="`/product/${p.id}`"
+          :aria-hidden="i >= products.length ? 'true' : undefined"
+          :tabindex="i >= products.length ? -1 : undefined"
+          class="bp-card group bg-white dark:bg-sidebar-surface rounded-2xl overflow-hidden border border-gray-200 dark:border-sidebar no-underline text-inherit transition-all hover:-translate-y-1 hover:shadow-card-lg hover:border-accent/50"
+        >
         <!-- * Visual -->
         <div class="relative aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 dark:from-sidebar dark:to-sidebar-surface flex items-center justify-center overflow-hidden">
           <img
@@ -128,7 +180,8 @@ function productName(p: Product) {
             </span>
           </div>
         </div>
-      </NuxtLink>
+        </NuxtLink>
+      </div>
     </div>
   </section>
 </template>
@@ -146,7 +199,8 @@ function productName(p: Product) {
   background: #fff;
   transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
-.bp-arrow:hover {
+.bp-arrow:hover,
+.bp-arrow.is-active {
   background: var(--color-ink, #164194);
   border-color: var(--color-ink, #164194);
   color: #fff;
@@ -157,15 +211,23 @@ function productName(p: Product) {
   color: #fff;
 }
 
-/* * Fixed-width cards that snap as the track scrolls. */
+/* * Infinite marquee: viewport clips horizontally; vertical padding leaves room
+ * for the card hover-lift + shadow (overflow:hidden would otherwise clip them). */
+.bp-viewport {
+  overflow: hidden;
+  padding: 10px 0 26px;
+}
+.bp-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  will-change: transform;
+}
+
+/* * Fixed-width cards. */
 .bp-card {
   flex: 0 0 auto;
   width: 260px;
-  scroll-snap-align: start;
-}
-.bp-track {
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
 }
 
 .bp-add {
@@ -189,6 +251,17 @@ function productName(p: Product) {
 @media (max-width: 620px) {
   .bp-card {
     width: 210px;
+  }
+}
+
+/* * Reduced motion: stop the auto-scroll, fall back to manual horizontal scroll. */
+@media (prefers-reduced-motion: reduce) {
+  .bp-track {
+    animation: none;
+  }
+  .bp-viewport {
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
 }
 </style>

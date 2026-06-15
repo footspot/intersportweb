@@ -214,6 +214,22 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'club_has_products', product_count: count }, { status: 409 })
       }
 
+      // * Block deletion while an active Footspot link exists. Deleting would
+      // * cascade-erase footspot_links (FK ON DELETE CASCADE) without telling
+      // * Footspot — leaving a dangling pairing on their side. Footspot exposes
+      // * no partner-disconnect endpoint, so the admin must use the Footspot
+      // * page's "Unlink" action first (the only supported teardown).
+      const { data: activeLink, error: linkErr } = await sb
+        .from('footspot_links')
+        .select('id')
+        .eq('club_id', id)
+        .eq('status', 'active')
+        .maybeSingle()
+      if (linkErr) throw linkErr
+      if (activeLink) {
+        return jsonResponse({ error: 'club_is_footspot_linked' }, { status: 409 })
+      }
+
       const { data: current } = await sb.from('clubs').select('logo_path').eq('id', id).single()
 
       const { error } = await sb.from('clubs').delete().eq('id', id)

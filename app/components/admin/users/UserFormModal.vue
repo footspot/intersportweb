@@ -12,6 +12,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const users = useUsersStore()
 
 const firstName = ref('')
@@ -76,7 +77,7 @@ async function save() {
     if (err?.message === 'last_admin') {
       errorMsg.value = t('admin.users.errors.lastAdmin')
     } else {
-      errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+      errorMsg.value = edgeErrorMessage(err)
     }
   } finally {
     saving.value = false

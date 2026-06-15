@@ -4,6 +4,7 @@
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { verifyAdmin } from '../_shared/auth.ts'
 import { serviceClient } from '../_shared/supabase.ts'
+import { sendOrderEmail } from '../_shared/emails/send.ts'
 
 type Role = 'admin' | 'employee'
 
@@ -88,15 +89,41 @@ Deno.serve(async (req) => {
 
       // * Back-office accounts sign in with email + password at /admin/login.
       // * A Supabase magic link is no use here — it redirects to the storefront,
-      // * which has no login flow, and is single-use anyway. Point to the admin
-      // * login page (derived from the calling origin) instead.
-      const origin = req.headers.get('origin')
-      const loginLink = origin ? `${origin}/admin/login` : null
+      // * which has no login flow, and is single-use anyway. Always point to the
+      // * canonical production admin login (never the caller's localhost origin
+      // * nor the Netlify preview domain that SITE_URL may carry).
+      const loginLink = 'https://intersportclubidf.com/admin/login'
+
+      // * Email the new account holder their credentials instead of showing the
+      // * password on screen. If sending fails (e.g. Brevo down), fall back to
+      // * returning the password so the admin can still relay it manually.
+      let emailed = false
+      // * Only email when WE generated the password — a caller-supplied password
+      // * is already known to the admin and shouldn't be echoed by email.
+      if (!body.password) {
+        try {
+          await sendOrderEmail({
+            to: { email, name: body.full_name?.trim() || email },
+            template: 'account-created',
+            data: {
+              full_name: body.full_name?.trim() || email,
+              email,
+              password,
+              login_link: loginLink,
+            },
+          })
+          emailed = true
+        } catch (mailErr) {
+          console.error('[admin-users] credentials email failed', mailErr)
+        }
+      }
 
       return jsonResponse(
         {
           user: profile,
-          temporary_password: body.password ? undefined : password,
+          emailed,
+          // * Surface the password only when we couldn't email it (or none was generated).
+          temporary_password: body.password || emailed ? undefined : password,
           login_link: loginLink,
         },
         { status: 201 },

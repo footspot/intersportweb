@@ -5,8 +5,12 @@ import { invokeEdge } from '~/composables/useEdgeFunction'
 
 const { t } = useI18n()
 const contact = useContactStore()
+const route = useRoute()
 
-await useAsyncData('public-contact', async () => { await contact.fetch(); return true })
+await useAsyncData('public-contact', async () => {
+  await contact.fetch()
+  return true
+})
 
 // * SEO — contact page meta.
 useSeoMeta({
@@ -19,11 +23,30 @@ useSeoMeta({
 
 const info = computed(() => contact.info)
 
+// * Subject is a fixed list; "quote" reveals extra club + sports fields.
+type SubjectKey = 'quote' | 'question' | 'order'
+const SUBJECT_KEYS: SubjectKey[] = ['quote', 'question', 'order']
+
 // * Contact form — posts to the rate-limited `contact-message` edge function.
-const form = reactive({ name: '', email: '', subject: '', message: '' })
+const form = reactive({
+  name: '',
+  email: '',
+  subject: '' as '' | SubjectKey,
+  clubName: '',
+  sports: '', // * free-text sport(s)
+  message: '',
+})
 const sending = ref(false)
 const sent = ref(false)
 const formError = ref('')
+
+// * Pre-select the subject from ?subject=quote (e.g. the home "request a quote" CTA).
+const qSubject = route.query.subject
+if (typeof qSubject === 'string' && (SUBJECT_KEYS as string[]).includes(qSubject)) {
+  form.subject = qSubject as SubjectKey
+}
+
+const isQuote = computed(() => form.subject === 'quote')
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 dark:border-sidebar bg-gray-50 dark:bg-sidebar px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition'
@@ -42,10 +65,36 @@ async function submitForm() {
     formError.value = t('contactPage.form.invalidEmail')
     return
   }
+  if (!form.subject) {
+    formError.value = t('contactPage.form.subjectRequired')
+    return
+  }
+  if (isQuote.value && !form.clubName.trim()) {
+    formError.value = t('contactPage.form.clubRequired')
+    return
+  }
+  if (isQuote.value && !form.sports.trim()) {
+    formError.value = t('contactPage.form.sportsRequired')
+    return
+  }
+
+  // * Human-readable subject label sent to the inbox.
+  const subjectLabel = t(`contactPage.form.subjects.${form.subject}`)
+
+  // * For a quote, fold club + sports into the message body so the existing
+  // * edge function/email template carry the extra context unchanged.
+  let messageOut = form.message.trim()
+  if (isQuote.value) {
+    const header =
+      `${t('contactPage.form.clubName')}: ${form.clubName.trim()}\n` +
+      `${t('contactPage.form.sportsLabel')}: ${form.sports.trim()}`
+    messageOut = messageOut ? `${header}\n\n${messageOut}` : header
+  }
+
   sending.value = true
   const { error } = await invokeEdge('contact-message', {
     method: 'POST',
-    body: { name: form.name, email: form.email, subject: form.subject, message: form.message },
+    body: { name: form.name, email: form.email, subject: subjectLabel, message: messageOut },
   })
   sending.value = false
   if (error) {
@@ -59,6 +108,8 @@ async function submitForm() {
   form.name = ''
   form.email = ''
   form.subject = ''
+  form.clubName = ''
+  form.sports = ''
   form.message = ''
 }
 
@@ -198,10 +249,31 @@ const hasAnyContact = computed(
           </div>
           <div>
             <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
-              {{ t('contactPage.form.subject') }}
+              {{ t('contactPage.form.subject') }} <span class="text-brand-secondary">*</span>
             </label>
-            <input v-model="form.subject" type="text" maxlength="200" :class="inputClass" :placeholder="t('contactPage.form.subject')">
+            <select v-model="form.subject" :class="[inputClass, 'appearance-none pr-10 bg-no-repeat']" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%222%22%3E%3Cpath d=%22M6 9l6 6 6-6%22/%3E%3C/svg%3E'); background-position: right 0.75rem center; background-size: 1.1rem;">
+              <option value="" disabled>{{ t('contactPage.form.subjectChoose') }}</option>
+              <option v-for="k in SUBJECT_KEYS" :key="k" :value="k">{{ t(`contactPage.form.subjects.${k}`) }}</option>
+            </select>
           </div>
+
+          <!-- * Quote-only: club name + sports multi-select -->
+          <template v-if="isQuote">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                {{ t('contactPage.form.clubName') }} <span class="text-brand-secondary">*</span>
+              </label>
+              <input v-model="form.clubName" type="text" maxlength="120" :class="inputClass" :placeholder="t('contactPage.form.clubNamePlaceholder')">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                {{ t('contactPage.form.sportsLabel') }} <span class="text-brand-secondary">*</span>
+              </label>
+              <p class="text-xs text-gray-400 mb-2">{{ t('contactPage.form.sportsHint') }}</p>
+              <input v-model="form.sports" type="text" maxlength="200" :class="inputClass" :placeholder="t('contactPage.form.sportsPlaceholder')">
+            </div>
+          </template>
+
           <div>
             <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
               {{ t('contactPage.form.message') }}

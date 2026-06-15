@@ -13,6 +13,7 @@ defineProps<Props>()
 const emit = defineEmits<{ (e: 'update:modelValue', open: boolean): void }>()
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const products = useProductsStore()
 
 // * Distinct categories + how many products use each, sorted alphabetically.
@@ -60,7 +61,7 @@ async function saveRename(from: string) {
     await products.updateCategory(from, to)
     editingName.value = null
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     busy.value = null
   }
@@ -73,7 +74,7 @@ async function doDelete(name: string) {
     await products.updateCategory(name, null)
     confirmingDelete.value = null
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     busy.value = null
   }

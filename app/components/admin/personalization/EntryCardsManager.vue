@@ -6,6 +6,7 @@
 import { useSiteSettingsStore, type EntryCardInput } from '~/stores/siteSettings'
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const siteSettings = useSiteSettingsStore()
 const client = useSupabaseClient()
 
@@ -100,7 +101,7 @@ async function save() {
     saved.value = true
     setTimeout(() => (saved.value = false), 3000)
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }

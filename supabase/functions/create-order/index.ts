@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
       }
       const { data: promo } = await sb
         .from('promo_codes')
-        .select('id, amount, min_subtotal, valid_from, valid_until, used_at')
+        .select('id, amount, min_subtotal, valid_from, valid_until, used_at, scope, club_id, scope_product_ids')
         .eq('id', body.promo_code_id)
         .maybeSingle()
       if (!promo) {
@@ -499,11 +499,32 @@ Deno.serve(async (req) => {
       if (promo.valid_until && new Date(promo.valid_until).getTime() < now) {
         return jsonResponse({ error: 'promo_code_expired' }, { status: 400 })
       }
-      if (promo.min_subtotal != null && subtotal < Number(promo.min_subtotal)) {
+      // * Eligible subtotal depends on scope (see validate-promo-code). For a
+      // *   club / product-pack code only the matching lines count — the discount
+      // *   applies to that club's portion of the cart, not the whole basket.
+      let eligibleSubtotal = subtotal
+      if (promo.scope === 'club') {
+        eligibleSubtotal = pending.reduce(
+          (s, p) => (p.product.club_id === promo.club_id ? s + p.unitPaid * p.quantity : s),
+          0,
+        )
+      } else if (promo.scope === 'products') {
+        const set = new Set<string>((promo.scope_product_ids ?? []) as string[])
+        eligibleSubtotal = pending.reduce(
+          (s, p) => (set.has(p.productId) ? s + p.unitPaid * p.quantity : s),
+          0,
+        )
+      }
+      eligibleSubtotal = Number(eligibleSubtotal.toFixed(2))
+      if (promo.scope !== 'global' && eligibleSubtotal <= 0) {
+        return jsonResponse({ error: 'promo_code_not_applicable' }, { status: 400 })
+      }
+      if (promo.min_subtotal != null && eligibleSubtotal < Number(promo.min_subtotal)) {
         return jsonResponse({ error: 'promo_code_below_min_subtotal' }, { status: 400 })
       }
-      // * Cap the discount at the subtotal so total never goes negative.
-      promoDiscount = Math.min(Number(promo.amount), subtotal)
+      // * Cap the discount at the eligible subtotal so total never goes negative
+      // *   and a scoped code never discounts more than its own products.
+      promoDiscount = Math.min(Number(promo.amount), eligibleSubtotal)
       promoCodeId = promo.id
     }
 

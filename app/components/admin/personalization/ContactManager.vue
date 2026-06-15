@@ -4,6 +4,7 @@
 import { useContactStore, type SocialLink } from '~/stores/contact'
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const contact = useContactStore()
 
 const address = ref('')
@@ -88,7 +89,7 @@ async function save() {
     saved.value = true
     setTimeout(() => (saved.value = false), 3000)
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }

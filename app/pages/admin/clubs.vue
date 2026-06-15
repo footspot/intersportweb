@@ -6,6 +6,7 @@ import { useSportsStore } from '~/stores/sports'
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const clubs = useClubsStore()
 const sports = useSportsStore()
 
@@ -62,7 +63,7 @@ async function doDelete() {
     if (err?.message === 'club_has_products') {
       deleteError.value = t('admin.clubs.errors.hasProducts')
     } else {
-      deleteError.value = err instanceof Error ? err.message : t('auth.errors.generic')
+      deleteError.value = edgeErrorMessage(err)
     }
   } finally {
     confirmBusy.value = false
@@ -92,7 +93,7 @@ async function savePwd(action: 'set' | 'clear') {
     pwdModalOpen.value = false
     pwdTarget.value = null
   } catch (err) {
-    pwdError.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    pwdError.value = edgeErrorMessage(err)
   } finally {
     pwdSaving.value = false
   }

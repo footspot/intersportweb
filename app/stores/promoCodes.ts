@@ -11,6 +11,7 @@ import { defineStore } from 'pinia'
 import { invokeEdge } from '~/composables/useEdgeFunction'
 
 export type PromoAbsorbsBy = 'intersport' | 'club'
+export type PromoScope = 'global' | 'club' | 'products'
 
 export interface PromoCode {
   id: string
@@ -25,6 +26,8 @@ export interface PromoCode {
   used_by_email: string | null
   note: string | null
   club_id: string | null
+  scope: PromoScope
+  scope_product_ids: string[]
   batch_id: string | null
   created_at: string
 }
@@ -40,6 +43,8 @@ export interface PromoBatch {
   valid_until: string | null
   note: string | null
   club_id: string | null
+  scope: PromoScope
+  scope_product_ids: string[]
   created_at: string
 }
 
@@ -53,6 +58,8 @@ export interface PromoCodeInput {
   valid_until?: string | null
   note?: string | null
   club_id?: string | null
+  scope?: PromoScope
+  scope_product_ids?: string[]
 }
 
 export interface PromoBatchInput {
@@ -65,6 +72,8 @@ export interface PromoBatchInput {
   valid_until: string | null
   note: string | null
   club_id: string | null
+  scope: PromoScope
+  scope_product_ids: string[]
 }
 
 export interface PromoBatchCreated {
@@ -173,6 +182,8 @@ export const usePromoCodesStore = defineStore('promoCodes', () => {
       valid_until: payload.valid_until,
       note: payload.note,
       club_id: payload.club_id,
+      scope: payload.scope,
+      scope_product_ids: payload.scope_product_ids,
       created_at: new Date().toISOString(),
     })
     return data

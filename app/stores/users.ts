@@ -17,7 +17,7 @@ interface UserState {
   items: User[]
   loading: boolean
   error: string | null
-  lastCreated: { password?: string; link?: string | null } | null
+  lastCreated: { email?: string; password?: string; link?: string | null; emailed?: boolean } | null
 }
 
 export const useUsersStore = defineStore('users', {
@@ -63,13 +63,19 @@ export const useUsersStore = defineStore('users', {
     }) {
       const { data, error } = await invokeEdge<{
         user: User
+        emailed?: boolean
         temporary_password?: string
         login_link?: string | null
       }>('admin-users', { method: 'POST', body: payload })
       if (error) throw new Error(error.message)
       if (data?.user) {
         this.items.unshift(data.user)
-        this.lastCreated = { password: data.temporary_password, link: data.login_link }
+        this.lastCreated = {
+          email: data.user.email,
+          password: data.temporary_password,
+          link: data.login_link,
+          emailed: data.emailed,
+        }
       }
       return data
     },

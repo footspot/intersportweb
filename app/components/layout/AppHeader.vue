@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
 import { useSiteSettingsStore } from '~/stores/siteSettings'
+import { useProductsStore } from '~/stores/products'
 
 const { t, locale, setLocale } = useI18n()
 const cart = useCartStore()
+const products = useProductsStore()
 const colorMode = useColorMode()
 
 // * Top promo ticker — the FIRST item's text is admin-customizable
@@ -11,7 +13,16 @@ const colorMode = useColorMode()
 const siteSettings = useSiteSettingsStore()
 onMounted(() => {
   if (!siteSettings.settings) siteSettings.fetchAll()
+  if (!products.items.length) products.fetchAll()
 })
+
+// * The clearance tab shows only when the admin enabled clearance AND at least
+// * one visible, non-component product is flagged — mirrors useHomeFlow.clearanceVisible.
+const clearanceVisible = computed(
+  () =>
+    siteSettings.clearanceActive &&
+    products.items.some((p) => p.is_on_clearance && p.is_visible && !products.isComponent(p.id)),
+)
 const bannerText = computed(() => siteSettings.promoBannerText || t('storefront.home.topbarPromo'))
 
 const tickerItems = computed(() => [
@@ -29,6 +40,8 @@ function resetHome() {
   router.push({ path: '/', query: { step: 'home' } })
 }
 const cartOpen = useState('customer:cart-open', () => false)
+// * Shared with AppSearch — toggles the mobile fixed-bottom search bar.
+const mobileSearchOpen = useState('storefront:mobile-search-open', () => false)
 
 function toggleDark() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
@@ -40,22 +53,40 @@ function openCart() {
   cartOpen.value = true
 }
 
-// * Scrolled state — drop shadow + tighter padding once the page moves.
+// * Scrolled state — drop shadow + tighter header once the page moves.
+// * The header is sticky (occupies flow), so toggling its height shifts the
+// * document. With a single threshold that shift re-crosses the boundary and the
+// * header wobbles. Hysteresis (enter far down, exit near the very top) keeps the
+// * height change from ever feeding back across the trigger; rAF throttles reads.
 const scrolled = ref(false)
+let ticking = false
+function applyScroll() {
+  ticking = false
+  const y = window.scrollY
+  if (!scrolled.value && y > 64) scrolled.value = true
+  else if (scrolled.value && y < 16) scrolled.value = false
+}
 function onScroll() {
-  scrolled.value = window.scrollY > 10
+  if (ticking) return
+  ticking = true
+  requestAnimationFrame(applyScroll)
 }
 onMounted(() => {
-  onScroll()
+  applyScroll()
   window.addEventListener('scroll', onScroll, { passive: true })
 })
 onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 
 // * Category tabs — each drives the live home flow via `?step=` / route handlers.
+// * The clearance ("Déstockage") tab only appears when clearance is enabled and
+// * there are clearance products (see clearanceVisible).
 const cats = computed(() => [
   { key: 'home', label: t('nav.home'), to: { path: '/', query: { step: 'home' } } },
   { key: 'catalog', label: t('nav.catalog'), to: { path: '/', query: { step: 'catalog' } } },
   { key: 'shop', label: t('nav.shop'), to: { path: '/', query: { step: 'shop' } } },
+  ...(clearanceVisible.value
+    ? [{ key: 'clearance', label: t('nav.clearance'), to: { path: '/', query: { step: 'clearance' } } }]
+    : []),
   { key: 'contact', label: t('nav.contact'), to: { path: '/contact' } },
 ])
 
@@ -93,7 +124,7 @@ function isActive(key: string) {
       :class="{ 'shadow-[0_8px_30px_rgba(14,42,96,0.10)]': scrolled }"
     >
       <div
-        class="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-3 sm:gap-6 transition-[padding]"
+        class="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-3 sm:gap-6 transition-[height] duration-200 ease-out"
         :class="scrolled ? 'h-[44px]' : 'h-[51px]'"
       >
         <NuxtLink to="/" class="shrink-0 flex items-center" :aria-label="t('app.name')" @click.prevent="resetHome">
@@ -105,7 +136,7 @@ function isActive(key: string) {
         <LayoutAppSearch />
 
         <!-- Category links with animated red underline -->
-        <nav class="hidden lg:flex items-center gap-0.5 ml-auto">
+        <nav class="hidden md:flex items-center gap-0.5 ml-auto">
           <NuxtLink
             v-for="c in cats"
             :key="c.key"
@@ -118,7 +149,19 @@ function isActive(key: string) {
           </NuxtLink>
         </nav>
 
-        <div class="flex items-center gap-1.5 sm:gap-2 ml-auto lg:ml-0 shrink-0">
+        <div class="flex items-center gap-1 sm:gap-1.5 ml-auto md:ml-0 shrink-0">
+          <!-- * Mobile-only search toggle — opens the fixed bottom search bar. -->
+          <div class="md:hidden">
+            <button
+              type="button"
+              class="ic-btn w-[41px]"
+              :class="{ '!border-accent text-accent': mobileSearchOpen }"
+              :aria-label="t('common.search')"
+              @click="mobileSearchOpen = !mobileSearchOpen"
+            >
+              <UIcon name="i-lucide-search" class="w-[19px] h-[19px]" />
+            </button>
+          </div>
           <button
             type="button"
             class="ic-btn px-2.5 text-sm font-semibold"
@@ -127,19 +170,23 @@ function isActive(key: string) {
           >
             {{ locale.toUpperCase() }}
           </button>
-          <button
-            type="button"
-            class="ic-btn w-[41px]"
-            :aria-label="t('nav.toggleDark')"
-            @click="toggleDark"
-          >
-            <ClientOnly>
-              <UIcon :name="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'" class="w-[19px] h-[19px]" />
-              <template #fallback>
-                <UIcon name="i-lucide-moon" class="w-[19px] h-[19px]" />
-              </template>
-            </ClientOnly>
-          </button>
+          <!-- * Desktop-only — on mobile the dark toggle lives in the menu to save
+               header space (wrapper carries visibility; see the note below). -->
+          <div class="hidden md:block">
+            <button
+              type="button"
+              class="ic-btn w-[41px]"
+              :aria-label="t('nav.toggleDark')"
+              @click="toggleDark"
+            >
+              <ClientOnly>
+                <UIcon :name="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'" class="w-[19px] h-[19px]" />
+                <template #fallback>
+                  <UIcon name="i-lucide-moon" class="w-[19px] h-[19px]" />
+                </template>
+              </ClientOnly>
+            </button>
+          </div>
           <button
             type="button"
             class="ic-btn w-[41px] relative"
@@ -156,20 +203,25 @@ function isActive(key: string) {
               </span>
             </ClientOnly>
           </button>
-          <button
-            type="button"
-            class="ic-btn w-[41px] lg:hidden"
-            :aria-label="t('nav.menu')"
-            @click="mobileOpen = !mobileOpen"
-          >
-            <UIcon :name="mobileOpen ? 'i-lucide-x' : 'i-lucide-menu'" class="w-5 h-5" />
-          </button>
+          <!-- * Wrapper carries the responsive visibility: the scoped `.ic-btn`
+               sets display:flex with higher specificity than a bare `md:hidden`
+               utility, so the class must live on a non-`.ic-btn` element. -->
+          <div class="md:hidden">
+            <button
+              type="button"
+              class="ic-btn w-[41px]"
+              :aria-label="t('nav.menu')"
+              @click="mobileOpen = !mobileOpen"
+            >
+              <UIcon :name="mobileOpen ? 'i-lucide-x' : 'i-lucide-menu'" class="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Mobile menu -->
-    <div v-if="mobileOpen" class="lg:hidden bg-page dark:bg-sidebar border-b border-black/5 dark:border-sidebar-surface px-4 py-3 space-y-1 text-sm">
+    <div v-if="mobileOpen" class="md:hidden bg-page dark:bg-sidebar border-b border-black/5 dark:border-sidebar-surface px-4 py-3 space-y-1 text-sm">
       <NuxtLink
         v-for="c in cats"
         :key="c.key"
@@ -180,6 +232,21 @@ function isActive(key: string) {
       >
         {{ c.label }}
       </NuxtLink>
+
+      <!-- * Dark-mode toggle — moved here on mobile to keep the header compact. -->
+      <button
+        type="button"
+        class="flex w-full items-center gap-2 py-2 font-semibold text-ink dark:text-gray-200 hover:text-accent"
+        @click="toggleDark"
+      >
+        <ClientOnly>
+          <UIcon :name="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'" class="w-[19px] h-[19px]" />
+          <template #fallback>
+            <UIcon name="i-lucide-moon" class="w-[19px] h-[19px]" />
+          </template>
+        </ClientOnly>
+        {{ t('nav.toggleDark') }}
+      </button>
     </div>
   </header>
 </template>

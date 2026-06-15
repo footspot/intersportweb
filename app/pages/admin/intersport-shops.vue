@@ -4,6 +4,7 @@
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const client = useSupabaseClient()
 
 interface Shop {
@@ -77,7 +78,7 @@ async function save() {
     editing.value = null
     await fetchAll()
   } catch (err) {
-    formError.value = err instanceof Error ? err.message : 'save_failed'
+    formError.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }

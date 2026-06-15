@@ -116,10 +116,10 @@ onBeforeUnmount(stop)
         </h3>
         <p class="cta-p">{{ t('storefront.home.ctaText') }}</p>
       </div>
-      <button type="button" class="btn-white font-heading" @click="flow.pickEntry('shop')">
+      <NuxtLink to="/contact?subject=quote" class="btn-white font-heading">
         {{ t('storefront.home.ctaButton') }}
         <UIcon name="i-lucide-arrow-right" class="w-[18px] h-[18px]" />
-      </button>
+      </NuxtLink>
     </div>
   </section>
 </template>
@@ -212,6 +212,7 @@ onBeforeUnmount(stop)
   gap: 10px;
   background: #fff;
   color: var(--color-accent);
+  text-decoration: none;
   position: relative;
   z-index: 1;
   font-weight: 800;
@@ -222,9 +223,28 @@ onBeforeUnmount(stop)
   border-radius: 12px;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
   transition: transform 0.14s;
+  /* * Heartbeat — scale + glow, looping. */
+  animation: cta-heartbeat 2.1s ease-in-out infinite;
 }
 .btn-white:hover {
   transform: translateY(-2px);
+  animation-play-state: paused;
+}
+@keyframes cta-heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-white {
+    animation: none;
+  }
 }
 @media (max-width: 620px) {
   .cta-box {

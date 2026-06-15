@@ -9,6 +9,7 @@ import { useSportsStore } from '~/stores/sports'
 import { useSiteSettingsStore } from '~/stores/siteSettings'
 
 const { t } = useI18n()
+const { notifyEdgeError } = useEdgeError()
 const carousel = useCarouselStore()
 const heroBanner = useHeroBannerStore()
 const clubs = useClubsStore()
@@ -48,14 +49,35 @@ watch(
   },
   { immediate: true },
 )
+// * Client-side upload size guards. Uploads are proxied through the
+// * admin-settings / admin-hero-media edge functions (which buffer the whole
+// * multipart body), and the home-carousel bucket inherits the project's
+// * default 50 MB storage limit — so reject oversized files before upload
+// * rather than letting them fail silently server-side.
+const MAX_IMAGE_MB = 8
+const MAX_VIDEO_MB = 50
+
+// * Bytes → MB rounded to 1 decimal, for user-facing error messages.
+function fileSizeMb(file: File) {
+  return Math.round((file.size / (1024 * 1024)) * 10) / 10
+}
+
 const videoFile = ref<File | null>(null)
 const videoFileName = ref('')
 const savingHero = ref(false)
+const heroVideoError = ref<string | null>(null)
 
 const heroVideoUrl = computed(() => siteSettings.heroVideoUrl)
 
 function onVideoPick(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0] ?? null
+  const input = e.target as HTMLInputElement
+  const f = input.files?.[0] ?? null
+  heroVideoError.value = null
+  if (f && f.size > MAX_VIDEO_MB * 1024 * 1024) {
+    heroVideoError.value = t('admin.carousel.fileTooLarge', { size: fileSizeMb(f), max: MAX_VIDEO_MB })
+    input.value = ''
+    return
+  }
   videoFile.value = f
   videoFileName.value = f?.name ?? ''
 }
@@ -111,6 +133,7 @@ interface DraftMedia extends HeroMedia {
 const heroDraft = ref<DraftMedia[]>([])
 const removedIds = ref<string[]>([])
 const heroSaving = ref(false)
+const bannerError = ref<string | null>(null)
 let tempCounter = 0
 
 function initHeroDraft() {
@@ -148,6 +171,13 @@ function onHeroMediaPick(e: Event) {
   const file = input.files?.[0]
   if (!file) return
   const kind: HeroMedia['media_kind'] = file.type.startsWith('video/') ? 'video' : 'image'
+  bannerError.value = null
+  const maxMb = kind === 'video' ? MAX_VIDEO_MB : MAX_IMAGE_MB
+  if (file.size > maxMb * 1024 * 1024) {
+    bannerError.value = t('admin.carousel.fileTooLarge', { size: fileSizeMb(file), max: maxMb })
+    input.value = ''
+    return
+  }
   heroDraft.value.push({
     id: `new-${tempCounter++}`,
     media_kind: kind,
@@ -237,6 +267,8 @@ async function doDelete() {
     await carousel.remove(deleting.value.id)
     confirmOpen.value = false
     deleting.value = null
+  } catch (err) {
+    notifyEdgeError(err)
   } finally {
     confirmBusy.value = false
   }
@@ -245,18 +277,26 @@ async function doDelete() {
 async function moveUp(slide: HomeSlide, index: number) {
   if (index === 0) return
   const above = carousel.sorted[index - 1]
-  await Promise.all([
-    carousel.update({ id: slide.id, sort_order: above.sort_order }),
-    carousel.update({ id: above.id, sort_order: slide.sort_order }),
-  ])
+  try {
+    await Promise.all([
+      carousel.update({ id: slide.id, sort_order: above.sort_order }),
+      carousel.update({ id: above.id, sort_order: slide.sort_order }),
+    ])
+  } catch (err) {
+    notifyEdgeError(err)
+  }
 }
 async function moveDown(slide: HomeSlide, index: number) {
   if (index >= carousel.sorted.length - 1) return
   const below = carousel.sorted[index + 1]
-  await Promise.all([
-    carousel.update({ id: slide.id, sort_order: below.sort_order }),
-    carousel.update({ id: below.id, sort_order: slide.sort_order }),
-  ])
+  try {
+    await Promise.all([
+      carousel.update({ id: slide.id, sort_order: below.sort_order }),
+      carousel.update({ id: below.id, sort_order: slide.sort_order }),
+    ])
+  } catch (err) {
+    notifyEdgeError(err)
+  }
 }
 </script>
 
@@ -317,10 +357,13 @@ async function moveDown(slide: HomeSlide, index: number) {
             <p class="text-xs mb-2" :class="heroVideoUrl ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400'">
               {{ videoFileName || (heroVideoUrl ? t('admin.carousel.heroVideoCurrent') : t('admin.carousel.heroVideoNone')) }}
             </p>
-            <label class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar text-sm font-medium cursor-pointer hover:border-brand-primary/50">
+            <label
+              class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar text-sm font-medium hover:border-brand-primary/50"
+              :class="savingHero ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+            >
               <UIcon name="i-lucide-upload" class="w-4 h-4" />
               {{ t('admin.carousel.heroVideoChoose') }}
-              <input type="file" accept="video/mp4,video/webm" class="hidden" @change="onVideoPick" />
+              <input type="file" accept="video/mp4,video/webm" class="hidden" :disabled="savingHero" @change="onVideoPick" />
             </label>
             <button
               v-if="heroVideoUrl"
@@ -331,18 +374,25 @@ async function moveDown(slide: HomeSlide, index: number) {
             >
               {{ t('admin.carousel.heroVideoRemove') }}
             </button>
+            <p class="text-xs text-gray-400 mt-2">{{ t('admin.carousel.heroVideoFormats', { max: MAX_VIDEO_MB }) }}</p>
           </div>
         </div>
+
+        <p v-if="heroVideoError" class="mt-3 text-sm text-brand-secondary inline-flex items-center gap-1.5">
+          <UIcon name="i-lucide-circle-alert" class="w-4 h-4 shrink-0" />
+          {{ heroVideoError }}
+        </p>
       </div>
 
       <div class="flex justify-end">
         <button
           type="button"
-          class="px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-60"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-60"
           :disabled="savingHero"
           @click="saveHero"
         >
-          {{ savingHero ? t('common.loading') : t('common.save') }}
+          <UIcon v-if="savingHero" name="i-lucide-loader-2" class="w-4 h-4 animate-spin" />
+          {{ savingHero ? t('common.uploading') : t('common.save') }}
         </button>
       </div>
     </div>
@@ -354,13 +404,22 @@ async function moveDown(slide: HomeSlide, index: number) {
         <div>
           <h3 class="font-medium">{{ t('admin.carousel.bannerTitle') }}</h3>
           <p class="text-xs text-gray-500">{{ t('admin.carousel.bannerSubtitle') }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ t('admin.carousel.bannerFormats', { img: MAX_IMAGE_MB, vid: MAX_VIDEO_MB }) }}</p>
         </div>
-        <label class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium cursor-pointer hover:bg-brand-primary-dark">
+        <label
+          class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary-dark"
+          :class="heroSaving ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
+        >
           <UIcon name="i-lucide-plus" class="w-4 h-4" />
           {{ t('admin.carousel.bannerAdd') }}
-          <input type="file" accept="image/*,video/*" class="hidden" @change="onHeroMediaPick" />
+          <input type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" class="hidden" :disabled="heroSaving" @change="onHeroMediaPick" />
         </label>
       </div>
+
+      <p v-if="bannerError" class="text-sm text-brand-secondary inline-flex items-center gap-1.5">
+        <UIcon name="i-lucide-circle-alert" class="w-4 h-4 shrink-0" />
+        {{ bannerError }}
+      </p>
 
       <div v-if="!heroDraft.length" class="text-sm text-gray-500 text-center py-6">
         {{ t('admin.carousel.bannerEmpty') }}
@@ -415,11 +474,12 @@ async function moveDown(slide: HomeSlide, index: number) {
         </button>
         <button
           type="button"
-          class="px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-50"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-50"
           :disabled="!heroDirty || heroSaving"
           @click="saveBanner"
         >
-          {{ heroSaving ? t('common.loading') : t('admin.carousel.bannerSave') }}
+          <UIcon v-if="heroSaving" name="i-lucide-loader-2" class="w-4 h-4 animate-spin" />
+          {{ heroSaving ? t('common.uploading') : t('admin.carousel.bannerSave') }}
         </button>
       </div>
     </div>

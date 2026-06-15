@@ -5,8 +5,8 @@
 import {
   usePromoCodesStore,
   type PromoAbsorbsBy,
+  type PromoScope,
 } from '~/stores/promoCodes'
-import { useSportsStore } from '~/stores/sports'
 import { useClubsStore, type Club } from '~/stores/clubs'
 import { buildPromoBatchPdf, downloadPromoBatchPdf } from '~/composables/usePromoBatchPdf'
 
@@ -20,9 +20,9 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const supabase = useSupabaseClient()
 const store = usePromoCodesStore()
-const sports = useSportsStore()
 const clubs = useClubsStore()
 
 const count = ref<number>(50)
@@ -33,8 +33,9 @@ const absorbsBy = ref<PromoAbsorbsBy>('intersport')
 const validFrom = ref('')
 const validUntil = ref('')
 const note = ref('')
-const sportId = ref<string>('')
-const clubId = ref<string>('')
+const scope = ref<PromoScope>('global')
+const scopeClubId = ref<string>('')
+const scopeProductIds = ref<string[]>([])
 
 const saving = ref(false)
 const errorMsg = ref<string | null>(null)
@@ -45,22 +46,17 @@ const sampleCode = computed(() => {
   return p ? `${p}-K7N2X9` : 'K7N2X9'
 })
 
-const clubsForSport = computed<Club[]>(() => {
-  if (!sportId.value) return []
-  return clubs.items.filter((c) => c.sport_id === sportId.value)
-})
-
 const selectedClub = computed<Club | null>(() => {
-  if (!clubId.value) return null
-  return clubs.items.find((c) => c.id === clubId.value) ?? null
+  if (!scopeClubId.value) return null
+  return clubs.items.find((c) => c.id === scopeClubId.value) ?? null
 })
 
 watch(
   () => props.modelValue,
   async (open) => {
     if (!open) return
-    // * Lazy-load sports / clubs the first time the modal opens.
-    if (sports.items.length === 0) await sports.fetchAll()
+    // * Lazy-load clubs the first time the modal opens (ScopeSelector also
+    // *   loads sports/products on demand).
     if (clubs.items.length === 0) await clubs.fetchAll()
     // * Reset form.
     count.value = 50
@@ -71,16 +67,12 @@ watch(
     validFrom.value = ''
     validUntil.value = ''
     note.value = ''
-    sportId.value = ''
-    clubId.value = ''
+    scope.value = 'global'
+    scopeClubId.value = ''
+    scopeProductIds.value = []
     errorMsg.value = null
   },
 )
-
-// * Reset club selection whenever the sport changes — keeps the picker honest.
-watch(sportId, () => {
-  clubId.value = ''
-})
 
 function close() {
   if (!saving.value) emit('update:modelValue', false)
@@ -116,6 +108,15 @@ async function submit() {
     errorMsg.value = t('admin.promo.errors.invalidMin')
     return
   }
+  // * Scope guards (mirrors the edge function so the admin sees it inline).
+  if (scope.value === 'club' && !scopeClubId.value) {
+    errorMsg.value = t('admin.promo.errors.scopeClubRequired')
+    return
+  }
+  if (scope.value === 'products' && scopeProductIds.value.length === 0) {
+    errorMsg.value = t('admin.promo.errors.scopeProductsRequired')
+    return
+  }
 
   saving.value = true
   try {
@@ -128,7 +129,9 @@ async function submit() {
       valid_from: validFrom.value || null,
       valid_until: validUntil.value || null,
       note: note.value.trim() || null,
-      club_id: clubId.value || null,
+      club_id: scope.value === 'global' ? null : scopeClubId.value || null,
+      scope: scope.value,
+      scope_product_ids: scope.value === 'products' ? scopeProductIds.value : [],
     })
 
     // * Build + download the PDF before closing.
@@ -177,7 +180,10 @@ async function submit() {
     else if (m === 'invalid_amount') errorMsg.value = t('admin.promo.errors.invalidAmount')
     else if (m === 'invalid_min_subtotal') errorMsg.value = t('admin.promo.errors.invalidMin')
     else if (m === 'code_collision_retry_exhausted') errorMsg.value = t('admin.promo.batch.errors.collisionRetry')
-    else errorMsg.value = m
+    else if (m === 'scope_club_required') errorMsg.value = t('admin.promo.errors.scopeClubRequired')
+    else if (m === 'scope_products_required') errorMsg.value = t('admin.promo.errors.scopeProductsRequired')
+    else if (m === 'scope_products_multi_club') errorMsg.value = t('admin.promo.errors.scopeMultiClub')
+    else errorMsg.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }
@@ -275,29 +281,11 @@ async function submit() {
         <p class="text-xs text-gray-500 mt-1">{{ t('admin.promo.field.absorbsHint') }}</p>
       </div>
 
-      <div>
-        <span class="text-sm font-medium">{{ t('admin.promo.batch.club') }}</span>
-        <div class="grid grid-cols-2 gap-2 mt-1">
-          <select
-            v-model="sportId"
-            class="px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
-          >
-            <option value="">— {{ t('admin.promo.batch.noClub') }} —</option>
-            <option v-for="s in sports.items" :key="s.id" :value="s.id">
-              {{ s.name[locale === 'fr' ? 'fr' : 'en'] || s.name.fr }}
-            </option>
-          </select>
-          <select
-            v-model="clubId"
-            :disabled="!sportId"
-            class="px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none disabled:opacity-60"
-          >
-            <option value="">— —</option>
-            <option v-for="c in clubsForSport" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-        </div>
-        <p class="text-xs text-gray-500 mt-1">{{ t('admin.promo.batch.clubHint') }}</p>
-      </div>
+      <AdminPromoCodesScopeSelector
+        v-model:scope="scope"
+        v-model:club-id="scopeClubId"
+        v-model:product-ids="scopeProductIds"
+      />
 
       <div class="grid grid-cols-2 gap-3">
         <label class="block">

@@ -9,6 +9,7 @@ import { useProductsStore, type Product } from '~/stores/products'
 import { useFeaturedProductsStore } from '~/stores/featuredProducts'
 
 const { t, locale } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const siteSettings = useSiteSettingsStore()
 const products = useProductsStore()
 const featured = useFeaturedProductsStore()
@@ -78,7 +79,7 @@ async function saveSettings() {
     saved.value = true
     setTimeout(() => (saved.value = false), 3000)
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     saving.value = false
   }
@@ -92,7 +93,7 @@ async function addPick() {
     await featured.add(pickId.value)
     pickId.value = ''
   } catch (err) {
-    rosterError.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    rosterError.value = edgeErrorMessage(err)
   } finally {
     adding.value = false
   }

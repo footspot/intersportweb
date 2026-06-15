@@ -80,8 +80,18 @@ const year = new Date().getFullYear()
 
     <!-- Copyright bar -->
     <div class="border-t border-white/10">
-      <div class="max-w-7xl mx-auto px-6 md:px-10 py-3 text-center text-[12px] text-white/45">
-        © {{ year }} {{ t('footer.copyright') }}
+      <div class="max-w-7xl mx-auto px-6 md:px-10 py-3 flex items-center justify-center gap-1.5 text-[12px] text-white/45">
+        <span>© {{ year }} {{ t('footer.copyright') }}</span>
+        <span>·</span>
+        <a
+          href="https://footspot.co"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 hover:text-white/80 transition-colors"
+        >
+          {{ t('footer.madeBy') }}
+          <img src="/footspot-logo.jpg" alt="FootSpot" class="h-4 w-4 rounded object-cover">
+        </a>
       </div>
     </div>
   </footer>

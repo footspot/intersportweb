@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// * "Qui sommes-nous ?" band — redesigned navy card: diagonal hairline texture,
-// * a soft red glow blob, and three value columns (circular-outline icon +
-// * heading + paragraph).
+// * "Qui sommes-nous ?" band — redesigned navy card: diagonal hairline texture
+// * and three value columns (circular-outline icon + heading + paragraph).
 const { t } = useI18n()
 
 const cols = computed(() => [
@@ -15,7 +14,6 @@ const cols = computed(() => [
   <section class="about">
     <div class="about-card">
       <div class="about-hatch"></div>
-      <div class="about-glow"></div>
 
       <h2 class="about-title font-heading">{{ t('storefront.home.aboutTitle') }}</h2>
 
@@ -57,17 +55,6 @@ const cols = computed(() => [
     transparent 0 20px,
     rgba(255, 255, 255, 0.035) 20px 22px
   );
-}
-.about-glow {
-  position: absolute;
-  width: 440px;
-  height: 440px;
-  right: -110px;
-  bottom: -170px;
-  background: radial-gradient(circle, var(--color-accent), transparent 60%);
-  opacity: 0.18;
-  filter: blur(10px);
-  pointer-events: none;
 }
 .about-title {
   position: relative;

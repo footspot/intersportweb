@@ -15,6 +15,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const orders = useOrdersStore()
 const client = useSupabaseClient()
 
@@ -86,7 +87,7 @@ async function downloadInvoice() {
     if (error) throw new Error(error.message)
     if (data?.signed_url) window.open(data.signed_url, '_blank')
   } catch (err) {
-    invoiceError.value = err instanceof Error ? err.message : 'Error'
+    invoiceError.value = edgeErrorMessage(err)
   } finally {
     invoiceLoading.value = false
   }
@@ -113,7 +114,7 @@ async function openLabel() {
     // * Open in a new tab — browser's native PDF viewer exposes Save + Print.
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
   } catch (err) {
-    labelError.value = err instanceof Error ? err.message : 'Error'
+    labelError.value = edgeErrorMessage(err)
   } finally {
     labelLoading.value = false
   }

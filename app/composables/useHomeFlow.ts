@@ -317,6 +317,10 @@ export function useHomeFlow() {
         currentSlide.value = 0
         pickEntry('catalog')
         router.replace({ query: {} })
+      } else if (step === 'clearance') {
+        currentSlide.value = 0
+        pickEntry('clearance')
+        router.replace({ query: {} })
       } else if (step === 'home') {
         goHome()
         router.replace({ query: {} })

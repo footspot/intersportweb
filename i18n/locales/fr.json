@@ -10,6 +10,7 @@
     "home": "Accueil",
     "shop": "Boutique",
     "catalog": "Catalogue",
+    "clearance": "Déstockage",
     "contact": "Contact",
     "whoWeAre": "Qui sommes-nous",
     "orders": "Mes commandes",
@@ -33,7 +34,8 @@
     "weekdays": "Lundi au vendredi",
     "saturday": "Samedi",
     "byAppointment": "Sur rendez-vous",
-    "copyright": "par INTERSPORT CLUB IDF"
+    "copyright": "INTERSPORT CLUB IDF",
+    "madeBy": "Réalisé par FootSpot"
   },
   "cart": {
     "title": "Mon panier",
@@ -64,8 +66,10 @@
         "expired": "Ce code a expiré.",
         "below_min_subtotal": "Le panier est en dessous du minimum requis.",
         "below_min_subtotal_v": "Ce code nécessite un panier d'au moins {min}.",
-        "unknown": "Validation impossible."
-      }
+        "unknown": "Validation impossible.",
+        "not_applicable_to_cart": "Ce code ne s'applique à aucun produit de votre panier."
+      },
+      "partial": "Code de {full} — {applied} appliqués aux produits éligibles."
     }
   },
   "checkout": {
@@ -202,11 +206,25 @@
       "name": "Nom",
       "email": "Email",
       "subject": "Sujet",
+      "subjectChoose": "Choisir un sujet",
+      "subjects": {
+        "quote": "Demande de devis",
+        "question": "Poser une question",
+        "order": "Commande"
+      },
+      "clubName": "Nom du club",
+      "clubNamePlaceholder": "Nom de votre club",
+      "sportsLabel": "Sports concernés",
+      "sportsHint": "Indiquez le ou les sports concernés",
+      "sportsPlaceholder": "Ex. Football, Basketball…",
       "message": "Message",
       "send": "Envoyer",
       "sending": "Envoi…",
       "success": "Votre message a bien été envoyé. Nous vous répondrons rapidement.",
       "required": "Le nom et l'email sont requis.",
+      "subjectRequired": "Veuillez choisir un sujet.",
+      "clubRequired": "Veuillez indiquer le nom du club.",
+      "sportsRequired": "Veuillez indiquer le ou les sports concernés.",
       "invalidEmail": "Adresse email invalide.",
       "rateLimited": "Trop de messages envoyés. Veuillez réessayer plus tard.",
       "error": "Une erreur est survenue. Veuillez réessayer."
@@ -418,6 +436,82 @@
     }
   },
   "admin": {
+    "edgeErrors": {
+      "_title": "Action impossible",
+      "_generic": "L’action n’a pas pu être effectuée. Réessayez, et contactez le support si le problème persiste.",
+      "club_has_products": "Impossible de supprimer ce club : il contient encore des produits. Déplacez ou supprimez d’abord ces produits.",
+      "club_is_footspot_linked": "Impossible de supprimer ce club tant qu’il est lié à Footspot. Dissociez-le d’abord depuis la page Footspot.",
+      "sport_has_clubs": "Impossible de supprimer ce sport : des clubs y sont encore rattachés. Supprimez d’abord ces clubs.",
+      "product_has_orders": "Impossible de supprimer ce produit : il est lié à des commandes existantes. Masquez-le plutôt.",
+      "product_locked_in_bundle": "Impossible de supprimer ce produit : il fait partie d’un ou plusieurs packs. Retirez-le d’abord de ces packs.",
+      "product not found": "Produit introuvable. Il a peut-être déjà été supprimé.",
+      "already_featured": "Ce produit est déjà dans la liste des produits en avant.",
+      "last_admin": "Action bloquée : au moins un administrateur actif doit rester.",
+      "cannot_delete_admin": "Vous ne pouvez supprimer que votre propre compte administrateur, pas celui d’un autre admin.",
+      "code_already_used": "Impossible de modifier ou supprimer ce code promo : il a déjà été utilisé.",
+      "code_already_exists": "Ce code promo existe déjà. Choisissez-en un autre.",
+      "batch_has_used_codes": "Impossible de supprimer ce lot : certains de ses codes ont déjà été utilisés.",
+      "code_collision_retry_exhausted": "Impossible de générer des codes uniques. Veuillez réessayer.",
+      "not_found": "Élément introuvable. Il a peut-être déjà été supprimé.",
+      "invalid_code": "Code invalide (3 à 32 caractères : lettres, chiffres, « - » ou « _ »).",
+      "invalid_amount": "Montant invalide.",
+      "invalid_min_subtotal": "Le panier minimum doit être supérieur ou égal à la remise.",
+      "invalid_count": "Quantité invalide (1 à 1000).",
+      "invalid_prefix": "Préfixe invalide (lettres, chiffres, « - » ou « _ » ; 16 caractères max).",
+      "invalid_batch_id": "Lot invalide.",
+      "club_not_found": "Club introuvable.",
+      "club_id required": "Veuillez sélectionner un club.",
+      "sport_id required": "Veuillez sélectionner un sport.",
+      "name required": "Un nom est requis.",
+      "email required": "Une adresse e-mail est requise.",
+      "invalid_email": "Adresse e-mail invalide.",
+      "email_taken": "Cette adresse e-mail est déjà utilisée par un autre compte.",
+      "wrong_password": "Le mot de passe actuel est incorrect.",
+      "weak_password": "Le mot de passe doit comporter au moins 8 caractères.",
+      "password must be at least 4 characters": "Le mot de passe doit comporter au moins 4 caractères.",
+      "password required when protected": "Un mot de passe est requis lorsque la protection d’accès est activée.",
+      "password_required": "Un mot de passe est requis lorsque la protection d’accès est activée.",
+      "password_too_short": "Le mot de passe doit comporter au moins 4 caractères.",
+      "role must be admin or employee": "Le rôle doit être admin ou employé.",
+      "reason required": "Un motif est requis.",
+      "amount must be a positive number": "Le montant doit être un nombre positif.",
+      "type must be manual_credit or manual_debit": "Type de transaction invalide.",
+      "insufficient_balance": "Solde de la cagnotte insuffisant pour ce débit.",
+      "bad_amount": "Le montant doit être un nombre positif.",
+      "bad_direction": "Type de transaction invalide.",
+      "bad_label": "Libellé invalide.",
+      "order_not_found": "Commande introuvable.",
+      "order not found": "Commande introuvable.",
+      "order_not_awaiting_pickup": "Cette commande n’est pas en attente de retrait.",
+      "order_not_paid": "Cette commande n’est pas encore payée.",
+      "not_ready_to_ship": "Cette commande n’est pas prête à expédier (elle doit être payée avec une étiquette générée).",
+      "not_a_colissimo_order": "Ce n’est pas une commande en livraison Colissimo.",
+      "not_a_pickup_order": "Ce n’est pas une commande en retrait.",
+      "lyra_refund_failed": "Le prestataire de paiement a refusé le remboursement. Réessayez plus tard.",
+      "systempay_not_configured": "Les paiements ne sont pas configurés. Contactez le support.",
+      "colissimo_not_configured": "Colissimo n’est pas configuré. Contactez le support.",
+      "not_configured": "Cette fonctionnalité n’est pas configurée. Contactez le support.",
+      "no_active_link": "Aucune liaison Footspot active pour ce club.",
+      "event_not_found": "Événement introuvable.",
+      "forbidden_cross_club": "Cette action n’est pas autorisée pour ce club.",
+      "invalid_input": "Saisie invalide.",
+      "invalid_payload": "Données invalides. Actualisez la page et réessayez.",
+      "discount_out_of_range": "La remise doit être un nombre entier entre 0 et 80 %.",
+      "batch_rejected": "Une ou plusieurs remises ont été rejetées. Vérifiez les valeurs et réessayez.",
+      "slogan_too_long": "Le slogan est trop long (80 caractères max).",
+      "slogan_invalid_chars": "Le slogan ne peut pas contenir de sauts de ligne.",
+      "invalid_color": "Couleur invalide (utilisez une valeur hexadécimale #RRGGBB).",
+      "update_failed": "La mise à jour n’a pas pu être enregistrée. Veuillez réessayer.",
+      "lookup_failed": "La recherche a échoué. Veuillez réessayer.",
+      "upsert_failed": "L’enregistrement a échoué. Veuillez réessayer.",
+      "forbidden": "Vous n’avez pas la permission d’effectuer cette action.",
+      "backoffice_required": "Un accès back-office est requis.",
+      "Back-office role required": "Un accès back-office est requis.",
+      "invalid_session": "Votre session a expiré. Veuillez vous reconnecter.",
+      "Invalid session": "Votre session a expiré. Veuillez vous reconnecter.",
+      "Profile disabled": "Votre compte est désactivé. Contactez un administrateur.",
+      "no recipient": "Cette commande n’a pas d’adresse e-mail à laquelle envoyer."
+    },
     "dashboard": {
       "title": "Dashboard",
       "breadcrumb": "Admin / Vue d'ensemble",
@@ -1057,9 +1151,10 @@
       },
       "created": {
         "title": "Compte créé avec succès",
+        "emailed": "Les identifiants ont été envoyés par e-mail à {email}.",
         "password": "Mot de passe temporaire",
         "magicLink": "Page de connexion",
-        "hint": "Transmettez ces informations à la personne concernée. Elles ne seront plus affichées."
+        "emailFailed": "L'envoi de l'e-mail a échoué. Transmettez ces informations à la personne concernée — elles ne seront plus affichées."
       },
       "errors": {
         "emailRequired": "L'email est requis.",
@@ -1250,7 +1345,8 @@
         "absorbs": "Pris en charge par",
         "window": "Validité",
         "status": "Statut",
-        "actions": "Actions"
+        "actions": "Actions",
+        "scope": "Portée"
       },
       "status": {
         "active": "Actif",
@@ -1279,7 +1375,10 @@
         "codeExists": "Ce code existe déjà.",
         "invalidCode": "Code invalide (3–32 caractères, lettres/chiffres/_/-).",
         "invalidAmount": "Montant invalide.",
-        "invalidMin": "Le panier minimum doit être supérieur ou égal au montant de la remise."
+        "invalidMin": "Le panier minimum doit être supérieur ou égal au montant de la remise.",
+        "scopeClubRequired": "Sélectionnez un club pour ce code.",
+        "scopeProductsRequired": "Sélectionnez au moins un produit.",
+        "scopeMultiClub": "Tous les produits du pack doivent appartenir au même club."
       },
       "tabs": {
         "single": "Codes uniques",
@@ -1344,6 +1443,21 @@
         "voucherNoExpiry": "Sans date d'expiration",
         "voucherSingleUse": "Code à usage unique",
         "voucherClubFor": "Pour le club {club}"
+      },
+      "scope": {
+        "label": "Portée du code",
+        "global": "Global",
+        "club": "Club",
+        "products": "Pack produits",
+        "globalHint": "S'applique à n'importe quel panier.",
+        "clubHint": "Ne réduit que les produits du club choisi.",
+        "productsHint": "Ne réduit qu'une sélection de produits d'un même club.",
+        "pickSport": "Sport",
+        "pickClub": "Club",
+        "selectedCount": "{n} sélectionné(s)",
+        "searchProducts": "Rechercher un produit…",
+        "noProducts": "Aucun produit pour ce club.",
+        "packLabel": "Pack ({n}) · {club}"
       }
     },
     "banner": {
@@ -1437,9 +1551,12 @@
       "heroVideoNone": "Aucune vidéo personnalisée (vidéo par défaut utilisée)",
       "heroVideoChoose": "Choisir une vidéo",
       "heroVideoRemove": "Retirer",
+      "heroVideoFormats": "Formats acceptés : MP4, WebM — {max} Mo max.",
+      "fileTooLarge": "Fichier trop volumineux ({size} Mo). Maximum : {max} Mo.",
       "bannerTitle": "Bannière plein écran (images & vidéos)",
       "bannerSubtitle": "Média de fond défilant sur toute la bannière, derrière les cartes.",
       "bannerAdd": "Ajouter un média",
+      "bannerFormats": "Images (JPG, PNG, WebP) : {img} Mo max — Vidéos (MP4, WebM) : {vid} Mo max.",
       "bannerEmpty": "Aucun média. La bannière utilise le fond par défaut.",
       "bannerNew": "Nouveau",
       "bannerSave": "Publier la bannière",
@@ -1626,6 +1743,7 @@
     "preview": "Aperçu",
     "close": "Fermer",
     "loading": "Chargement…",
+    "uploading": "Envoi en cours…",
     "empty": "Aucun résultat",
     "deleteKeyword": "supprimer",
     "typeToConfirm": "Tapez {keyword} pour confirmer.",

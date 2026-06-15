@@ -2,13 +2,14 @@
 // * /admin/promo-codes — admin-only. Two tabs:
 // *   - Single codes (existing single-use codes created one by one)
 // *   - Batches (auto-generated lots; admin can re-download the PDF)
-import { usePromoCodesStore, type PromoCode, type PromoBatch } from '~/stores/promoCodes'
+import { usePromoCodesStore, type PromoCode, type PromoBatch, type PromoScope } from '~/stores/promoCodes'
 import { useClubsStore } from '~/stores/clubs'
 import { buildPromoBatchPdf, downloadPromoBatchPdf } from '~/composables/usePromoBatchPdf'
 
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t, locale } = useI18n()
+const { notifyEdgeError } = useEdgeError()
 const supabase = useSupabaseClient()
 const promo = usePromoCodesStore()
 const clubs = useClubsStore()
@@ -60,14 +61,8 @@ async function doDelete() {
     deleting.value = null
     deletingBatch.value = null
   } catch (err) {
-    // * Surface the "batch_has_used_codes" error to the user via a toast-less
-    // * approach — for now, alert is fine since admin UI is internal.
-    const m = err instanceof Error ? err.message : 'unknown'
-    if (m === 'batch_has_used_codes') {
-      window.alert(t('admin.promo.batch.errors.batchHasUsed'))
-    } else {
-      window.alert(m)
-    }
+    // * Surface why the delete was refused (e.g. batch_has_used_codes) as a toast.
+    notifyEdgeError(err)
   } finally {
     confirmBusy.value = false
   }
@@ -76,6 +71,15 @@ async function doDelete() {
 function clubName(clubId: string | null): string {
   if (!clubId) return '—'
   return clubs.items.find((c) => c.id === clubId)?.name ?? '—'
+}
+
+// * Human label for a code/batch scope, shown in the tables.
+function scopeLabel(s: { scope: PromoScope; club_id: string | null; scope_product_ids: string[] }): string {
+  if (s.scope === 'club') return clubName(s.club_id)
+  if (s.scope === 'products') {
+    return t('admin.promo.scope.packLabel', { n: s.scope_product_ids?.length ?? 0, club: clubName(s.club_id) })
+  }
+  return t('admin.promo.scope.global')
 }
 function clubLogoUrl(clubId: string | null): string | null {
   const c = clubs.items.find((x) => x.id === clubId)
@@ -221,6 +225,7 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
           <tr>
             <th class="px-4 py-3">{{ t('admin.promo.col.code') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.col.amount') }}</th>
+            <th class="px-4 py-3">{{ t('admin.promo.col.scope') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.col.absorbs') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.col.window') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.col.status') }}</th>
@@ -235,6 +240,14 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
               <div v-if="p.min_subtotal" class="text-xs text-gray-400">
                 {{ t('admin.promo.minSubtotalShort', { v: fmtEuro(p.min_subtotal) }) }}
               </div>
+            </td>
+            <td class="px-4 py-3 text-xs">
+              <span
+                class="px-2 py-0.5 rounded-full font-medium"
+                :class="p.scope === 'global' ? 'bg-gray-100 text-gray-500 dark:bg-sidebar dark:text-gray-400' : 'bg-brand-primary/10 text-brand-primary'"
+              >
+                {{ scopeLabel(p) }}
+              </span>
             </td>
             <td class="px-4 py-3 text-xs text-gray-600">
               {{ t(`admin.promo.absorbs.${p.absorbs_by}`) }}
@@ -289,7 +302,7 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
             <th class="px-4 py-3">{{ t('admin.promo.batch.col.createdAt') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.batch.col.count') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.batch.col.amount') }}</th>
-            <th class="px-4 py-3">{{ t('admin.promo.batch.col.club') }}</th>
+            <th class="px-4 py-3">{{ t('admin.promo.col.scope') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.batch.col.window') }}</th>
             <th class="px-4 py-3">{{ t('admin.promo.batch.col.status') }}</th>
             <th class="px-4 py-3 text-right">{{ t('admin.promo.batch.col.actions') }}</th>
@@ -311,7 +324,12 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
               </div>
             </td>
             <td class="px-4 py-3 text-xs">
-              {{ clubName(b.club_id) }}
+              <span
+                class="px-2 py-0.5 rounded-full font-medium"
+                :class="b.scope === 'global' ? 'bg-gray-100 text-gray-500 dark:bg-sidebar dark:text-gray-400' : 'bg-brand-primary/10 text-brand-primary'"
+              >
+                {{ scopeLabel(b) }}
+              </span>
             </td>
             <td class="px-4 py-3 text-xs text-gray-500">
               <div>{{ t('admin.promo.from') }}: {{ fmtDate(b.valid_from) }}</div>

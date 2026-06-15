@@ -9,6 +9,7 @@ import type { Period } from '~/components/admin/stats/FiltersBar.vue'
 definePageMeta({ layout: 'admin', middleware: ['admin'] })
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const clubs = useClubsStore()
 const products = useProductsStore()
 
@@ -65,7 +66,7 @@ async function fetchStats() {
     if (error) throw new Error(error.message)
     stats.value = data ?? null
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+    errorMsg.value = edgeErrorMessage(err)
   } finally {
     loading.value = false
   }

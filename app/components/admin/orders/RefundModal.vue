@@ -15,6 +15,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const orders = useOrdersStore()
 
 const selected = ref<Record<string, boolean>>({})
@@ -80,7 +81,7 @@ async function submit() {
     if (e?.code === 'lyra_refund_failed' && /rest api option not enabled/i.test(lyraDetail)) {
       errorMsg.value = t('admin.orders.refund.errorLyraNotEnabled')
     } else {
-      errorMsg.value = err instanceof Error ? err.message : t('auth.errors.generic')
+      errorMsg.value = edgeErrorMessage(err)
     }
   } finally {
     saving.value = false

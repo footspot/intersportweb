@@ -8,6 +8,7 @@ import { invokeEdge } from '~/composables/useEdgeFunction'
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t, locale } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const clubs = useClubsStore()
 const client = useSupabaseClient()
 
@@ -184,7 +185,7 @@ async function submit() {
     if (err) {
       if (err.code === 'club_already_linked') submitError.value = t('admin.footspot.errors.alreadyLinked')
       else if (err.code === 'recent_request_pending') submitError.value = t('admin.footspot.errors.recentPending')
-      else submitError.value = err.message
+      else submitError.value = edgeErrorMessage(err)
       return
     }
     await loadRequests()

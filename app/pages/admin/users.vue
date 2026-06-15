@@ -7,6 +7,7 @@ import { useAuthStore } from '~/stores/auth'
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
+const { edgeErrorMessage, notifyEdgeError } = useEdgeError()
 const users = useUsersStore()
 const auth = useAuthStore()
 
@@ -44,10 +45,8 @@ function openEdit(u: User) {
 async function toggleActive(u: User) {
   try {
     await users.update({ id: u.id, active: !u.active })
-  } catch (err: any) {
-    if (err?.message === 'last_admin') {
-      alert(t('admin.users.errors.lastAdmin'))
-    }
+  } catch (err) {
+    notifyEdgeError(err)
   }
 }
 
@@ -75,7 +74,7 @@ async function doDelete() {
     } else if (err?.message === 'cannot_delete_admin') {
       deleteError.value = t('admin.users.errors.cannotDeleteAdmin')
     } else {
-      deleteError.value = err instanceof Error ? err.message : t('auth.errors.generic')
+      deleteError.value = edgeErrorMessage(err)
     }
   } finally {
     confirmBusy.value = false
@@ -95,13 +94,7 @@ async function onSelfDeleteConfirmed() {
     // * the modal and surface the reason.
     selfDeleteOpen.value = false
     deleting.value = null
-    alert(
-      err?.message === 'last_admin'
-        ? t('admin.users.errors.lastAdmin')
-        : err instanceof Error
-          ? err.message
-          : t('auth.errors.generic'),
-    )
+    notifyEdgeError(err)
   }
 }
 
@@ -139,15 +132,22 @@ function dismissCredentials() {
           <UIcon name="i-lucide-check-circle-2" class="w-5 h-5 text-brand-green shrink-0 mt-0.5" />
           <div>
             <div class="font-medium text-brand-green">{{ t('admin.users.created.title') }}</div>
-            <div v-if="lastCreated.password" class="mt-1">
-              {{ t('admin.users.created.password') }}:
-              <code class="font-mono px-2 py-0.5 rounded bg-white dark:bg-sidebar-surface text-brand-primary">{{ lastCreated.password }}</code>
-            </div>
-            <div v-if="lastCreated.link" class="mt-1 text-xs text-gray-500 break-all">
-              {{ t('admin.users.created.magicLink') }}:
-              <a :href="lastCreated.link" class="text-brand-primary hover:underline">{{ lastCreated.link }}</a>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">{{ t('admin.users.created.hint') }}</p>
+            <!-- Credentials were emailed to the new user -->
+            <p v-if="lastCreated.emailed" class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              {{ t('admin.users.created.emailed', { email: lastCreated.email ?? '' }) }}
+            </p>
+            <!-- Email failed or password supplied by admin — show it as a fallback -->
+            <template v-else>
+              <div v-if="lastCreated.password" class="mt-1">
+                {{ t('admin.users.created.password') }}:
+                <code class="font-mono px-2 py-0.5 rounded bg-white dark:bg-sidebar-surface text-brand-primary">{{ lastCreated.password }}</code>
+              </div>
+              <div v-if="lastCreated.link" class="mt-1 text-xs text-gray-500 break-all">
+                {{ t('admin.users.created.magicLink') }}:
+                <a :href="lastCreated.link" class="text-brand-primary hover:underline">{{ lastCreated.link }}</a>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">{{ t('admin.users.created.emailFailed') }}</p>
+            </template>
           </div>
         </div>
         <button type="button" class="text-gray-400 hover:text-gray-600" @click="dismissCredentials">
