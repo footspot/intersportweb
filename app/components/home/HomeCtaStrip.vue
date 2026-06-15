@@ -6,48 +6,92 @@ import { useHomeFlowCtx } from '~/composables/useHomeFlow'
 const flow = useHomeFlowCtx()
 const { t } = flow
 
-// * Typewriter effect on the headline: it "types itself" the first time the
-// * section scrolls into view, with a blinking caret. Full text stays in the
-// * h3's aria-label for screen readers / SEO.
+// * Typewriter effect on the headline: it "types itself" once the section
+// * scrolls into view, then loops — type out, hold ~5s, erase, retype. Reads the
+// * current locale's title each cycle so it follows fr/en. Full text stays in
+// * the h3's aria-label for screen readers / SEO.
 const fullTitle = computed(() => t('storefront.home.ctaTitle'))
 const typed = ref('')
 const caretBlink = ref(false)
 const titleEl = ref<HTMLElement | null>(null)
-let started = false
 
-function runTypewriter() {
-  if (started) return
-  started = true
+const TYPE_MS = 65 // * per-char while typing
+const ERASE_MS = 32 // * per-char while erasing (faster)
+const HOLD_MS = 5000 // * pause once fully typed
+const EMPTY_MS = 600 // * pause once erased, before retyping
 
-  // * Respect reduced-motion: show the full title at once.
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+let timer: ReturnType<typeof setTimeout> | null = null
+let running = false
+
+function reduceMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function typeLoop() {
+  caretBlink.value = false
   const text = fullTitle.value
-  if (reduce) {
-    typed.value = text
+  let i = 0
+  const step = () => {
+    i++
+    typed.value = text.slice(0, i)
+    if (i < text.length) {
+      timer = setTimeout(step, TYPE_MS)
+    } else {
+      // * Fully typed → caret blinks during the hold, then erase.
+      caretBlink.value = true
+      timer = setTimeout(eraseLoop, HOLD_MS)
+    }
+  }
+  step()
+}
+
+function eraseLoop() {
+  caretBlink.value = false
+  const text = typed.value
+  let i = text.length
+  const step = () => {
+    i--
+    typed.value = text.slice(0, Math.max(i, 0))
+    if (i > 0) {
+      timer = setTimeout(step, ERASE_MS)
+    } else {
+      timer = setTimeout(typeLoop, EMPTY_MS)
+    }
+  }
+  step()
+}
+
+function stop() {
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+}
+
+function start() {
+  stop()
+  // * Reduced-motion: show the full title at once, no loop.
+  if (reduceMotion()) {
+    typed.value = fullTitle.value
     caretBlink.value = true
     return
   }
-
-  let i = 0
-  const tick = () => {
-    typed.value = text.slice(0, i)
-    if (i < text.length) {
-      i++
-      window.setTimeout(tick, 65)
-    } else {
-      // * Idle caret blinks once typing is complete.
-      caretBlink.value = true
-    }
-  }
-  tick()
+  typed.value = ''
+  typeLoop()
 }
+
+// * Restart from scratch when the locale (title) changes.
+watch(fullTitle, () => {
+  if (running) start()
+})
 
 onMounted(() => {
   if (!titleEl.value) return
   const io = new IntersectionObserver(
     (entries) => {
       if (entries.some((e) => e.isIntersecting)) {
-        runTypewriter()
+        running = true
+        start()
         io.disconnect()
       }
     },
@@ -55,6 +99,8 @@ onMounted(() => {
   )
   io.observe(titleEl.value)
 })
+
+onBeforeUnmount(stop)
 </script>
 
 <template>

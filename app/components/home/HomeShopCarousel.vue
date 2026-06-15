@@ -42,6 +42,17 @@ const slideClubsEl = ref<HTMLElement | null>(null)
 const viewportHeight = ref(0)
 const trackOffset = ref(0)
 
+// * Club search — filter the selected sport's clubs by name. Reset whenever the
+// * sport changes so a new list starts clean.
+const clubQuery = ref('')
+const filteredClubs = computed(() => {
+  const q = clubQuery.value.trim().toLowerCase()
+  const list = flow.sportClubs.value
+  if (!q) return list
+  return list.filter((c) => c.name.toLowerCase().includes(q))
+})
+watch(() => flow.selectedSportId.value, () => { clubQuery.value = '' })
+
 function measure() {
   const sportsH = slideSportsEl.value?.offsetHeight ?? 0
   const clubsH = slideClubsEl.value?.offsetHeight ?? 0
@@ -61,7 +72,7 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener('resize', measure))
 
 watch(
-  [() => flow.currentSlide.value, () => flow.selectedSportId.value, open],
+  [() => flow.currentSlide.value, () => flow.selectedSportId.value, open, clubQuery],
   () => nextTick(() => requestAnimationFrame(measure)),
 )
 
@@ -154,9 +165,21 @@ const header = computed(() => {
                 ← {{ t('storefront.home.backToHome') }}
               </button>
             </div>
-            <div v-if="flow.sportClubs.value.length" class="flex gap-3.5 overflow-x-auto py-1 no-scrollbar">
+
+            <!-- * Club search -->
+            <div v-if="flow.sportClubs.value.length > 4" class="relative mb-4 max-w-sm">
+              <UIcon name="i-lucide-search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                v-model="clubQuery"
+                type="search"
+                :placeholder="t('storefront.home.searchClub')"
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-sidebar bg-page dark:bg-sidebar text-sm focus:outline-none focus:ring-2 focus:ring-ink/30 dark:focus:ring-accent/40"
+              >
+            </div>
+
+            <div v-if="filteredClubs.length" class="flex gap-3.5 overflow-x-auto py-1 no-scrollbar">
               <button
-                v-for="c in flow.sportClubs.value"
+                v-for="c in filteredClubs"
                 :key="c.id"
                 type="button"
                 class="flex-[0_0_220px] p-4 rounded-[14px] border-2 flex items-center gap-3.5 cursor-pointer transition-all select-none text-left"
@@ -194,7 +217,7 @@ const header = computed(() => {
               </button>
             </div>
             <div v-else class="py-10 text-center text-gray-500 text-sm">
-              {{ t('storefront.home.noClubsForSport') }}
+              {{ flow.sportClubs.value.length ? t('storefront.home.noClubMatch') : t('storefront.home.noClubsForSport') }}
             </div>
           </div>
         </div>

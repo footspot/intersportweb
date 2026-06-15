@@ -181,8 +181,15 @@ onMounted(async () => {
   flex-direction: column;
 }
 @media (max-width: 980px) {
+  /* * Keep the banner a proper full-bleed band on mobile (was collapsing to a
+   * thin strip). The flex column lets the media fill the height. */
   .hero {
-    min-height: 0;
+    min-height: 64vh;
+  }
+}
+@media (max-width: 620px) {
+  .hero {
+    min-height: 58vh;
   }
 }
 .hero-grad {

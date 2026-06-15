@@ -276,6 +276,8 @@
       "clubsWord": "clubs",
       "productsWord": "produits",
       "noClubsForSport": "Aucun club rattaché à ce sport pour l'instant.",
+      "searchClub": "Rechercher un club…",
+      "noClubMatch": "Aucun club ne correspond à votre recherche.",
       "noCatalog": "Aucun catalogue partenaire n'est disponible pour l'instant.",
       "noProducts": "Aucun produit",
       "noProductsHint": "Ce club n'a pas encore de produits.",
