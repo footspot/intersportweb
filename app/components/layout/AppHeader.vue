@@ -11,7 +11,15 @@ const colorMode = useColorMode()
 // * Top promo ticker — the FIRST item's text is admin-customizable
 // * (Personalization → Banner); the other two are static brand promises.
 const siteSettings = useSiteSettingsStore()
+// * Client-mounted guard: the clearance tab depends on store data that is absent
+// * during the header's SSR pass but present once the client hydrates from the
+// * Nuxt payload. Without this gate the client would expect an extra nav link
+// * the server HTML doesn't have → hydration mismatch. We keep the tab out of
+// * SSR + first hydration render, then reveal it after mount (no flash of a
+// * wrong link, just an appended one).
+const mounted = ref(false)
 onMounted(() => {
+  mounted.value = true
   if (!siteSettings.settings) siteSettings.fetchAll()
   if (!products.items.length) products.fetchAll()
 })
@@ -20,6 +28,7 @@ onMounted(() => {
 // * one visible, non-component product is flagged — mirrors useHomeFlow.clearanceVisible.
 const clearanceVisible = computed(
   () =>
+    mounted.value &&
     siteSettings.clearanceActive &&
     products.items.some((p) => p.is_on_clearance && p.is_visible && !products.isComponent(p.id)),
 )

@@ -194,7 +194,6 @@ async function submit() {
   <div
     v-if="modelValue"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-    @click.self="close"
   >
     <div class="w-full max-w-2xl bg-white dark:bg-sidebar-surface rounded-card shadow-card-lg p-6 space-y-4 max-h-[92vh] overflow-y-auto">
       <div>
