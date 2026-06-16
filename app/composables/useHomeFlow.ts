@@ -191,14 +191,24 @@ export function useHomeFlow() {
   // * header height so the section lands under it instead of behind it — and so
   // * page height (e.g. the footer) can't change where we land.
   function scrollToSelector(sel: string) {
-    setTimeout(() => {
+    // * Poll for the target rather than guessing a single delay: the section may
+    // * be behind a panel Transition and, on a route change (e.g. the product
+    // * page's back button → `/?club=`), behind the page's out-in transition too.
+    // * Polling also lands our scroll *after* the router's scroll-to-top, so it
+    // * wins instead of being overridden. Give up after ~3s.
+    let tries = 0
+    const attempt = () => {
       const el = document.querySelector(sel) as HTMLElement | null
-      if (!el) return
+      if (!el || el.getBoundingClientRect().height === 0) {
+        if (tries++ < 60) setTimeout(attempt, 50)
+        return
+      }
       const header = document.querySelector('header') as HTMLElement | null
       const offset = (header?.offsetHeight ?? 0) + 12
       const top = el.getBoundingClientRect().top + window.scrollY - offset
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
-    }, 280)
+    }
+    setTimeout(attempt, 60)
   }
 
   function pickEntry(kind: 'catalog' | 'shop' | 'clearance') {

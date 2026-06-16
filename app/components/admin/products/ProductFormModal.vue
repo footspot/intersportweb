@@ -141,7 +141,10 @@ watch(
   (open) => {
     if (!open) return
     const p = props.product
-    clubId.value = p?.club_id ?? (clubs.items[0]?.id ?? '')
+    // * Leave the club unset on new products so staff must pick one consciously
+    // * (avoids accidentally filing a product under the first club). Save()
+    // * blocks with `clubRequired` if it's still empty.
+    clubId.value = p?.club_id ?? ''
     name.value = p?.name.fr ?? ''
     reference.value = p?.reference ?? ''
     category.value = p?.category ?? ''
@@ -244,6 +247,15 @@ async function save() {
     // * When colors are defined, every size row must belong to one.
     if (colors.value.length > 0 && variants.value.some((v) => !v.color_key)) {
       errorMsg.value = t('admin.products.errors.variantColorRequired')
+      return
+    }
+    // * Each color card must carry at least one named size — an empty color has
+    // * nothing purchasable.
+    if (
+      colors.value.length > 0 &&
+      colors.value.some((c) => !variants.value.some((v) => v.color_key === c.key && v.size.trim()))
+    ) {
+      errorMsg.value = t('admin.products.errors.colorNeedsSize')
       return
     }
   }
@@ -372,10 +384,13 @@ async function save() {
           <span class="text-sm font-medium">{{ t('admin.products.club') }}</span>
           <select
             v-model="clubId"
-            class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-white dark:bg-sidebar-surface focus:ring-2 focus:ring-brand-primary focus:outline-none"
+            class="mt-1 w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-brand-primary focus:outline-none bg-white dark:bg-sidebar-surface"
+            :class="clubId ? 'border-gray-300 dark:border-sidebar' : 'border-brand-secondary'"
           >
+            <option value="" disabled>{{ t('admin.products.selectClub') }}</option>
             <option v-for="c in clubs.items" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
+          <p v-if="!clubId" class="text-xs text-brand-secondary mt-1">{{ t('admin.products.clubRequiredHint') }}</p>
         </label>
 
         <label class="block">
@@ -542,31 +557,30 @@ async function save() {
         </div>
       </div>
 
-      <!-- Colors → Images → Sizes (non-pack) / Images → Composition (pack).
-           The image picker sits between colors and sizes so staff define the
-           colors first, attach each photo to a color, then build the size rows
-           per color. -->
+      <!-- Non-pack: colors / images / sizes grouped by color (each color card
+           owns its photos and size rows). Pack: flat gallery + composition. -->
       <div class="border-t border-gray-100 dark:border-sidebar pt-4 space-y-4">
-        <AdminProductsProductColorsEditor v-if="!isPack" v-model="colors" />
-
-        <AdminProductsGalleryEditor
-          v-model="gallerySlots"
-          bucket="product-images"
-          :label="t('admin.products.image')"
-          :club-logo-url="selectedClubLogoUrl"
-          :colors="isPack ? [] : colors"
-        />
-
-        <AdminProductsBundleComponentsEditor
-          v-if="isPack"
-          v-model="bundleComponents"
-          :club-id="clubId"
-        />
-        <AdminProductsVariantStockEditor
+        <template v-if="isPack">
+          <AdminProductsGalleryEditor
+            v-model="gallerySlots"
+            bucket="product-images"
+            :label="t('admin.products.image')"
+            :club-logo-url="selectedClubLogoUrl"
+            :colors="[]"
+          />
+          <AdminProductsBundleComponentsEditor
+            v-model="bundleComponents"
+            :club-id="clubId"
+          />
+        </template>
+        <AdminProductsColorVariantsEditor
           v-else
-          v-model="variants"
+          v-model:colors="colors"
+          v-model:images="gallerySlots"
+          v-model:variants="variants"
           :footspot-enabled="!!footspotCategory"
-          :colors="colors"
+          :club-logo-url="selectedClubLogoUrl"
+          bucket="product-images"
         />
       </div>
 

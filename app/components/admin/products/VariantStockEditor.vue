@@ -63,6 +63,24 @@ function removeRow(i: number) {
   update(next)
 }
 
+// * Ensure every defined color carries the same set of sizes. Existing rows are
+// * kept untouched; only the missing (color, size) combos are appended (stock 0).
+// * Lets the seller type the size list once instead of repeating it per color.
+function replicateAcrossColors() {
+  if (!hasColors.value) return
+  const sizes = [...new Set(props.modelValue.map((v) => v.size.trim()).filter(Boolean))]
+  if (sizes.length === 0) return
+  const present = new Set(props.modelValue.map((v) => `${v.color_key ?? ''}::${v.size.trim()}`))
+  const additions: DraftVariant[] = []
+  for (const c of props.colors) {
+    for (const size of sizes) {
+      if (present.has(`${c.key}::${size}`)) continue
+      additions.push({ size, stock: 0, sku: null, footspot_size: null, color_key: c.key })
+    }
+  }
+  if (additions.length) update([...props.modelValue, ...additions])
+}
+
 function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftVariant[K]) {
   const next = props.modelValue.map((v, idx) => (idx === i ? { ...v, [key]: value } : v))
   update(next)
@@ -81,12 +99,12 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
     </div>
 
     <div v-else class="mt-2 space-y-2">
-      <div class="grid gap-2 text-xs uppercase tracking-wider text-gray-500 px-1" :class="gridCols">
-        <div v-if="hasColors">{{ t('admin.products.variants.color') }}</div>
-        <div>{{ t('admin.products.variants.size') }}</div>
-        <div>{{ t('admin.products.variants.stock') }}</div>
-        <div>{{ t('admin.products.variants.sku') }}</div>
-        <div v-if="footspotEnabled">{{ t('admin.products.variants.footspotSize') }}</div>
+      <div class="grid gap-2 text-xs uppercase tracking-wider text-gray-500" :class="gridCols">
+        <div v-if="hasColors" class="px-2">{{ t('admin.products.variants.color') }}</div>
+        <div class="px-3">{{ t('admin.products.variants.size') }}</div>
+        <div class="px-3">{{ t('admin.products.variants.stock') }}</div>
+        <div class="px-3">{{ t('admin.products.variants.sku') }}</div>
+        <div v-if="footspotEnabled" class="px-2">{{ t('admin.products.variants.footspotSize') }}</div>
         <div></div>
       </div>
       <div
@@ -158,13 +176,25 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
       </div>
     </div>
 
-    <button
-      type="button"
-      class="mt-3 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-brand-primary/40 text-brand-primary text-sm font-medium hover:bg-brand-primary/5 transition-colors"
-      @click="addRow"
-    >
-      <UIcon name="i-lucide-plus" class="w-4 h-4" />
-      <span>{{ t('admin.products.variants.add') }}</span>
-    </button>
+    <div class="mt-3 flex flex-col sm:flex-row gap-2">
+      <button
+        type="button"
+        class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-brand-primary/40 text-brand-primary text-sm font-medium hover:bg-brand-primary/5 transition-colors"
+        @click="addRow"
+      >
+        <UIcon name="i-lucide-plus" class="w-4 h-4" />
+        <span>{{ t('admin.products.variants.add') }}</span>
+      </button>
+      <!-- * Shortcut to copy the typed size list onto every color (per-color stock). -->
+      <button
+        v-if="hasColors && modelValue.some((v) => v.size.trim())"
+        type="button"
+        class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-sidebar transition-colors"
+        @click="replicateAcrossColors"
+      >
+        <UIcon name="i-lucide-copy" class="w-4 h-4" />
+        <span>{{ t('admin.products.variants.replicate') }}</span>
+      </button>
+    </div>
   </div>
 </template>

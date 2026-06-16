@@ -394,7 +394,8 @@
       "options": {
         "title": "Options",
         "inputPlaceholder": "Your entry (optional)"
-      }
+      },
+      "noSizesForColor": "No sizes for this color yet."
     }
   },
   "auth": {
@@ -669,6 +670,8 @@
       "edit": "Edit product",
       "empty": "No products match this filter.",
       "club": "Club",
+      "selectClub": "— Select a club —",
+      "clubRequiredHint": "Pick a club for this product.",
       "reference": "Reference (SKU)",
       "name": "Name",
       "category": "Category",
@@ -798,7 +801,8 @@
         "footspotSize": "Footspot size",
         "footspotNotSynced": "Not synced",
         "color": "Color",
-        "colorNone": "None"
+        "colorNone": "None",
+        "replicate": "Replicate sizes to all colors"
       },
       "flocking": {
         "title": "Flocking",
@@ -881,7 +885,8 @@
         "hasOrders": "Cannot delete: this product is linked to orders.",
         "lockedInBundle": "Cannot delete: this product belongs to {n} bundle(s).",
         "colorNameRequired": "Each color must have a name.",
-        "variantColorRequired": "Assign a color to each size."
+        "variantColorRequired": "Assign a color to each size.",
+        "colorNeedsSize": "Each color must have at least one size."
       },
       "detailsFr": "Description (FR)",
       "detailsEn": "Description (EN)",
@@ -895,6 +900,17 @@
         "namePlaceholder": "e.g. Red",
         "swatch": "Shade",
         "imageAll": "All colors"
+      },
+      "colorVariants": {
+        "title": "Colors, images & sizes",
+        "hint": "Everything is grouped by color: each color has its own images and sizes.",
+        "addColor": "Add color",
+        "addColorsCta": "Split this product by color",
+        "colorImages": "Images for this color",
+        "generalImages": "General photos (all colors)",
+        "generalImagesHint": "These images show regardless of the selected color.",
+        "copyToColors": "Copy sizes to the other colors",
+        "copyStockToColors": "Copy sizes + stock"
       }
     },
     "orders": {

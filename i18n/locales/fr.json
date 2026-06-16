@@ -394,7 +394,8 @@
       "options": {
         "title": "Options",
         "inputPlaceholder": "Votre saisie (facultatif)"
-      }
+      },
+      "noSizesForColor": "Aucune taille pour cette couleur."
     }
   },
   "auth": {
@@ -669,6 +670,8 @@
       "edit": "Modifier le produit",
       "empty": "Aucun produit ne correspond à ce filtre.",
       "club": "Club",
+      "selectClub": "— Sélectionnez un club —",
+      "clubRequiredHint": "Choisissez un club pour ce produit.",
       "reference": "Référence (SKU)",
       "name": "Nom",
       "category": "Catégorie",
@@ -798,7 +801,8 @@
         "footspotSize": "Taille Footspot",
         "footspotNotSynced": "Non synchronisée",
         "color": "Couleur",
-        "colorNone": "Aucune"
+        "colorNone": "Aucune",
+        "replicate": "Dupliquer les tailles sur toutes les couleurs"
       },
       "flocking": {
         "title": "Flocage",
@@ -881,7 +885,8 @@
         "hasOrders": "Impossible de supprimer : ce produit est lié à des commandes.",
         "lockedInBundle": "Impossible de supprimer : ce produit appartient à {n} pack(s).",
         "colorNameRequired": "Chaque couleur doit avoir un nom.",
-        "variantColorRequired": "Associez une couleur à chaque taille."
+        "variantColorRequired": "Associez une couleur à chaque taille.",
+        "colorNeedsSize": "Chaque couleur doit avoir au moins une taille."
       },
       "detailsFr": "Description (FR)",
       "detailsEn": "Description (EN)",
@@ -895,6 +900,17 @@
         "namePlaceholder": "ex. Rouge",
         "swatch": "Teinte",
         "imageAll": "Toutes les couleurs"
+      },
+      "colorVariants": {
+        "title": "Couleurs, images & tailles",
+        "hint": "Tout est regroupé par couleur : chaque coloris a ses propres images et ses tailles.",
+        "addColor": "Ajouter une couleur",
+        "addColorsCta": "Décliner ce produit par couleur",
+        "colorImages": "Images de ce coloris",
+        "generalImages": "Photos générales (toutes couleurs)",
+        "generalImagesHint": "Ces images s'affichent quel que soit le coloris choisi.",
+        "copyToColors": "Copier les tailles vers les autres couleurs",
+        "copyStockToColors": "Copier tailles + stock"
       }
     },
     "orders": {

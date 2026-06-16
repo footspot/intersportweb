@@ -70,8 +70,15 @@ function toggleOption(id: string) {
 // * Bundle availability (null-safe; returns empty for non-packs).
 const availability = computed(() => useBundleAvailability(product.value))
 
-// * Color variants (empty for products without colors / for packs).
-const productColors = computed(() => (product.value?.is_pack ? [] : product.value?.colors ?? []))
+// * Color variants (empty for products without colors / for packs). Colors with
+// * no size variants are hidden — they're not sellable, so offering them would
+// * dead-end the customer on "no sizes for this color".
+const productColors = computed(() => {
+  if (product.value?.is_pack) return []
+  const colors = product.value?.colors ?? []
+  const withStock = new Set((product.value?.variants ?? []).map((v) => v.color_id).filter(Boolean))
+  return colors.filter((c) => withStock.has(c.id))
+})
 const hasColors = computed(() => productColors.value.length > 0)
 const selectedColor = computed(
   () => productColors.value.find((c) => c.id === selectedColorId.value) ?? null,
@@ -172,7 +179,9 @@ watch(
   () => {
     selectedSize.value = null
     selectedSecondarySize.value = null
-    selectedColorId.value = product.value?.is_pack ? null : product.value?.colors?.[0]?.id ?? null
+    // * Default to the first sellable color (productColors already drops the
+    // * ones without variants).
+    selectedColorId.value = product.value?.is_pack ? null : productColors.value[0]?.id ?? null
     flocking.value = { name: null, initial: null, number: null }
     flockingAddon.value = 0
     selectedOptionIds.value = []
@@ -487,6 +496,14 @@ useSchemaOrg([
           :options="primaryOptions"
           v-model="selectedSize"
         />
+
+        <!-- * Colored product whose picked color has no size variants yet. -->
+        <p
+          v-else-if="!product.is_pack && hasColors && selectedColorId"
+          class="text-sm text-gray-500"
+        >
+          {{ t('storefront.product.noSizesForColor') }}
+        </p>
 
         <p
           v-if="isSelectedBackorder"
