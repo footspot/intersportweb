@@ -8,7 +8,6 @@ const cartOpen = useState('customer:cart-open', () => false)
   <div class="min-h-screen flex flex-col bg-white dark:bg-sidebar-bg text-gray-900 dark:text-gray-100">
     <ClientOnly>
       <LayoutAppScrollProgress />
-      <LayoutAppCustomCursor />
     </ClientOnly>
 
     <LayoutAppHeader />
