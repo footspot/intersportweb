@@ -93,7 +93,7 @@ function setColorField<K extends keyof DraftColor>(key: string, field: K, value:
   emit('update:colors', props.colors.map((c) => (c.key === key ? { ...c, [field]: value } : c)))
 }
 
-function addColor() {
+async function addColor() {
   const key = crypto.randomUUID()
   if (!hasColors.value) {
     // * First color: migrate every existing colorless image/size into it so the
@@ -102,6 +102,12 @@ function addColor() {
     emit('update:variants', props.variants.map((v) => ({ ...v, color_key: key })))
   }
   emit('update:colors', [...props.colors, { key, name: '', hex: '#000000' }])
+  // * Bring the freshly added card into view and focus its name field so staff
+  // * can name it right away without hunting for it at the bottom of the form.
+  await nextTick()
+  const card = document.querySelector(`[data-color-card="${key}"]`) as HTMLElement | null
+  card?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  card?.querySelector<HTMLInputElement>('input[type="text"]')?.focus({ preventScroll: true })
 }
 
 function removeColor(key: string) {
@@ -230,6 +236,7 @@ function copyToOthers(sourceKey: string, withStock: boolean) {
       <div
         v-for="c in colors"
         :key="c.key"
+        :data-color-card="c.key"
         class="rounded-xl border border-gray-200 dark:border-sidebar p-4 space-y-4"
       >
         <!-- * Images first, then the colour picker directly below them. The

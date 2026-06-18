@@ -23,7 +23,7 @@ const brands: Brand[] = [
   { name: 'Joma', logo: '/brands-logo/joma-logo.png', url: 'https://www.calameo.com/intersport-clubs-et-collectivites/read/00712199692afef22cfff' },
   { name: 'Jako', logo: '/brands-logo/jako-logo.png', url: 'https://www.calameo.com/intersport-clubs-et-collectivites/read/0071219969fcc1118968e' },
   { name: 'Mizuno', logo: '/brands-logo/mizuno-logo.png', url: 'https://www.calameo.com/intersport-clubs-et-collectivites/read/0071219963b90b1b970d2' },
-  { name: 'Errea', logo: '/brands-logo/errea-logo.png', url: 'https://www.calameo.com/intersport-clubs-et-collectivites/read/007121996e47c4880f43f' },
+  { name: 'Errea', logo: '/brands-logo/errea-logo.svg', url: 'https://www.calameo.com/intersport-clubs-et-collectivites/read/007121996e47c4880f43f' },
   { name: 'Erima', logo: '/brands-logo/erima-logo.png', url: 'https://www.calameo.com/intersport-clubs-et-collectivites/read/007121996ad958ffc18f2' },
 ]
 
@@ -88,9 +88,9 @@ const loop = [...brands, ...brands]
 }
 .dark .brands {
   background:
-    radial-gradient(140% 100% at 50% -20%, rgba(255, 255, 255, 0.06) 0%, transparent 55%),
-    linear-gradient(180deg, #1b2030 0%, #161a26 100%);
-  border-color: rgba(255, 255, 255, 0.06);
+    radial-gradient(140% 100% at 50% -20%, rgba(255, 255, 255, 0.08) 0%, transparent 55%),
+    linear-gradient(180deg, #2a3142 0%, #232838 100%);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 .b-lb {
   text-align: center;

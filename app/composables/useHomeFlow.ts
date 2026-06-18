@@ -190,7 +190,18 @@ export function useHomeFlow() {
   // * position manually (rather than scrollIntoView) and subtract the live
   // * header height so the section lands under it instead of behind it — and so
   // * page height (e.g. the footer) can't change where we land.
+  // * Strip/replace the URL query without ever navigating during SSR — a
+  // * server-side navigation to a *different* URL mid-render crashes the Netlify
+  // * function (502, e.g. `/?step=shop`). Client-only; the watchers below still
+  // * set the UI state on the server for SEO.
+  function replaceQuery(query: Record<string, string>) {
+    if (import.meta.client) router.replace({ query })
+  }
+
   function scrollToSelector(sel: string) {
+    // * Client-only: the body touches document/window, which don't exist on the
+    // * server (the deferred timer would otherwise throw inside the SSR function).
+    if (import.meta.server) return
     // * Poll for the target rather than guessing a single delay: the section may
     // * be behind a panel Transition and, on a route change (e.g. the product
     // * page's back button → `/?club=`), behind the page's out-in transition too.
@@ -266,7 +277,7 @@ export function useHomeFlow() {
     activeCategory.value = null
     mode.value = 'products'
     activeNav.value = 'shop'
-    router.replace({ query: { club: c.id } })
+    replaceQuery({ club: c.id })
     nextTick(() => scrollToSelector('[data-home-products]'))
   }
 
@@ -277,7 +288,7 @@ export function useHomeFlow() {
     mode.value = 'idle'
     activeNav.value = 'home'
     currentSlide.value = 0
-    router.replace({ query: {} })
+    replaceQuery({})
   }
 
   function goBackToSports() {
@@ -286,7 +297,7 @@ export function useHomeFlow() {
     mode.value = 'idle'
     activeNav.value = 'shop'
     currentSlide.value = 1
-    router.replace({ query: {} })
+    replaceQuery({})
   }
 
   function onPwUnlocked() {
@@ -321,19 +332,19 @@ export function useHomeFlow() {
         mode.value = 'idle'
         activeNav.value = 'shop'
         currentSlide.value = 1
-        router.replace({ query: {} })
+        replaceQuery({})
         nextTick(() => scrollToSelector('[data-home-shop]'))
       } else if (step === 'catalog') {
         currentSlide.value = 0
         pickEntry('catalog')
-        router.replace({ query: {} })
+        replaceQuery({})
       } else if (step === 'clearance') {
         currentSlide.value = 0
         pickEntry('clearance')
-        router.replace({ query: {} })
+        replaceQuery({})
       } else if (step === 'home') {
         goHome()
-        router.replace({ query: {} })
+        replaceQuery({})
         nextTick(() => scrollToSelector('.home-page'))
       }
     },

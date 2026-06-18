@@ -46,7 +46,14 @@ const mobileOpen = ref(false)
 
 function resetHome() {
   mobileOpen.value = false
-  router.push({ path: '/', query: { step: 'home' } })
+  // * From a sub-page, a plain push to `/` always lands on home (the home flow
+  // * resets itself on mount). Only when already on home do we use `?step=home`
+  // * to tell the in-page flow (mounted only here) to reset + scroll to top.
+  if (route.path === '/') {
+    router.replace({ path: '/', query: { step: 'home' } })
+  } else {
+    router.push('/')
+  }
 }
 const cartOpen = useState('customer:cart-open', () => false)
 // * Shared with AppSearch — toggles the mobile fixed-bottom search bar.
