@@ -54,7 +54,8 @@ const flockingLabel = computed(() => {
           </div>
           <div class="text-xs text-gray-500 truncate">
             <span v-if="line.color">{{ line.color }} · </span>
-            {{ t('cart.size') }} {{ line.size }}
+            <template v-if="line.size_summary">{{ line.size_summary }}</template>
+            <template v-else>{{ t('cart.size') }} {{ line.size }}</template>
             <span v-if="flockingLabel"> · {{ flockingLabel }}</span>
           </div>
           <div v-if="line.selected_options?.length" class="text-xs text-gray-500 truncate">

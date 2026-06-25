@@ -308,7 +308,8 @@ Deno.serve(async (req) => {
           const { data: items } = await sb
             .from('order_items')
             .select(
-              'quantity, size, secondary_size, color, selected_options, unit_price_paid, status, flocking_name, flocking_initial, flocking_number, product:products(name, reference)',
+              'quantity, size, secondary_size, color, selected_options, unit_price_paid, status, flocking_name, flocking_initial, flocking_number, product:products(name, reference), ' +
+                'components:order_item_components(axis, product:products(name), variant:product_variants(size))',
             )
             .eq('order_id', order.id)
 
@@ -316,7 +317,19 @@ Deno.serve(async (req) => {
           const itemsHtml = (items ?? [])
             .map((it: any) => {
               const pname = it.product?.name?.fr ?? it.product?.reference ?? 'Article'
-              const sizeBits = [it.size, it.secondary_size].filter(Boolean).join(' / ')
+              // * Per-product (independent axis) sizes, e.g. "Ballon: 5".
+              const productAxisBits = Array.isArray(it.components)
+                ? it.components
+                    .filter((c: any) => c?.axis === 'product')
+                    .map((c: any) => `${c.product?.name?.fr ?? ''}: ${c.variant?.size ?? ''}`.trim())
+                    .filter(Boolean)
+                : []
+              const sizeBits = [
+                [it.size, it.secondary_size].filter(Boolean).join(' / '),
+                ...productAxisBits,
+              ]
+                .filter(Boolean)
+                .join(' · ')
               const flock = [it.flocking_name, it.flocking_initial, it.flocking_number]
                 .filter(Boolean)
                 .join(' · ')

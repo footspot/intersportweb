@@ -361,6 +361,7 @@
       "notFound": "Produit introuvable.",
       "size": "Taille",
       "secondarySize": "Deuxième taille",
+      "uniqueSize": "Taille unique",
       "outOfStock": "Épuisé",
       "inStock": "en stock",
       "backorderBanner": "Stock actuellement épuisé. Disponible à partir du {date} — commandez maintenant, livraison à la réception.",
@@ -654,6 +655,11 @@
       "pickupDelayShort": "Délai (j. ouvrés)",
       "pickupDelayPlaceholder": "Ex : 5",
       "pickupDelayHint": "Affiché au paiement. Laissez vide pour un message générique.",
+      "qr": {
+        "button": "QR boutique",
+        "cta": "Scannez ce QR code pour accéder à la boutique du club",
+        "fileName": "QR-boutique-{name}.pdf"
+      },
       "errors": {
         "nameRequired": "Le nom du club est requis.",
         "sportRequired": "Le sport est requis.",
@@ -829,6 +835,8 @@
         "axis": "Axe",
         "axisPrimary": "Principal",
         "axisSecondary": "Secondaire",
+        "axisProduct": "Taille produit",
+        "axisUnique": "Taille unique",
         "qty": "Qté",
         "availabilityTitle": "Disponibilité par combinaison",
         "availabilityHint": "Nombre d'unités vendables par combinaison de tailles, calculé à partir du stock des composants.",
@@ -1314,12 +1322,12 @@
           "body": "Le pack {bundle_name} a été remboursé sur la commande {order_number} car un composant était indisponible."
         },
         "product_locked_into_bundle": {
-          "title": "Produit verrouillé dans un pack",
-          "body": "{product_name} fait désormais partie du pack {bundle_name} — il n'est plus vendu à l'unité."
+          "title": "Produit ajouté à un pack",
+          "body": "{product_name} fait désormais partie du pack {bundle_name}. Il reste vendu à l'unité."
         },
         "product_released_from_bundle": {
-          "title": "Produit libéré d'un pack",
-          "body": "{product_name} n'est plus dans un pack — il est à nouveau vendu à l'unité."
+          "title": "Produit retiré d'un pack",
+          "body": "{product_name} n'est plus utilisé dans aucun pack."
         },
         "footspot_link_active": {
           "title": "Footspot — club lié",
@@ -1452,6 +1460,7 @@
         "coverAbsorbs": "Pris en charge par",
         "coverNote": "Note interne",
         "coverUnlimited": "Sans date d'expiration",
+        "coverShopQr": "Boutique du club",
         "voucherTitle": "Bon d'achat",
         "voucherAmount": "Valeur",
         "voucherMin": "Panier min. :",
@@ -1774,6 +1783,8 @@
     "total": "Total",
     "deliveryMethod": "Livraison",
     "paymentMethod": "Paiement",
+    "paymentPrepaid": "Code prépayé",
+    "paymentFree": "Offert (code promo)",
     "tracking": "Suivi du colis",
     "trackParcel": "Suivre mon colis",
     "pickupAt": "À retirer chez",

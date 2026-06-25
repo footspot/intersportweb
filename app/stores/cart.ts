@@ -27,6 +27,11 @@ export interface CartLine {
   image_path: string | null
   size: string                       // * primary size (bundle) or variant size
   secondary_size: string | null      // * secondary size for bundles
+  // * Per-product (independent axis) size picks for bundles, keyed by component
+  // * product id. Empty for non-packs and packs without a "product" axis.
+  component_sizes: Record<string, string>
+  // * Human-readable summary of every size pick (bundle). Null for plain products.
+  size_summary: string | null
   color: string | null               // * color variant name (display only; null = no color)
   quantity: number
   max_stock: number
@@ -72,6 +77,8 @@ export const useCartStore = defineStore('cart', () => {
     variantId: string | null              // * null for bundles
     size: string
     secondarySize?: string | null
+    componentSizes?: Record<string, string>  // * per-product axis picks (bundles)
+    sizeSummary?: string | null              // * readable summary of all size picks
     color?: string | null                  // * color variant name (display only)
     colorImagePath?: string | null         // * color's image, snapshotted onto the line
     maxStock: number
@@ -86,6 +93,8 @@ export const useCartStore = defineStore('cart', () => {
       variantId,
       size,
       secondarySize = null,
+      componentSizes = {},
+      sizeSummary = null,
       color = null,
       colorImagePath = null,
       maxStock,
@@ -116,10 +125,15 @@ export const useCartStore = defineStore('cart', () => {
     const optionsAddon = cleanOptions.reduce((s, o) => s + o.price, 0)
     // * Distinct option selections (incl. typed value) are distinct cart lines.
     const optionsKey = cleanOptions.map((o) => `${o.id}:${o.value ?? ''}`).sort().join(',')
-    // * Bundle lines don't have a single variantId, so include size axes in the key.
+    // * Bundle lines don't have a single variantId, so include size axes in the
+    // * key (incl. per-product axis picks) — different size combos are distinct lines.
+    const compKey = Object.entries(componentSizes)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}:${v}`)
+      .join(',')
     const lineId = variantId
       ? `${product.id}::${variantId}::${flockingKey(flocking)}::${addon}::${optionsKey}`
-      : `${product.id}::pack::${size}::${secondarySize ?? ''}::${flockingKey(flocking)}::${addon}::${optionsKey}`
+      : `${product.id}::pack::${size}::${secondarySize ?? ''}::${compKey}::${flockingKey(flocking)}::${addon}::${optionsKey}`
     const existing = state.value.lines.find((l) => l.line_id === lineId)
     const clampedQty = (current: number) =>
       Math.max(1, Math.min(maxStock, current + quantity))
@@ -140,6 +154,8 @@ export const useCartStore = defineStore('cart', () => {
         image_path: colorImagePath ?? primaryImagePath(product),
         size,
         secondary_size: secondarySize?.trim() || null,
+        component_sizes: componentSizes,
+        size_summary: sizeSummary?.trim() || null,
         color: color?.trim() || null,
         quantity: Math.max(1, Math.min(maxStock, quantity)),
         max_stock: maxStock,

@@ -361,6 +361,7 @@
       "notFound": "Product not found.",
       "size": "Size",
       "secondarySize": "Second size",
+      "uniqueSize": "One size",
       "outOfStock": "Sold out",
       "inStock": "in stock",
       "backorderBanner": "Currently out of stock. Available from {date} — order now, ships on restock.",
@@ -654,6 +655,11 @@
       "pickupDelayShort": "Delay (days)",
       "pickupDelayPlaceholder": "E.g. 5",
       "pickupDelayHint": "Shown at checkout. Leave empty for a generic message.",
+      "qr": {
+        "button": "Shop QR code",
+        "cta": "Scan this QR code to visit the club shop",
+        "fileName": "shop-QR-{name}.pdf"
+      },
       "errors": {
         "nameRequired": "Club name is required.",
         "sportRequired": "Sport is required.",
@@ -829,6 +835,8 @@
         "axis": "Axis",
         "axisPrimary": "Primary",
         "axisSecondary": "Secondary",
+        "axisProduct": "Product size",
+        "axisUnique": "One size",
         "qty": "Qty",
         "availabilityTitle": "Availability by combination",
         "availabilityHint": "Bundle units sellable for each size combo, from the current component stocks.",
@@ -1314,12 +1322,12 @@
           "body": "Bundle {bundle_name} was refunded on order {order_number} because a component was unavailable."
         },
         "product_locked_into_bundle": {
-          "title": "Product locked into a bundle",
-          "body": "{product_name} is now part of the {bundle_name} bundle — no longer sold individually."
+          "title": "Product added to a pack",
+          "body": "{product_name} is now part of the {bundle_name} pack. It's still sold individually."
         },
         "product_released_from_bundle": {
-          "title": "Product released from a bundle",
-          "body": "{product_name} is no longer in any bundle — back to being sold individually."
+          "title": "Product removed from a pack",
+          "body": "{product_name} is no longer used in any pack."
         },
         "footspot_link_active": {
           "title": "Footspot — club linked",
@@ -1452,6 +1460,7 @@
         "coverAbsorbs": "Absorbed by",
         "coverNote": "Internal note",
         "coverUnlimited": "No expiry date",
+        "coverShopQr": "Club shop",
         "voucherTitle": "Voucher",
         "voucherAmount": "Value",
         "voucherMin": "Min cart:",
@@ -1774,6 +1783,8 @@
     "total": "Total",
     "deliveryMethod": "Delivery",
     "paymentMethod": "Payment",
+    "paymentPrepaid": "Prepaid code",
+    "paymentFree": "Free (promo code)",
     "tracking": "Parcel tracking",
     "trackParcel": "Track my parcel",
     "pickupAt": "Pick up at",

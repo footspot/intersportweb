@@ -5,7 +5,9 @@ import { invokeEdge } from '~/composables/useEdgeFunction'
 import type { DiscountSource } from '~/composables/usePricingPreview'
 
 export type FlockingKind = 'none' | 'members' | 'supporters'
-export type BundleAxis = 'primary' | 'secondary'
+// * primary/secondary = shared sizing groups · product = independent per-product
+// * size selector · unique = single fixed variant ("Taille unique" badge).
+export type BundleAxis = 'primary' | 'secondary' | 'product' | 'unique'
 
 export type FootspotSize =
   | '4XS' | '3XS' | '2XS' | 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL' | '4XL'
@@ -178,7 +180,8 @@ export const useProductsStore = defineStore('products', {
     byClub: (state) => (clubId: string) => state.items.filter((p) => p.club_id === clubId),
     byId: (state) => (id: string) => state.items.find((p) => p.id === id) ?? null,
     totalStock: () => (p: Product) => p.variants.reduce((sum, v) => sum + v.stock, 0),
-    // * A product is "locked" when it's a component of at least one bundle.
+    // * True when the product is used as a component of at least one bundle.
+    // * (It stays sellable standalone — this is informational for the admin UI.)
     isComponent: (state) => (productId: string) =>
       state.items.some((p) =>
         p.is_pack && p.bundle_components.some((bc) => bc.component_product_id === productId),
@@ -210,6 +213,19 @@ export const useProductsStore = defineStore('products', {
         this.error = err instanceof Error ? err.message : 'Failed to load products'
       } finally {
         this.loading = false
+      }
+    },
+
+    // * Merge product rows into the store (upsert by id). Used to inject a pack's
+    // * component products — which may be hidden (is_visible=false) and excluded
+    // * by RLS from fetchAll — so byId resolves them for size availability. The
+    // * storefront grid filters is_visible, so these never appear as listings.
+    mergeItems(list: Product[]) {
+      for (const raw of list) {
+        const p = enrich(raw)
+        const idx = this.items.findIndex((x) => x.id === p.id)
+        if (idx === -1) this.items.push(p)
+        else this.items[idx] = p
       }
     },
 

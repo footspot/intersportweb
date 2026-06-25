@@ -34,6 +34,9 @@ interface CartLineIn {
   variant_id: string | null
   size: string
   secondary_size?: string | null
+  // * Per-product (independent "product" axis) size picks for bundles, keyed by
+  // * component product id.
+  component_sizes?: Record<string, string>
   color?: string | null
   quantity: number
   flocking?: { name?: string | null; initial?: string | null; number?: string | null }
@@ -286,7 +289,7 @@ Deno.serve(async (req) => {
       bundleComponents?: Array<{
         component_product_id: string
         component_variant_id: string
-        axis: 'primary' | 'secondary'
+        axis: 'primary' | 'secondary' | 'product' | 'unique'
         quantity_per_unit: number
         unit_buying_price_snapshot: number
       }>
@@ -343,15 +346,29 @@ Deno.serve(async (req) => {
         }
         const resolved: PendingItem['bundleComponents'] = []
         for (const c of comps) {
-          const desiredSize = c.axis === 'primary' ? line.size : (line.secondary_size ?? '')
-          if (!desiredSize) {
-            return jsonResponse(
-              { error: 'bundle_component_missing', product_id: line.product_id, axis: c.axis },
-              { status: 409 },
-            )
-          }
           const vs = compVariantsMap.get(c.component_product_id) ?? []
-          const v = vs.find((x: any) => x.size === desiredSize)
+          // * Resolve the component's variant by its axis:
+          // *   unique / single-variant → its only variant (no size pick)
+          // *   product                 → the buyer's per-product size pick
+          // *   primary / secondary     → the shared axis size
+          let v: any
+          if (c.axis === 'unique' || vs.length === 1) {
+            v = vs[0]
+          } else {
+            const desiredSize =
+              c.axis === 'product'
+                ? (line.component_sizes?.[c.component_product_id] ?? '')
+                : c.axis === 'primary'
+                  ? line.size
+                  : (line.secondary_size ?? '')
+            if (!desiredSize) {
+              return jsonResponse(
+                { error: 'bundle_component_missing', product_id: line.product_id, axis: c.axis },
+                { status: 409 },
+              )
+            }
+            v = vs.find((x: any) => x.size === desiredSize)
+          }
           if (!v) {
             return jsonResponse(
               { error: 'bundle_component_missing', component_product_id: c.component_product_id },
@@ -570,7 +587,12 @@ Deno.serve(async (req) => {
     }
 
     const total = Number((subtotal + shippingCost - promoDiscount - prepaidCredit).toFixed(2))
-    const isFullyPrepaid = prepaidCredit > 0 && total <= 0
+    // * Any €0 order (fully covered by a promo and/or prepaid credit) settles
+    // * directly — there's nothing to charge, so it must skip the SystemPay
+    // * paywall and land 'paid' on the spot. `prepaidCredit > 0` distinguishes a
+    // * Footspot-wallet settlement ('prepaid') from a discount-only one ('free').
+    const isFree = total <= 0
+    const freePaymentMethod = prepaidCredit > 0 ? 'prepaid' : 'free'
 
     // * For colissimo: keep the supplied shipping_address. For pickup methods
     // * we still need something in the JSONB column (NOT NULL), so we stash
@@ -619,10 +641,10 @@ Deno.serve(async (req) => {
         prepaid_credit: Number(prepaidCredit.toFixed(2)),
         prepaid_club_id: prepaidClubId,
         footspot_member_id: footspotMemberId,
-        // * Fully-prepaid orders skip the IPN and land paid on the spot.
-        payment_method: isFullyPrepaid ? 'prepaid' : null,
-        status: isFullyPrepaid ? 'paid' : 'pending',
-        paid_at: isFullyPrepaid ? new Date().toISOString() : null,
+        // * €0 orders (prepaid and/or promo) skip the IPN and land paid on the spot.
+        payment_method: isFree ? freePaymentMethod : null,
+        status: isFree ? 'paid' : 'pending',
+        paid_at: isFree ? new Date().toISOString() : null,
       })
       .select('id, order_number, access_token, total')
       .single()
@@ -701,10 +723,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // * Fully-prepaid fast-path: run the same side effects the IPN normally
-    // *   runs after a successful card payment. The order row was already
-    // *   inserted with status='paid' + payment_method='prepaid'.
-    if (isFullyPrepaid) {
+    // * €0 fast-path: run the same side effects the IPN normally runs after a
+    // *   successful card payment. The order row was already inserted with
+    // *   status='paid' + payment_method='prepaid'|'free'.
+    if (isFree) {
       // * 1. Atomic promo claim (if any). On race-loss, we have to undo our
       // *    €0 marker and tell the customer to retry.
       const { data: claimRes } = await sb.rpc('claim_promo_for_order', { p_order_id: order.id })
@@ -720,15 +742,15 @@ Deno.serve(async (req) => {
       // * 2. Stock decrement + fund credit + low-stock notif.
       const { error: ppErr } = await sb.rpc('process_paid_order', { p_order_id: order.id })
       if (ppErr) {
-        console.error('[create-order] process_paid_order (prepaid fast-path) failed', ppErr)
+        console.error('[create-order] process_paid_order (€0 fast-path) failed', ppErr)
       }
 
       // * 3. Synthetic payment_events for audit trail.
       await sb.from('payment_events').insert({
-        provider: 'prepaid',
+        provider: freePaymentMethod,
         event_id: order.id,
         order_id: order.id,
-        event_type: 'prepaid.consumed',
+        event_type: prepaidCredit > 0 ? 'prepaid.consumed' : 'free.granted',
       })
     }
 
@@ -739,7 +761,7 @@ Deno.serve(async (req) => {
         access_token: order.access_token,
         number: order.order_number,
         total: order.total,
-        status: isFullyPrepaid ? 'paid' : 'pending',
+        status: isFree ? 'paid' : 'pending',
       },
     })
   } catch (err) {

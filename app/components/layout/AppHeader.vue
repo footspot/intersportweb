@@ -25,12 +25,12 @@ onMounted(() => {
 })
 
 // * The clearance tab shows only when the admin enabled clearance AND at least
-// * one visible, non-component product is flagged — mirrors useHomeFlow.clearanceVisible.
+// * one visible product is flagged — mirrors useHomeFlow.clearanceVisible.
 const clearanceVisible = computed(
   () =>
     mounted.value &&
     siteSettings.clearanceActive &&
-    products.items.some((p) => p.is_on_clearance && p.is_visible && !products.isComponent(p.id)),
+    products.items.some((p) => p.is_on_clearance && p.is_visible),
 )
 const bannerText = computed(() => siteSettings.promoBannerText || t('storefront.home.topbarPromo'))
 

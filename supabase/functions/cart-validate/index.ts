@@ -17,6 +17,7 @@ interface CartLineIn {
   variant_id: string | null
   size: string                          // * primary size for bundles
   secondary_size?: string | null        // * secondary size for bundles
+  component_sizes?: Record<string, string>  // * per-product axis picks (bundles)
   quantity: number
   unit_price_paid: number               // * incl. add-ons (flocking + options)
   flocking?: { name?: string | null; initial?: string | null; number?: string | null }
@@ -189,12 +190,25 @@ Deno.serve(async (req) => {
         }
         let minAvailable = Infinity
         for (const c of comps) {
-          const desiredSize = c.axis === 'primary' ? l.size : (l.secondary_size ?? '')
-          if (!desiredSize) {
-            return { line_id: l.line_id, ok: false, reason: 'bundle_component_missing' }
-          }
           const vs = compVariantsMap.get(c.component_product_id) ?? []
-          const v = vs.find((x: any) => x.size === desiredSize)
+          // * Resolve the component's variant by its axis (see create-order):
+          // * unique/single → only variant · product → per-product pick ·
+          // * primary/secondary → shared axis size.
+          let v: any
+          if (c.axis === 'unique' || vs.length === 1) {
+            v = vs[0]
+          } else {
+            const desiredSize =
+              c.axis === 'product'
+                ? (l.component_sizes?.[c.component_product_id] ?? '')
+                : c.axis === 'primary'
+                  ? l.size
+                  : (l.secondary_size ?? '')
+            if (!desiredSize) {
+              return { line_id: l.line_id, ok: false, reason: 'bundle_component_missing' }
+            }
+            v = vs.find((x: any) => x.size === desiredSize)
+          }
           if (!v) {
             return { line_id: l.line_id, ok: false, reason: 'bundle_component_missing' }
           }

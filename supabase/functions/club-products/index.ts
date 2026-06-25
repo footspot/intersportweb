@@ -49,14 +49,7 @@ Deno.serve(async (req) => {
 
   const productIds = products.map((p) => p.id)
 
-  // * Bundle component products are not directly sellable cards — exclude them,
-  // * matching what the storefront listing shows.
-  const componentIds = new Set<string>()
-  const { data: bcs } = await sb
-    .from('bundle_components')
-    .select('component_product_id')
-    .in('bundle_product_id', productIds)
-  for (const b of bcs ?? []) componentIds.add((b as any).component_product_id)
+  // * Bundle components stay sellable on their own, so they're listed too.
 
   // * Primary image per product (lowest position wins).
   const imageByProduct = new Map<string, string>()
@@ -73,7 +66,6 @@ Deno.serve(async (req) => {
   const base = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')
 
   const out = products
-    .filter((p) => !componentIds.has(p.id))
     .map((p) => {
       const selling = Number(p.selling_price)
       const buying = Number(p.buying_price)

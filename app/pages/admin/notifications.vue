@@ -39,8 +39,8 @@ function iconFor(kind: string): string {
   switch (kind) {
     case 'low_stock': return 'i-lucide-package-x'
     case 'bundle_component_oos_at_sale': return 'i-lucide-alert-octagon'
-    case 'product_locked_into_bundle': return 'i-lucide-lock'
-    case 'product_released_from_bundle': return 'i-lucide-unlock'
+    case 'product_locked_into_bundle': return 'i-lucide-package-plus'
+    case 'product_released_from_bundle': return 'i-lucide-package-minus'
     case 'footspot_cagnotte_credited': return 'i-lucide-piggy-bank'
     case 'footspot_cagnotte_debited': return 'i-lucide-banknote-arrow-down'
     default: return 'i-lucide-bell'

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Club } from '~/stores/clubs'
 import type { Sport } from '~/stores/sports'
+import { buildClubQrPdf, downloadClubQrPdf } from '~/composables/useClubQrPdf'
 
 interface Props {
   club: Club
@@ -15,12 +16,39 @@ defineEmits<{
 
 const { t, locale } = useI18n()
 const client = useSupabaseClient()
+const config = useRuntimeConfig()
 
 const logoUrl = computed(() => {
   if (!props.club.logo_path) return null
   const { data } = client.storage.from('club-logos').getPublicUrl(props.club.logo_path)
   return data?.publicUrl ?? null
 })
+
+// * Build a single-page A4 PDF with the club name + a big shop QR code
+// * (club logo centred) and download it.
+const qrBusy = ref(false)
+async function downloadQr() {
+  if (qrBusy.value) return
+  qrBusy.value = true
+  try {
+    const origin =
+      (config.public.siteUrl as string) ||
+      (typeof window !== 'undefined' ? window.location.origin : '') ||
+      'https://www.intersportclubidf.com'
+    const blob = await buildClubQrPdf({
+      intersportLogoUrl: '/logo_horizontal.svg',
+      clubLogoUrl: logoUrl.value,
+      clubName: props.club.name,
+      slogan: props.club.slogan ?? null,
+      shopUrl: `${origin}/?club=${props.club.id}`,
+      i18n: { cta: t('admin.clubs.qr.cta') },
+    })
+    const safeName = props.club.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'club'
+    downloadClubQrPdf(blob, t('admin.clubs.qr.fileName', { name: safeName }))
+  } finally {
+    qrBusy.value = false
+  }
+}
 
 const fundTier = computed(() => {
   const v = Number(props.club.fund_balance ?? 0)
@@ -73,7 +101,19 @@ function fmt(v: number | string) {
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100 dark:border-sidebar">
+    <div class="grid grid-cols-4 gap-2 pt-3 border-t border-gray-100 dark:border-sidebar">
+      <button
+        type="button"
+        class="group flex items-center justify-center h-9 rounded-lg bg-gray-50 dark:bg-sidebar border border-gray-200 dark:border-sidebar hover:bg-gray-100 dark:hover:bg-sidebar-bg transition-colors disabled:opacity-60"
+        :aria-label="t('admin.clubs.qr.button')"
+        :title="t('admin.clubs.qr.button')"
+        :disabled="qrBusy"
+        @click="downloadQr"
+      >
+        <span class="flex items-center justify-center w-6 h-6 rounded-md bg-brand-green/15 text-brand-green group-hover:bg-brand-green/25 transition-colors">
+          <UIcon :name="qrBusy ? 'i-lucide-loader-circle' : 'i-lucide-qr-code'" class="w-3.5 h-3.5" :class="qrBusy && 'animate-spin'" />
+        </span>
+      </button>
       <button
         type="button"
         class="group flex items-center justify-center h-9 rounded-lg bg-gray-50 dark:bg-sidebar border border-gray-200 dark:border-sidebar hover:bg-gray-100 dark:hover:bg-sidebar-bg transition-colors"

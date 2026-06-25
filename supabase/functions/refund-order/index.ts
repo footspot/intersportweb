@@ -93,28 +93,34 @@ Deno.serve(async (req) => {
       .single()
     if (oErr || !order) return jsonResponse({ error: 'order_not_found' }, { status: 404 })
 
-    // * Compute refund amount from the targeted items so we can show it to
-    // * Lyra. We re-query to avoid trusting client-supplied totals.
-    const { data: itemsToRefund } = await sb
-      .from('order_items')
-      .select('id, unit_price_paid, quantity, status')
-      .eq('order_id', body.order_id)
-      .in('id', body.item_ids)
-    const refundCents = (itemsToRefund ?? [])
-      .filter((it: any) => it.status !== 'refunded_oos')
-      .reduce(
-        (sum: number, it: any) =>
-          sum + Math.round(Number(it.unit_price_paid) * 100) * Number(it.quantity),
-        0,
-      )
-    if (refundCents <= 0) {
+    // * Atomically claim the targeted lines BEFORE calling the processor. The
+    // * claim flips refund_started_at under the order lock and returns only the
+    // * rows it actually claimed, so a concurrent or retried request claims
+    // * nothing and can never trigger a second refund (R3). Amount is derived
+    // * server-side from the claimed rows, never trusted from the client.
+    const { data: claimed, error: claimErr } = await sb.rpc('begin_refund_lines', {
+      p_order_id: body.order_id,
+      p_item_ids: body.item_ids,
+    })
+    if (claimErr) throw claimErr
+    const refundCents = (claimed ?? []).reduce(
+      (sum: number, it: { unit_price_paid: number; quantity: number }) =>
+        sum + Math.round(Number(it.unit_price_paid) * 100) * Number(it.quantity),
+      0,
+    )
+    if (!claimed || claimed.length === 0 || refundCents <= 0) {
       return jsonResponse({ ok: true, refunded: 0, note: 'no refundable lines' })
     }
 
-    // * Call Lyra first when applicable. If it fails, we don't touch DB.
+    // * Call Lyra after the claim. If it fails, release the claim so a corrected
+    // * retry can re-claim the same lines, and leave the fund untouched.
     if ((order.payment_method === 'card' || order.payment_method === 'paypal') && order.payment_id) {
       const lr = await lyraRefund({ paymentId: order.payment_id, amountCents: refundCents })
       if (!lr.ok) {
+        await sb.rpc('cancel_refund_lines', {
+          p_order_id: body.order_id,
+          p_item_ids: body.item_ids,
+        })
         return jsonResponse({ error: 'lyra_refund_failed', detail: lr.error }, { status: 502 })
       }
     }

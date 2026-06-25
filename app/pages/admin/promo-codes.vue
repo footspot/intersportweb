@@ -88,6 +88,16 @@ function clubLogoUrl(clubId: string | null): string | null {
   return data?.publicUrl ?? null
 }
 
+// * Absolute origin for the club-shop deep link baked into the cover QR.
+const config = useRuntimeConfig()
+function shopOrigin(): string {
+  return (
+    (config.public.siteUrl as string) ||
+    (typeof window !== 'undefined' ? window.location.origin : '') ||
+    'https://www.intersportclubidf.com'
+  )
+}
+
 async function reDownloadPdf(b: PromoBatch) {
   pdfBusy.value = b.batch_id
   try {
@@ -97,6 +107,7 @@ async function reDownloadPdf(b: PromoBatch) {
       intersportLogoUrl: '/logo_horizontal.svg',
       clubLogoUrl: clubLogoUrl(b.club_id),
       clubName: club?.name ?? null,
+      shopUrl: club ? `${shopOrigin()}/?club=${club.id}` : `${shopOrigin()}/`,
       batchLabel: b.batch_id.slice(0, 8),
       codes: codes.map((c) => c.code),
       amount: Number(b.amount),
@@ -115,6 +126,7 @@ async function reDownloadPdf(b: PromoBatch) {
         cover_absorbs: t('admin.promo.pdf.coverAbsorbs'),
         cover_note: t('admin.promo.pdf.coverNote'),
         cover_unlimited: t('admin.promo.pdf.coverUnlimited'),
+        cover_shop_qr: t('admin.promo.pdf.coverShopQr'),
         voucher_title: t('admin.promo.pdf.voucherTitle'),
         voucher_amount: t('admin.promo.pdf.voucherAmount'),
         voucher_min: t('admin.promo.pdf.voucherMin'),

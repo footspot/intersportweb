@@ -18,6 +18,8 @@ interface OrderItem {
   quantity: number
   size: string
   secondary_size: string | null
+  // * Per-product (independent axis) sizes for bundles, e.g. ball size.
+  component_sizes: { name: { fr?: string; en?: string }; size: string }[]
   color: string | null
   selected_options: { name: string; price: number; value?: string | null }[]
   unit_price_paid: number
@@ -123,6 +125,8 @@ const paymentLabel = computed(() => {
   const p = order.value?.payment_method
   if (p === 'card') return t('checkout.payment.card')
   if (p === 'paypal') return 'PayPal'
+  if (p === 'prepaid') return t('publicOrder.paymentPrepaid')
+  if (p === 'free') return t('publicOrder.paymentFree')
   return '—'
 })
 
@@ -232,7 +236,7 @@ const timeline = computed<TimelineStep[]>(() => {
             <img v-if="imageUrl(it.product?.image_path)" :src="imageUrl(it.product?.image_path)!" alt="" class="w-14 h-14 object-cover rounded" />
             <div class="flex-1 min-w-0">
               <p class="font-medium truncate">{{ it.product?.name?.fr ?? it.product?.reference }}</p>
-              <p class="text-xs text-gray-500"><template v-if="it.color">{{ it.color }} · </template>{{ it.size }}<template v-if="it.secondary_size"> / {{ it.secondary_size }}</template> · ×{{ it.quantity }}</p>
+              <p class="text-xs text-gray-500"><template v-if="it.color">{{ it.color }} · </template>{{ it.size }}<template v-if="it.secondary_size"> / {{ it.secondary_size }}</template><template v-for="(c, ci) in (it.component_sizes ?? [])" :key="ci"> · {{ c.name?.fr }} : {{ c.size }}</template> · ×{{ it.quantity }}</p>
               <p v-if="it.flocking_name || it.flocking_initial || it.flocking_number" class="text-xs text-gray-500">
                 {{ [it.flocking_name, it.flocking_initial, it.flocking_number].filter(Boolean).join(' · ') }}
               </p>

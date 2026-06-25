@@ -16,12 +16,16 @@
 // * already a public Supabase storage URL.
 
 import { jsPDF } from 'jspdf'
+import { type LoadedImage, loadImage, buildClubShopQrDataUrl, buildQrDataUrl } from '~/composables/useQrCode'
 
 export interface PromoBatchPdfInput {
   // * Display strings — caller localises before passing in.
   intersportLogoUrl: string
   clubLogoUrl: string | null
   clubName: string | null
+  // * Club-shop deep link — when set (club-scoped batch) a QR with the club
+  // * logo centred is drawn on the cover. Null/omitted for global batches.
+  shopUrl?: string | null
   batchLabel: string                 // * e.g. "Lot du 28/05/2026" — used in the filename
   codes: string[]
   amount: number
@@ -40,6 +44,7 @@ export interface PromoBatchPdfInput {
     cover_absorbs: string             // * "Pris en charge par"
     cover_note: string                // * "Note interne"
     cover_unlimited: string           // * "Sans limite"
+    cover_shop_qr: string             // * "Boutique du club" (QR label)
     voucher_title: string             // * "Bon d'achat"
     voucher_amount: string            // * "Valeur"
     voucher_min: string               // * "Panier min."
@@ -47,57 +52,6 @@ export interface PromoBatchPdfInput {
     voucher_no_expiry: string         // * "Sans date d'expiration"
     voucher_single_use: string        // * "Code à usage unique"
     voucher_club_for: string          // * "Pour le club {club}"
-  }
-}
-
-interface LoadedImage {
-  dataUrl: string
-  width: number
-  height: number
-}
-
-// * Fetch an image and rasterise via canvas so jsPDF gets a clean PNG dataURL
-// * with known dimensions (aspect-ratio preserved in layout maths).
-// * Cap raster dimensions so SVGs (which can declare absurd intrinsic sizes
-// * like 4834×846) don't blow up the canvas or the resulting PDF, while
-// * still giving enough resolution to look sharp at print scale.
-async function loadImage(url: string, maxDim = 1600): Promise<LoadedImage | null> {
-  try {
-    const res = await fetch(url, { mode: 'cors' })
-    if (!res.ok) return null
-    const blob = await res.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    try {
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const el = new Image()
-        el.crossOrigin = 'anonymous'
-        el.onload = () => resolve(el)
-        el.onerror = () => reject(new Error('image_load_failed'))
-        el.src = objectUrl
-      })
-      let w = img.naturalWidth || 1500
-      let h = img.naturalHeight || 1500
-      if (w > maxDim || h > maxDim) {
-        const scale = maxDim / Math.max(w, h)
-        w = Math.max(1, Math.round(w * scale))
-        h = Math.max(1, Math.round(h * scale))
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return null
-      ctx.drawImage(img, 0, 0, w, h)
-      return {
-        dataUrl: canvas.toDataURL('image/png'),
-        width: w,
-        height: h,
-      }
-    } finally {
-      URL.revokeObjectURL(objectUrl)
-    }
-  } catch {
-    return null
   }
 }
 
@@ -148,9 +102,15 @@ function fmtMoney(v: number): string {
 }
 
 export async function buildPromoBatchPdf(input: PromoBatchPdfInput): Promise<Blob> {
-  const [intersportLogo, clubLogo] = await Promise.all([
+  // * Cover QR carries the club logo (club batches only). Each voucher cell
+  // * gets a plain, logo-less QR of the same link — small but scannable, so a
+  // * cut-out voucher still reaches the shop on its own.
+  const wantCoverQr = !!(input.shopUrl && input.clubLogoUrl)
+  const [intersportLogo, clubLogo, shopQrDataUrl, voucherQrDataUrl] = await Promise.all([
     loadImage(input.intersportLogoUrl),
     input.clubLogoUrl ? loadImage(input.clubLogoUrl) : Promise.resolve(null),
+    wantCoverQr ? buildClubShopQrDataUrl(input.shopUrl as string, input.clubLogoUrl) : Promise.resolve(null),
+    input.shopUrl ? buildQrDataUrl(input.shopUrl) : Promise.resolve(null),
   ])
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
@@ -208,6 +168,19 @@ export async function buildPromoBatchPdf(input: PromoBatchPdfInput): Promise<Blo
     doc.setTextColor(50, 50, 50)
     const wrapped = doc.splitTextToSize(input.note, PAGE_W - MARGIN * 2)
     doc.text(wrapped, MARGIN, y)
+    y += wrapped.length * 5
+  }
+
+  // * Club-shop QR (club-scoped batches only): centred low on the cover with
+  // * the club logo in its middle, so the lot doubles as a shop flyer.
+  if (shopQrDataUrl) {
+    const QR_SIZE = 56
+    const qrTop = Math.max(y + 16, 200)
+    doc.addImage(shopQrDataUrl, 'PNG', (PAGE_W - QR_SIZE) / 2, qrTop, QR_SIZE, QR_SIZE, undefined, 'FAST')
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(3, 49, 249)
+    doc.setFontSize(11)
+    doc.text(input.i18n.cover_shop_qr, PAGE_W / 2, qrTop + QR_SIZE + 7, { align: 'center' })
   }
 
   // ──────────────────── Voucher grid pages ────────────────────
@@ -278,36 +251,71 @@ export async function buildPromoBatchPdf(input: PromoBatchPdfInput): Promise<Blo
       const row = Math.floor(idx / COLS)
       const cx = GRID_LEFT + col * CELL_W
       const cy = GRID_TOP + row * CELL_H
-      const centerX = cx + CELL_W / 2
-
-      // * Top: amount in brand-secondary.
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
-      doc.setTextColor(227, 11, 12)
-      doc.text(fmtMoney(input.amount), centerX, cy + 6, { align: 'center' })
-
-      // * Middle: code, large monospace, auto-shrink to fit the cell width.
       const code = input.codes[i]!
-      const targetW = CELL_W - CELL_PAD_X * 2
-      let fontSize = 18
-      doc.setFont('courier', 'bold')
-      doc.setFontSize(fontSize)
-      doc.setTextColor(3, 49, 249)
-      while (doc.getTextWidth(code) > targetW && fontSize > 7) {
-        fontSize -= 1
-        doc.setFontSize(fontSize)
-      }
-      doc.text(code, centerX, cy + CELL_H / 2 + 2, { align: 'center' })
-
-      // * Bottom: expiry + single-use marker, tiny grey.
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(7)
-      doc.setTextColor(130, 130, 130)
       const expiryLine = input.validUntil
         ? `${input.i18n.voucher_until} ${input.validUntil}`
         : input.i18n.voucher_no_expiry
-      doc.text(expiryLine, centerX, cy + CELL_H - 6, { align: 'center' })
-      doc.text(input.i18n.voucher_single_use, centerX, cy + CELL_H - 2.5, { align: 'center' })
+
+      if (voucherQrDataUrl) {
+        // * QR left (logo-less, ~20mm so a phone can scan it), text right.
+        const qrSize = Math.min(CELL_H - 7, 22)
+        const qx = cx + CELL_PAD_X
+        const qy = cy + (CELL_H - qrSize) / 2
+        // * Shared alias → jsPDF embeds the QR image once and reuses it.
+        doc.addImage(voucherQrDataUrl, 'PNG', qx, qy, qrSize, qrSize, 'voucher-qr', 'FAST')
+
+        const tx = qx + qrSize + 3
+        const textW = cx + CELL_W - CELL_PAD_X - tx
+
+        // * Top-right: amount in brand-secondary.
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(10)
+        doc.setTextColor(227, 11, 12)
+        doc.text(fmtMoney(input.amount), tx, cy + 7, { align: 'left' })
+
+        // * Middle: code, monospace, auto-shrink to the text column width.
+        let fontSize = 14
+        doc.setFont('courier', 'bold')
+        doc.setFontSize(fontSize)
+        doc.setTextColor(3, 49, 249)
+        while (doc.getTextWidth(code) > textW && fontSize > 6) {
+          fontSize -= 1
+          doc.setFontSize(fontSize)
+        }
+        doc.text(code, tx, cy + CELL_H / 2 + 1, { align: 'left' })
+
+        // * Bottom: expiry + single-use marker, tiny grey.
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(6.5)
+        doc.setTextColor(130, 130, 130)
+        doc.text(expiryLine, tx, cy + CELL_H - 6.5, { align: 'left' })
+        doc.text(input.i18n.voucher_single_use, tx, cy + CELL_H - 3, { align: 'left' })
+      } else {
+        // * Fallback (no shop URL): centred text-only voucher.
+        const centerX = cx + CELL_W / 2
+
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(227, 11, 12)
+        doc.text(fmtMoney(input.amount), centerX, cy + 6, { align: 'center' })
+
+        const targetW = CELL_W - CELL_PAD_X * 2
+        let fontSize = 18
+        doc.setFont('courier', 'bold')
+        doc.setFontSize(fontSize)
+        doc.setTextColor(3, 49, 249)
+        while (doc.getTextWidth(code) > targetW && fontSize > 7) {
+          fontSize -= 1
+          doc.setFontSize(fontSize)
+        }
+        doc.text(code, centerX, cy + CELL_H / 2 + 2, { align: 'center' })
+
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
+        doc.setTextColor(130, 130, 130)
+        doc.text(expiryLine, centerX, cy + CELL_H - 6, { align: 'center' })
+        doc.text(input.i18n.voucher_single_use, centerX, cy + CELL_H - 2.5, { align: 'center' })
+      }
     }
 
     // * Page footer.

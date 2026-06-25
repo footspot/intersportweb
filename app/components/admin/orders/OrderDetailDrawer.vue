@@ -199,6 +199,13 @@ const trackingUrl = computed(() => {
                 <div class="text-xs text-gray-500">
                   <template v-if="it.color">{{ it.color }} · </template>{{ t('admin.orders.refund.size') }} {{ it.size }}<template v-if="it.secondary_size"> / {{ it.secondary_size }}</template> · ×{{ it.quantity }} · {{ it.product?.reference }}
                 </div>
+                <div
+                  v-for="(c, ci) in (it.components ?? []).filter((x) => x.axis === 'product')"
+                  :key="ci"
+                  class="text-xs text-gray-500"
+                >
+                  {{ c.product?.name.fr }} : {{ c.variant?.size }}
+                </div>
                 <div v-if="it.flocking_name || it.flocking_initial || it.flocking_number" class="text-xs text-brand-primary mt-1">
                   {{ t('admin.orders.detail.flocking') }}:
                   <span v-if="it.flocking_name">{{ it.flocking_name }}</span>

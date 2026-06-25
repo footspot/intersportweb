@@ -91,6 +91,16 @@ function clubLogoUrl(club: Club | null): string | null {
   return data?.publicUrl ?? null
 }
 
+// * Absolute origin for the club-shop deep link baked into the cover QR.
+const config = useRuntimeConfig()
+function shopOrigin(): string {
+  return (
+    (config.public.siteUrl as string) ||
+    (typeof window !== 'undefined' ? window.location.origin : '') ||
+    'https://www.intersportclubidf.com'
+  )
+}
+
 async function submit() {
   errorMsg.value = null
   const c = Math.floor(Number(count.value))
@@ -140,6 +150,7 @@ async function submit() {
       intersportLogoUrl: '/logo_horizontal.svg',
       clubLogoUrl: clubLogoUrl(club),
       clubName: club?.name ?? null,
+      shopUrl: club ? `${shopOrigin()}/?club=${club.id}` : `${shopOrigin()}/`,
       batchLabel: created.batch_id.slice(0, 8),
       codes: created.items.map((p) => p.code),
       amount: amt,
@@ -158,6 +169,7 @@ async function submit() {
         cover_absorbs: t('admin.promo.pdf.coverAbsorbs'),
         cover_note: t('admin.promo.pdf.coverNote'),
         cover_unlimited: t('admin.promo.pdf.coverUnlimited'),
+        cover_shop_qr: t('admin.promo.pdf.coverShopQr'),
         voucher_title: t('admin.promo.pdf.voucherTitle'),
         voucher_amount: t('admin.promo.pdf.voucherAmount'),
         voucher_min: t('admin.promo.pdf.voucherMin'),

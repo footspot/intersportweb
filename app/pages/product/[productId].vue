@@ -23,6 +23,19 @@ const cartOpen = useState('customer:cart-open', () => false)
 
 await useAsyncData(`product-${productId.value}`, async () => {
   await Promise.all([clubs.fetchAll(), products.fetchAll(), productDiscounts.fetchAll()])
+  // * Packs reference component products that may be hidden (is_visible=false) and
+  // * are therefore dropped by the RLS-filtered catalogue fetch. Pull them via a
+  // * SECURITY DEFINER RPC so size selectors + pack contents can resolve. Uses the
+  // * setup-captured `client` (calling useSupabaseClient() after an await can lose
+  // * the Nuxt context during SSR).
+  const p = products.byId(productId.value)
+  if (p?.is_pack) {
+    // * Cast: the loosely-typed Supabase client doesn't carry this RPC's signature.
+    const { data: comps } = await (client as any).rpc('get_bundle_component_products', {
+      p_bundle_id: p.id,
+    })
+    if (Array.isArray(comps)) products.mergeItems(comps as any)
+  }
   return true
 })
 
@@ -33,13 +46,10 @@ const requiresPassword = computed(
   () => !!club.value?.is_password_protected && !access.hasAccess(club.value.id),
 )
 
-// * If this product is a component of any bundle, it's hidden from customers.
-const isLockedComponent = computed(() =>
-  product.value ? products.isComponent(product.value.id) : false,
-)
-
 const selectedSize = ref<string | null>(null)
 const selectedSecondarySize = ref<string | null>(null)
+// * Per-product (independent axis) size picks, keyed by component product id.
+const selectedProductSizes = reactive<Record<string, string>>({})
 const selectedColorId = ref<string | null>(null)
 const flocking = ref<FlockingOptions>({ name: null, initial: null, number: null })
 const flockingAddon = ref(0)
@@ -68,7 +78,32 @@ function toggleOption(id: string) {
 }
 
 // * Bundle availability (null-safe; returns empty for non-packs).
-const availability = computed(() => useBundleAvailability(product.value))
+const availability = computed(() =>
+  useBundleAvailability(product.value, locale.value as 'fr' | 'en'),
+)
+
+// * Per-axis size selector labels: "Taille <component name>" so each pill row
+// * names the product it sizes (e.g. "Taille Veste", "Taille Pantalon").
+function axisLabel(axis: 'primary' | 'secondary'): string | null {
+  const p = product.value
+  if (!p?.is_pack) return null
+  const names = p.bundle_components
+    .filter((bc) => bc.axis === axis)
+    .map((bc) => products.byId(bc.component_product_id))
+    // * Drop one-size (taille unique) components — they don't take this size,
+    // * so naming them in the label is misleading (e.g. a backpack riding along
+    // * with sized socks). Matches the sizing logic in useBundleAvailability.
+    .filter((cp) => (cp?.variants ?? []).length > 1)
+    .map((cp) => cp?.name?.[locale.value as 'fr' | 'en'] || cp?.name?.fr || null)
+    .filter((n): n is string => !!n)
+  if (names.length === 0) return null
+  return `${t('storefront.product.size')} ${names.join(' + ')}`
+}
+// * Primary: default ("Taille") for non-packs. Secondary: "Deuxième taille" fallback.
+const primarySizeLabel = computed(() => axisLabel('primary') ?? undefined)
+const secondarySizeLabel = computed(
+  () => axisLabel('secondary') ?? t('storefront.product.secondarySize'),
+)
 
 // * Color variants (empty for products without colors / for packs). Colors with
 // * no size variants are hidden — they're not sellable, so offering them would
@@ -98,13 +133,41 @@ const selectedVariant = computed(() => {
   return colorVariants.value.find((v) => v.size === selectedSize.value) ?? null
 })
 
-// * For bundles, max_stock is the units available for the picked combo.
+// * For bundles, max_stock is the units available for the full picked combo
+// * (shared axes + every independent product axis + unique components).
 const bundleMaxStock = computed(() => {
   if (!product.value?.is_pack) return 0
-  if (!selectedSize.value) return 0
-  const key = `${selectedSize.value}::${selectedSecondarySize.value ?? ''}`
-  return availability.value.stockMatrix[key] ?? 0
+  return availability.value.maxUnits({
+    primary: selectedSize.value,
+    secondary: selectedSecondarySize.value,
+    productSizes: selectedProductSizes,
+  })
 })
+
+// * One independent size selector per "product"-axis component (e.g. a ball
+// * sized 1/2/3 separately from the kit). Disabled per size when out of stock.
+const productAxisSelectors = computed(() =>
+  availability.value.productAxes.map((ax) => ({
+    componentId: ax.componentId,
+    label: `${t('storefront.product.size')} ${ax.name}`,
+    options: ax.sizes.map((s) => ({ value: s, disabled: (ax.stockBySize[s] ?? 0) <= 0 })),
+  })),
+)
+// * Fixed "Taille unique" components — shown as read-only badges.
+const uniqueComponents = computed(() => availability.value.uniqueComponents)
+
+// * Concise summary of every size pick, snapshotted onto the cart line.
+function packSizeSummary(): string {
+  const a = availability.value
+  const parts: string[] = []
+  if (selectedSize.value) parts.push(selectedSize.value)
+  if (selectedSecondarySize.value) parts.push(selectedSecondarySize.value)
+  for (const ax of a.productAxes) {
+    const s = selectedProductSizes[ax.componentId]
+    if (s) parts.push(`${ax.name} : ${s}`)
+  }
+  return parts.join(' · ')
+}
 
 // * Options for the primary pill selector.
 const primaryOptions = computed(() => {
@@ -179,6 +242,7 @@ watch(
   () => {
     selectedSize.value = null
     selectedSecondarySize.value = null
+    for (const k of Object.keys(selectedProductSizes)) delete selectedProductSizes[k]
     // * Default to the first sellable color (productColors already drops the
     // * ones without variants).
     selectedColorId.value = product.value?.is_pack ? null : productColors.value[0]?.id ?? null
@@ -265,10 +329,11 @@ function componentImageUrl(p: { images?: { image_path: string }[] } | null | und
 const canAddToCart = computed(() => {
   if (!product.value) return false
   if (requiresPassword.value) return false
-  if (isLockedComponent.value) return false
   if (product.value.is_pack) {
-    if (!selectedSize.value) return false
-    if (availability.value.hasSecondary && !selectedSecondarySize.value) return false
+    const a = availability.value
+    if (a.primarySizes.length && !selectedSize.value) return false
+    if (a.hasSecondary && !selectedSecondarySize.value) return false
+    if (a.productAxes.some((ax) => !selectedProductSizes[ax.componentId])) return false
     return bundleMaxStock.value > 0
   }
   if (hasColors.value && !selectedColorId.value) return false
@@ -284,13 +349,14 @@ function addToCart() {
     feedback.value = { tone: 'err', msg: t('storefront.product.errors.locked') }
     return
   }
-  if (isLockedComponent.value) {
-    feedback.value = { tone: 'err', msg: t('storefront.product.errors.componentOnly') }
-    return
-  }
 
   if (product.value.is_pack) {
-    if (!selectedSize.value || (availability.value.hasSecondary && !selectedSecondarySize.value)) {
+    const a = availability.value
+    if (
+      (a.primarySizes.length && !selectedSize.value) ||
+      (a.hasSecondary && !selectedSecondarySize.value) ||
+      a.productAxes.some((ax) => !selectedProductSizes[ax.componentId])
+    ) {
       feedback.value = { tone: 'err', msg: t('storefront.product.errors.pickSize') }
       return
     }
@@ -301,8 +367,10 @@ function addToCart() {
     cart.add({
       product: product.value,
       variantId: null,
-      size: selectedSize.value,
+      size: selectedSize.value ?? '',
       secondarySize: selectedSecondarySize.value,
+      componentSizes: { ...selectedProductSizes },
+      sizeSummary: packSizeSummary(),
       maxStock: bundleMaxStock.value,
       quantity: 1,
       flocking: flocking.value,
@@ -383,7 +451,7 @@ useSchemaOrg([
 </script>
 
 <template>
-  <section v-if="product && !isLockedComponent" class="max-w-6xl mx-auto px-4 py-8">
+  <section v-if="product" class="max-w-6xl mx-auto px-4 py-8">
     <NuxtLink
       v-if="club"
       :to="`/?club=${club.id}`"
@@ -495,6 +563,7 @@ useSchemaOrg([
           v-if="primaryOptions.length"
           :options="primaryOptions"
           v-model="selectedSize"
+          :label="primarySizeLabel"
         />
 
         <!-- * Colored product whose picked color has no size variants yet. -->
@@ -517,8 +586,34 @@ useSchemaOrg([
           v-if="product.is_pack && secondaryOptions.length"
           :options="secondaryOptions"
           v-model="selectedSecondarySize"
-          :label="t('storefront.product.secondarySize')"
+          :label="secondarySizeLabel"
         />
+
+        <!-- * Independent per-product size selectors (axis = "product"). -->
+        <HomeSizeSelector
+          v-for="sel in productAxisSelectors"
+          :key="sel.componentId"
+          :options="sel.options"
+          :model-value="selectedProductSizes[sel.componentId] ?? null"
+          :label="sel.label"
+          @update:model-value="(v) => {
+            if (v) selectedProductSizes[sel.componentId] = v
+            else delete selectedProductSizes[sel.componentId]
+          }"
+        />
+
+        <!-- * Fixed "Taille unique" components — no size to pick. -->
+        <div v-for="u in uniqueComponents" :key="u.componentId">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium">{{ t('storefront.product.size') }} {{ u.name }}</span>
+          </div>
+          <span
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium"
+          >
+            <UIcon name="i-lucide-check" class="w-4 h-4" />
+            {{ t('storefront.product.uniqueSize') }}
+          </span>
+        </div>
 
         <HomeFlockingOptions
           v-if="product.flocking_kind !== 'none'"
@@ -608,10 +703,6 @@ useSchemaOrg([
         </div>
       </div>
     </div>
-  </section>
-
-  <section v-else-if="product && isLockedComponent" class="max-w-3xl mx-auto px-4 py-20 text-center text-gray-500">
-    {{ t('storefront.product.componentOnly') }}
   </section>
 
   <section v-else class="max-w-3xl mx-auto px-4 py-20 text-center text-gray-500">

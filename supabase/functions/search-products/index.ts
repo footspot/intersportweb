@@ -55,11 +55,7 @@ Deno.serve(async (req) => {
 
     const sb = serviceClient()
 
-    // * Bundle component products aren't directly sellable — exclude them, like
-    // * the storefront listing does (mirrors club-products/index.ts).
-    const { data: bcs } = await sb.from('bundle_components').select('component_product_id')
-    const componentIds = [...new Set((bcs ?? []).map((b) => (b as { component_product_id: string }).component_product_id))]
-
+    // * Bundle components remain sellable standalone, so they're not excluded here.
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
     const like = `*${q}*`
@@ -79,7 +75,6 @@ Deno.serve(async (req) => {
       .or(`name->>fr.ilike.${like},name->>en.ilike.${like},reference.ilike.${like},category.ilike.${like}`)
 
     if (sportId) query = query.eq('club.sport_id', sportId)
-    if (componentIds.length) query = query.not('id', 'in', `(${componentIds.join(',')})`)
 
     query = query
       .order('is_on_clearance', { ascending: false })

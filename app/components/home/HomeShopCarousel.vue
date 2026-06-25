@@ -130,7 +130,7 @@ const header = computed(() => {
                     ? (flow.selectedSportId.value === s.id ? 'shadow-lg' : 'hover:-translate-y-1')
                     : (flow.selectedSportId.value === s.id
                         ? 'border-ink bg-ink text-white shadow-lg'
-                        : 'border-gray-200 dark:border-sidebar bg-page dark:bg-sidebar hover:border-ink dark:hover:border-accent hover:-translate-y-1')
+                        : 'border-gray-200 dark:border-white/10 bg-page dark:bg-sidebar-bg hover:border-ink dark:hover:border-accent hover:-translate-y-1')
                 "
                 :style="sportTileStyle(s)"
                 @click="flow.pickSport(s)"
@@ -186,7 +186,7 @@ const header = computed(() => {
                 :class="
                   flow.selectedClubId.value === c.id
                     ? 'border-ink bg-gradient-to-br from-ink/5 to-ink/[0.02] shadow-md'
-                    : 'border-gray-200 dark:border-sidebar bg-page dark:bg-sidebar hover:border-ink dark:hover:border-accent hover:-translate-y-1 hover:shadow-md'
+                    : 'border-gray-200 dark:border-white/10 bg-page dark:bg-sidebar-bg hover:border-ink dark:hover:border-accent hover:-translate-y-1 hover:shadow-md'
                 "
                 @click="flow.pickClub(c)"
               >

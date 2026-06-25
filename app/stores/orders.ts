@@ -13,7 +13,7 @@ export type OrderStatus =
   | 'cancelled'
   | 'refunded'
 
-export type PaymentMethod = 'paypal' | 'card' | null
+export type PaymentMethod = 'paypal' | 'card' | 'prepaid' | 'free' | null
 export type OrderLineStatus = 'ok' | 'refunded_oos'
 
 // * Allowed forward transitions per current status — single source of truth
@@ -62,6 +62,12 @@ export interface OrderItem {
     weight_grams?: number
     images?: { image_path: string; position: number }[]
   } | null
+  // * Bundle component breakdown (per-product axis sizes etc.). Bundle lines only.
+  components?: {
+    axis: 'primary' | 'secondary' | 'product' | 'unique'
+    product?: { name: { fr: string; en: string } } | null
+    variant?: { size: string } | null
+  }[]
 }
 
 export interface Refund {
@@ -159,7 +165,8 @@ export const useOrdersStore = defineStore('orders', {
         .from('orders')
         .select(
           '*, club:clubs(name),' +
-            'items:order_items(*, product:products(name,reference,weight_grams,images:product_images(image_path,position))),' +
+            'items:order_items(*, product:products(name,reference,weight_grams,images:product_images(image_path,position)),' +
+              'components:order_item_components(axis, product:products(name), variant:product_variants(size))),' +
             'refunds(*)',
         )
         .eq('id', id)

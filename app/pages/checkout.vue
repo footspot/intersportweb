@@ -224,6 +224,7 @@ async function onSubmit() {
           variant_id: l.variant_id,
           size: l.size,
           secondary_size: l.secondary_size,
+          component_sizes: l.component_sizes,
           quantity: l.quantity,
           unit_price_paid: l.unit_price_paid,
           flocking: l.flocking,
@@ -259,6 +260,7 @@ async function onSubmit() {
           variant_id: l.variant_id,
           size: l.size,
           secondary_size: l.secondary_size,
+          component_sizes: l.component_sizes,
           color: l.color,
           quantity: l.quantity,
           flocking: l.flocking,
@@ -285,6 +287,16 @@ async function onSubmit() {
     })
     if (oErr || !order?.order) throw new Error(oErr?.message ?? 'create_order_failed')
     pendingOrder.value = order.order
+
+    // * €0 orders (fully covered by a promo code and/or prepaid credit) are
+    // * already settled server-side (status 'paid') — there is nothing to charge,
+    // * so skip the SystemPay paywall and go straight to the order confirmation.
+    if (order.order.status === 'paid' || Number(order.order.total) <= 0) {
+      cart.clear()
+      idempotencyKey.value = uuid()
+      await navigateTo(`/order/${order.order.access_token}`)
+      return
+    }
 
     const { data: tokenRes, error: tErr } = await invokeEdge<any>('create-form-token', {
       method: 'POST',
@@ -504,7 +516,7 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
           <ul class="space-y-2 text-sm">
             <li v-for="l in cart.lines" :key="l.line_id" class="flex justify-between gap-3">
               <div class="flex-1 min-w-0">
-                <div class="truncate">{{ l.name.fr }} · <template v-if="l.color">{{ l.color }} · </template>{{ l.size }}<template v-if="l.secondary_size"> / {{ l.secondary_size }}</template> × {{ l.quantity }}</div>
+                <div class="truncate">{{ l.name.fr }} · <template v-if="l.color">{{ l.color }} · </template><template v-if="l.size_summary">{{ l.size_summary }}</template><template v-else>{{ l.size }}<template v-if="l.secondary_size"> / {{ l.secondary_size }}</template></template> × {{ l.quantity }}</div>
                 <div
                   v-if="l.flocking && (l.flocking.name || l.flocking.initial || l.flocking.number)"
                   class="text-xs text-gray-500 truncate"

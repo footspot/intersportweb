@@ -25,7 +25,7 @@ const BUCKET = 'product-images'
 const MAX_IMAGES = 10
 
 type FlockingKind = 'none' | 'members' | 'supporters'
-type BundleAxis = 'primary' | 'secondary'
+type BundleAxis = 'primary' | 'secondary' | 'product' | 'unique'
 
 interface VariantPayload {
   id?: string
@@ -158,10 +158,11 @@ function normaliseComponents(
 ): BundleComponentPayload[] | string {
   if (!Array.isArray(cs) || cs.length === 0) return 'bundle requires at least one component'
   const seen = new Set<string>()
+  const AXES = ['primary', 'secondary', 'product', 'unique']
   let hasPrimary = false
   for (const c of cs) {
     if (!c?.component_product_id) return 'component_product_id required'
-    if (c.axis !== 'primary' && c.axis !== 'secondary') return 'axis must be primary or secondary'
+    if (!AXES.includes(c.axis)) return 'axis must be primary, secondary, product or unique'
     if (seen.has(c.component_product_id)) return `duplicate component: ${c.component_product_id}`
     seen.add(c.component_product_id)
     if (c.axis === 'primary') hasPrimary = true

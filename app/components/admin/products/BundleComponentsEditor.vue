@@ -74,53 +74,58 @@ const preview = computed(() => {
     .filter((x): x is { c: DraftBundleComponent; product: Product } => !!x.product)
   if (pcs.length === 0) return null
 
-  const primary = pcs.filter((x) => x.c.axis === 'primary')
-  const secondary = pcs.filter((x) => x.c.axis === 'secondary')
-  if (primary.length === 0) return null
+  // * Mirror useBundleAvailability's classification (effective-unique = axis
+  // * 'unique' or a single variant; 'product' = independent per-product axis).
+  const isUnique = (x: { c: DraftBundleComponent; product: Product }) =>
+    x.c.axis === 'unique' || x.product.variants.length <= 1
+  const primarySized = pcs.filter((x) => x.c.axis === 'primary' && !isUnique(x))
+  const secondarySized = pcs.filter((x) => x.c.axis === 'secondary' && !isUnique(x))
+  const productSized = pcs.filter((x) => x.c.axis === 'product' && !isUnique(x))
+  const uniqueComps = pcs.filter((x) => isUnique(x))
 
-  const primarySets = primary.map((x) => new Set(x.product.variants.map((v) => v.size)))
-  const primarySizes = primarySets.length
-    ? Array.from(primarySets[0]!).filter((s) => primarySets.every((set) => set.has(s)))
-    : []
+  const intersect = (comps: typeof pcs): string[] => {
+    if (comps.length === 0) return []
+    const sets = comps.map((x) => new Set(x.product.variants.map((v) => v.size)))
+    return Array.from(sets[0]!).filter((s) => sets.every((set) => set.has(s)))
+  }
+  const unitsAt = (x: { c: DraftBundleComponent; product: Product }, size: string | null) => {
+    const v =
+      isUnique(x) ? x.product.variants[0] : x.product.variants.find((p) => p.size === size)
+    return v ? Math.floor(v.stock / Math.max(1, x.c.quantity)) : 0
+  }
 
-  const hasSecondary = secondary.length > 0
-  const secondarySets = hasSecondary
-    ? secondary.map((x) => new Set(x.product.variants.map((v) => v.size)))
-    : []
-  const secondarySizes =
-    hasSecondary && secondarySets.length
-      ? Array.from(secondarySets[0]!).filter((s) =>
-          secondarySets.every((set) => set.has(s)),
-        )
-      : []
+  const primarySizes = intersect(primarySized)
+  const secondarySizes = intersect(secondarySized)
+  const hasSecondary = secondarySizes.length > 0
 
-  const pairs: Array<[string, string | null]> = hasSecondary
-    ? primarySizes.flatMap((p) => secondarySizes.map((s) => [p, s] as [string, string | null]))
-    : primarySizes.map((p) => [p, null] as [string, string | null])
-
-  const cells: Array<{ primary: string; secondary: string | null; units: number }> = pairs.map(
-    ([p, s]) => {
-      let minUnits = Infinity
-      let feasible = true
-      for (const { c, product } of pcs) {
-        const desired = c.axis === 'primary' ? p : s
-        if (!desired) {
-          feasible = false
-          break
-        }
-        const v = product.variants.find((x) => x.size === desired)
-        if (!v) {
-          feasible = false
-          break
-        }
-        const units = Math.floor(v.stock / Math.max(1, c.quantity))
-        if (units < minUnits) minUnits = units
+  // * Shared grid (primary × secondary), unique folded into the min.
+  const sharedComps = [...primarySized, ...secondarySized, ...uniqueComps]
+  const pSizes = primarySizes.length ? primarySizes : [null]
+  const sSizes = hasSecondary ? secondarySizes : [null]
+  const cells: Array<{ primary: string | null; secondary: string | null; units: number }> = []
+  for (const p of pSizes) {
+    for (const s of sSizes) {
+      let min = Infinity
+      for (const x of sharedComps) {
+        const size = x.c.axis === 'primary' ? p : x.c.axis === 'secondary' ? s : null
+        min = Math.min(min, unitsAt(x, size))
       }
-      return { primary: p, secondary: s, units: feasible && minUnits !== Infinity ? minUnits : 0 }
-    },
-  )
+      cells.push({ primary: p, secondary: s, units: Number.isFinite(min) ? min : 0 })
+    }
+  }
 
-  return { hasSecondary, primarySizes, secondarySizes, cells }
+  // * Independent product axes + fixed unique components (display only).
+  const productAxes = productSized.map((x) => ({
+    name: x.product.name.fr,
+    rows: x.product.variants.map((v) => ({ size: v.size, units: unitsAt(x, v.size) })),
+  }))
+  const uniques = uniqueComps.map((x) => ({
+    name: x.product.name.fr,
+    size: x.product.variants[0]?.size ?? '—',
+    units: unitsAt(x, null),
+  }))
+
+  return { hasSecondary, primarySizes, secondarySizes, cells, productAxes, uniques }
 })
 
 function cellClass(units: number) {
@@ -172,7 +177,7 @@ watch(
         <div class="w-12 h-12 rounded-lg bg-white dark:bg-sidebar-surface overflow-hidden shrink-0 flex items-center justify-center">
           <img
             v-if="componentProduct(c.component_product_id)?.images?.[0]?.image_path"
-            :src="imageUrl(componentProduct(c.component_product_id)!.images[0].image_path)!"
+            :src="imageUrl(componentProduct(c.component_product_id)!.images[0]!.image_path)!"
             class="w-full h-full object-cover"
             alt=""
           />
@@ -195,6 +200,8 @@ watch(
           >
             <option value="primary">{{ t('admin.products.bundle.axisPrimary') }}</option>
             <option value="secondary">{{ t('admin.products.bundle.axisSecondary') }}</option>
+            <option value="product">{{ t('admin.products.bundle.axisProduct') }}</option>
+            <option value="unique">{{ t('admin.products.bundle.axisUnique') }}</option>
           </select>
         </label>
         <label class="text-xs flex items-center gap-1">
@@ -220,11 +227,14 @@ watch(
     </ul>
 
     <!-- Availability preview -->
-    <div v-if="preview && preview.primarySizes.length > 0" class="border-t border-gray-100 dark:border-sidebar pt-4 space-y-2">
+    <div
+      v-if="preview && (preview.primarySizes.length > 0 || preview.productAxes.length > 0 || preview.uniques.length > 0)"
+      class="border-t border-gray-100 dark:border-sidebar pt-4 space-y-3"
+    >
       <h5 class="text-xs uppercase tracking-wider text-gray-500">
         {{ t('admin.products.bundle.availabilityTitle') }}
       </h5>
-      <div class="overflow-x-auto">
+      <div v-if="preview.primarySizes.length > 0" class="overflow-x-auto">
         <table class="text-xs border-collapse">
           <thead>
             <tr>
@@ -275,6 +285,40 @@ watch(
           </tbody>
         </table>
       </div>
+
+      <!-- * Independent per-product axes (each sized separately on the shop). -->
+      <div
+        v-for="ax in preview.productAxes"
+        :key="ax.name"
+        class="space-y-1"
+      >
+        <div class="text-[11px] font-medium text-gray-600 dark:text-gray-300">
+          {{ ax.name }} · {{ t('admin.products.bundle.axisProduct') }}
+        </div>
+        <div class="flex flex-wrap gap-1">
+          <span
+            v-for="r in ax.rows"
+            :key="r.size"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+            :class="cellClass(r.units)"
+          >
+            {{ r.size }} · {{ r.units }}
+          </span>
+        </div>
+      </div>
+
+      <!-- * Fixed unique components ("Taille unique"). -->
+      <div v-if="preview.uniques.length" class="flex flex-wrap gap-1">
+        <span
+          v-for="u in preview.uniques"
+          :key="u.name"
+          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+          :class="cellClass(u.units)"
+        >
+          {{ u.name }} · {{ t('admin.products.bundle.axisUnique') }} ({{ u.units }})
+        </span>
+      </div>
+
       <p class="text-[11px] text-gray-500">{{ t('admin.products.bundle.availabilityHint') }}</p>
     </div>
 

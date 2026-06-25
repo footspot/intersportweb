@@ -86,10 +86,9 @@ export function useHomeFlow() {
   }
 
   // * ── Clearance ──
+  // * Bundle components stay sellable standalone too — don't exclude them.
   const clearanceProducts = computed<Product[]>(() =>
-    products.items.filter(
-      (p) => p.is_on_clearance && p.is_visible && !products.isComponent(p.id),
-    ),
+    products.items.filter((p) => p.is_on_clearance && p.is_visible),
   )
   const clearanceVisible = computed(
     () => siteSettings.clearanceActive && clearanceProducts.value.length > 0,
@@ -124,11 +123,9 @@ export function useHomeFlow() {
 
   const clubProducts = computed<Product[]>(() => {
     if (!selectedClubId.value) return []
+    // * A product used inside a bundle is still listed on its own.
     return products.items.filter(
-      (p) =>
-        p.club_id === selectedClubId.value &&
-        p.is_visible &&
-        !products.isComponent(p.id),
+      (p) => p.club_id === selectedClubId.value && p.is_visible,
     )
   })
 
