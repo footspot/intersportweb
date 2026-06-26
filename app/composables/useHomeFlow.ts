@@ -205,6 +205,8 @@ export function useHomeFlow() {
     // * Polling also lands our scroll *after* the router's scroll-to-top, so it
     // * wins instead of being overridden. Give up after ~3s.
     let tries = 0
+    let lastTop = Number.NaN
+    let stable = 0
     const attempt = () => {
       const el = document.querySelector(sel) as HTMLElement | null
       if (!el || el.getBoundingClientRect().height === 0) {
@@ -213,8 +215,18 @@ export function useHomeFlow() {
       }
       const header = document.querySelector('header') as HTMLElement | null
       const offset = (header?.offsetHeight ?? 0) + 12
-      const top = el.getBoundingClientRect().top + window.scrollY - offset
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+      const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset)
+      window.scrollTo({ top, behavior: 'smooth' })
+      // * Re-aim until the target settles instead of firing once: the panel's
+      // * enter Transition (~0.5s), the carousel's height transition (0.7s) and
+      // * late-loading tile/club images all move the target *after* the first
+      // * scroll — on a slow connection the one-shot scroll lands short and the
+      // * carousel never comes into view. Keep nudging the smooth scroll toward
+      // * the converging position until `top` is unchanged for 3 checks (~1.5s).
+      if (Math.abs(top - lastTop) > 2) stable = 0
+      else stable++
+      lastTop = top
+      if (stable < 3 && tries++ < 60) setTimeout(attempt, 100)
     }
     setTimeout(attempt, 60)
   }
