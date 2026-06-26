@@ -2,6 +2,7 @@
 // * Shop flow — a 2-slide vertical carousel (sports → clubs) that appears once
 // * the visitor enters the shop via the "Boutique Club" entry card. Keeps the
 // * dynamic slide-height measurement so the viewport grows/shrinks per slide.
+import type { Ref } from 'vue'
 import { useHomeFlowCtx } from '~/composables/useHomeFlow'
 import type { Sport } from '~/stores/sports'
 
@@ -42,6 +43,38 @@ const slideClubsEl = ref<HTMLElement | null>(null)
 const viewportHeight = ref(0)
 const trackOffset = ref(0)
 
+// * Horizontal scroll arrows for the sports & clubs rows. On desktop most users
+// * don't discover the shift+scroll shortcut, so we surface clickable chevrons
+// * that page the row left/right and auto-hide once an edge is reached.
+const sportsRowEl = ref<HTMLElement | null>(null)
+const clubsRowEl = ref<HTMLElement | null>(null)
+
+function makeRowNav(elRef: Ref<HTMLElement | null>) {
+  const canLeft = ref(false)
+  const canRight = ref(false)
+  // * Re-evaluate which edges still have hidden content (4px slack for rounding).
+  function update() {
+    const el = elRef.value
+    if (!el) return
+    canLeft.value = el.scrollLeft > 4
+    canRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
+  }
+  // * Page by ~80% of the visible width so a couple of cards stay as an anchor.
+  function scroll(dir: 1 | -1) {
+    const el = elRef.value
+    if (!el) return
+    el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.8), behavior: 'smooth' })
+  }
+  return { canLeft, canRight, update, scroll }
+}
+
+const sportsNav = makeRowNav(sportsRowEl)
+const clubsNav = makeRowNav(clubsRowEl)
+function updateArrows() {
+  sportsNav.update()
+  clubsNav.update()
+}
+
 // * Club search — filter the selected sport's clubs by name. Reset whenever the
 // * sport changes so a new list starts clean.
 const clubQuery = ref('')
@@ -65,15 +98,20 @@ function measure() {
   }
 }
 
+function onResize() {
+  measure()
+  updateArrows()
+}
+
 onMounted(() => {
-  requestAnimationFrame(measure)
-  window.addEventListener('resize', measure)
+  requestAnimationFrame(() => { measure(); updateArrows() })
+  window.addEventListener('resize', onResize)
 })
-onBeforeUnmount(() => window.removeEventListener('resize', measure))
+onBeforeUnmount(() => window.removeEventListener('resize', onResize))
 
 watch(
   [() => flow.currentSlide.value, () => flow.selectedSportId.value, open, clubQuery],
-  () => nextTick(() => requestAnimationFrame(measure)),
+  () => nextTick(() => requestAnimationFrame(() => { measure(); updateArrows() })),
 )
 
 const header = computed(() => {
@@ -119,7 +157,8 @@ const header = computed(() => {
                 ← {{ t('storefront.home.backToHome') }}
               </button>
             </div>
-            <div class="flex gap-4 overflow-x-auto pt-1 pb-2 no-scrollbar">
+            <div class="relative">
+            <div ref="sportsRowEl" class="flex gap-4 overflow-x-auto pt-1 pb-2 no-scrollbar scroll-smooth" @scroll.passive="sportsNav.update">
               <button
                 v-for="s in flow.sports.sorted"
                 :key="s.id"
@@ -144,6 +183,29 @@ const header = computed(() => {
                 </div>
                 <span class="text-[13px] font-semibold relative z-[1]">{{ flow.sportName(s) }}</span>
               </button>
+            </div>
+              <Transition name="arrow">
+                <button
+                  v-if="sportsNav.canLeft.value"
+                  type="button"
+                  class="carousel-arrow arrow-left"
+                  :aria-label="t('storefront.home.scrollLeft')"
+                  @click="sportsNav.scroll(-1)"
+                >
+                  <UIcon name="i-lucide-chevron-left" class="w-5 h-5 arrow-nudge-left" />
+                </button>
+              </Transition>
+              <Transition name="arrow">
+                <button
+                  v-if="sportsNav.canRight.value"
+                  type="button"
+                  class="carousel-arrow arrow-right"
+                  :aria-label="t('storefront.home.scrollRight')"
+                  @click="sportsNav.scroll(1)"
+                >
+                  <UIcon name="i-lucide-chevron-right" class="w-5 h-5 arrow-nudge-right" />
+                </button>
+              </Transition>
             </div>
           </div>
 
@@ -177,7 +239,8 @@ const header = computed(() => {
               >
             </div>
 
-            <div v-if="filteredClubs.length" class="flex gap-3.5 overflow-x-auto py-1 no-scrollbar">
+            <div v-if="filteredClubs.length" class="relative">
+            <div ref="clubsRowEl" class="flex gap-3.5 overflow-x-auto py-1 no-scrollbar scroll-smooth" @scroll.passive="clubsNav.update">
               <button
                 v-for="c in filteredClubs"
                 :key="c.id"
@@ -216,6 +279,29 @@ const header = computed(() => {
                 <span v-if="c.is_password_protected" class="ml-auto text-sm opacity-40">🔒</span>
               </button>
             </div>
+              <Transition name="arrow">
+                <button
+                  v-if="clubsNav.canLeft.value"
+                  type="button"
+                  class="carousel-arrow arrow-left"
+                  :aria-label="t('storefront.home.scrollLeft')"
+                  @click="clubsNav.scroll(-1)"
+                >
+                  <UIcon name="i-lucide-chevron-left" class="w-5 h-5 arrow-nudge-left" />
+                </button>
+              </Transition>
+              <Transition name="arrow">
+                <button
+                  v-if="clubsNav.canRight.value"
+                  type="button"
+                  class="carousel-arrow arrow-right"
+                  :aria-label="t('storefront.home.scrollRight')"
+                  @click="clubsNav.scroll(1)"
+                >
+                  <UIcon name="i-lucide-chevron-right" class="w-5 h-5 arrow-nudge-right" />
+                </button>
+              </Transition>
+            </div>
             <div v-else class="py-10 text-center text-gray-500 text-sm">
               {{ flow.sportClubs.value.length ? t('storefront.home.noClubMatch') : t('storefront.home.noClubsForSport') }}
             </div>
@@ -232,6 +318,75 @@ const header = computed(() => {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* * Round nav arrows — desktop only; touch devices scroll natively. */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 20;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-top: -1.25rem;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid rgb(229 231 235);
+  color: #111827;
+  box-shadow: 0 6px 18px -4px rgb(0 0 0 / 0.18), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+@media (min-width: 768px) {
+  .carousel-arrow {
+    display: flex;
+  }
+}
+/* * Overhang each arrow half-way past the row edge, into the slide padding. */
+.arrow-left { left: 0; transform: translateX(-50%); }
+.arrow-right { right: 0; transform: translateX(50%); }
+.carousel-arrow:hover {
+  background: #0331f9;
+  border-color: #0331f9;
+  color: #fff;
+  box-shadow: 0 10px 24px -4px rgb(3 49 249 / 0.4);
+}
+/* * Keep the left/right offset while scaling on hover/press (single transform). */
+.arrow-left:hover { transform: translateX(-50%) scale(1.08); }
+.arrow-left:active { transform: translateX(-50%) scale(0.94); }
+.arrow-right:hover { transform: translateX(50%) scale(1.08); }
+.arrow-right:active { transform: translateX(50%) scale(0.94); }
+:global(.dark) .carousel-arrow {
+  background: var(--color-sidebar-surface, #1f2433);
+  border-color: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+/* * Tiny idle nudge hinting the row scrolls horizontally. */
+.arrow-nudge-left { animation: arrow-nudge-left 1.8s ease-in-out infinite; }
+.arrow-nudge-right { animation: arrow-nudge-right 1.8s ease-in-out infinite; }
+@keyframes arrow-nudge-left {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-2px); }
+}
+@keyframes arrow-nudge-right {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrow-nudge-left,
+  .arrow-nudge-right { animation: none; }
+}
+
+/* * Fade arrows in/out as edges become reachable. */
+.arrow-enter-active,
+.arrow-leave-active {
+  transition: opacity 0.25s ease;
+}
+.arrow-enter-from,
+.arrow-leave-to {
+  opacity: 0;
 }
 .panel-enter-active {
   transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);

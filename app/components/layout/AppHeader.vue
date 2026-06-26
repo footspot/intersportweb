@@ -203,6 +203,15 @@ function isActive(key: string) {
               </ClientOnly>
             </button>
           </div>
+          <!-- * Customer account — order history. When signed out, /account's
+               middleware bounces to the passwordless login. -->
+          <NuxtLink
+            to="/account"
+            class="ic-btn w-[41px]"
+            :aria-label="t('nav.orders')"
+          >
+            <UIcon name="i-lucide-user-round" class="w-[19px] h-[19px]" />
+          </NuxtLink>
           <button
             type="button"
             class="ic-btn w-[41px] relative"
@@ -247,6 +256,15 @@ function isActive(key: string) {
         @click="c.key === 'home' ? resetHome() : (mobileOpen = false)"
       >
         {{ c.label }}
+      </NuxtLink>
+
+      <!-- * Customer account (order history) — magic-link login if signed out. -->
+      <NuxtLink
+        to="/account"
+        class="block py-2 font-semibold text-ink dark:text-gray-200 hover:text-accent"
+        @click="mobileOpen = false"
+      >
+        {{ t('nav.orders') }}
       </NuxtLink>
 
       <!-- * Dark-mode toggle — moved here on mobile to keep the header compact. -->

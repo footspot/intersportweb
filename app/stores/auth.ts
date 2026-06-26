@@ -2,7 +2,7 @@
 // * Keep this the single source of truth for role checks in the UI.
 import { defineStore } from 'pinia'
 
-export type UserRole = 'admin' | 'employee'
+export type UserRole = 'admin' | 'employee' | 'customer'
 
 export interface Profile {
   id: string
@@ -45,6 +45,11 @@ export const useAuthStore = defineStore('auth', {
     },
     isBackoffice(): boolean {
       return this.profile?.role === 'admin' || this.profile?.role === 'employee'
+    },
+    // * Storefront self-service account. No back-office access — purely an
+    // * order-history surface (see middleware/customer-only.ts).
+    isCustomer(): boolean {
+      return this.profile?.role === 'customer'
     },
   },
 
@@ -111,9 +116,12 @@ export const useAuthStore = defineStore('auth', {
 
     async signOut() {
       const client = useSupabaseClient()
+      // * Route by role BEFORE clearing the profile: back-office users return to
+      // * the admin login, storefront customers to the public home.
+      const wasBackoffice = this.profile?.role === 'admin' || this.profile?.role === 'employee'
       await client.auth.signOut()
       this.profile = null
-      await navigateTo('/admin/login')
+      await navigateTo(wasBackoffice ? '/admin/login' : '/')
     },
   },
 })

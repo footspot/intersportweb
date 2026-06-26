@@ -12,7 +12,8 @@ watchEffect(async () => {
   if (!user.value) return
   await auth.fetchProfile()
   if (auth.isBackoffice) await navigateTo('/admin', { replace: true })
-  else await navigateTo('/', { replace: true })
+  // * Storefront customers land on their order history after a magic link.
+  else await navigateTo('/account', { replace: true })
 })
 </script>
 

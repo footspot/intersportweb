@@ -1,0 +1,13 @@
+-- * Re-add the 'customer' value to the user_role enum.
+-- *
+-- * It was dropped in 20260512163500_drop_customer_role.sql when the storefront
+-- * went guest-only. We bring it back to support OPTIONAL, passwordless
+-- * (magic-link) customer accounts whose only purpose is order history + easy
+-- * tracking. 'customer' is the least-privileged role: it has NO back-office
+-- * access (admin.ts / backoffice.ts middlewares already gate on admin/employee).
+-- *
+-- * This MUST live in its own migration: Postgres forbids using a freshly added
+-- * enum value in the same transaction that adds it. The trigger + RPC that
+-- * reference 'customer' therefore live in the next migration
+-- * (20260626120100_customer_self_accounts.sql), applied separately.
+ALTER TYPE public.user_role ADD VALUE IF NOT EXISTS 'customer';

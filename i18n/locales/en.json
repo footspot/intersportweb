@@ -280,6 +280,8 @@
       "stepEntryHint": "Pick an option",
       "stepSportsTitle": "Choose your sport",
       "stepSportsHint": "Click a sport →",
+      "scrollLeft": "Previous",
+      "scrollRight": "Next",
       "stepClubsTitle": "Select your club",
       "entryCatalogTitle": "Catalogs",
       "entryCatalogDesc": "Browse the catalogs of our suppliers and partners",
@@ -435,6 +437,23 @@
       "verify": "Verify",
       "useAnother": "Sign in with a different account",
       "invalidCode": "Invalid or expired code. Try again."
+    }
+  },
+  "account": {
+    "login": {
+      "title": "My account",
+      "subtitle": "Passwordless sign-in — by email.",
+      "send": "Email me a link",
+      "sent": "Link sent to {email}. Click it to access your orders.",
+      "useAnother": "Use a different address",
+      "hint": "We'll email you a sign-in link."
+    },
+    "history": {
+      "title": "My orders",
+      "empty": "No orders yet.",
+      "browse": "Browse the shop",
+      "view": "View",
+      "error": "Couldn't load your orders."
     }
   },
   "admin": {

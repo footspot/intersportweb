@@ -280,6 +280,8 @@
       "stepEntryHint": "Choisissez une option",
       "stepSportsTitle": "Choisissez votre sport",
       "stepSportsHint": "Cliquez sur un sport →",
+      "scrollLeft": "Précédent",
+      "scrollRight": "Suivant",
       "stepClubsTitle": "Sélectionnez votre club",
       "entryCatalogTitle": "Catalogues",
       "entryCatalogDesc": "Consultez les catalogues de nos fournisseurs et partenaires",
@@ -435,6 +437,23 @@
       "verify": "Vérifier",
       "useAnother": "Se connecter avec un autre compte",
       "invalidCode": "Code invalide ou expiré. Réessayez."
+    }
+  },
+  "account": {
+    "login": {
+      "title": "Mon compte",
+      "subtitle": "Connexion sans mot de passe — par e-mail.",
+      "send": "Recevoir mon lien",
+      "sent": "Lien envoyé à {email}. Cliquez dessus pour accéder à vos commandes.",
+      "useAnother": "Utiliser une autre adresse",
+      "hint": "Un lien de connexion vous sera envoyé par e-mail."
+    },
+    "history": {
+      "title": "Mes commandes",
+      "empty": "Aucune commande pour le moment.",
+      "browse": "Découvrir la boutique",
+      "view": "Voir",
+      "error": "Impossible de charger vos commandes."
     }
   },
   "admin": {
