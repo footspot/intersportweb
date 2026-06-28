@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { primaryImagePath, type Product } from '~/stores/products'
 import { computeUnitPricing } from '~/composables/usePricingPreview'
+import { useFavoritesStore } from '~/stores/favorites'
 
 interface Props {
   product: Product
@@ -9,6 +10,36 @@ const props = defineProps<Props>()
 
 const { t } = useI18n()
 const client = useSupabaseClient()
+const user = useSupabaseUser()
+const favorites = useFavoritesStore()
+const toast = useToast()
+
+const isFav = computed(() => favorites.isFavorite(props.product.id))
+const favBusy = ref(false)
+
+// * Heart click. Guests get the login prompt (no redirect); signed-in users
+// * toggle. `.prevent.stop` keeps the surrounding NuxtLink from navigating.
+async function onToggleFav() {
+  if (!user.value) {
+    favorites.openPrompt()
+    return
+  }
+  if (favBusy.value) return
+  favBusy.value = true
+  const wasFav = isFav.value
+  try {
+    await favorites.toggle(props.product.id)
+    toast.add({
+      title: wasFav ? t('favorites.removed') : t('favorites.added'),
+      icon: wasFav ? 'i-lucide-heart-off' : 'i-lucide-heart',
+      color: 'success',
+    })
+  } catch {
+    toast.add({ title: t('favorites.error'), color: 'error' })
+  } finally {
+    favBusy.value = false
+  }
+}
 
 const imageUrl = computed(() => {
   const path = primaryImagePath(props.product)
@@ -59,6 +90,24 @@ function fmt(v: number) {
       >
         -{{ product.discount_percent }}%
       </span>
+
+      <!-- * Favorite toggle — top-right circular button, above the sold-out wash. -->
+      <button
+        type="button"
+        :aria-label="isFav ? t('favorites.remove') : t('favorites.add')"
+        :aria-pressed="isFav"
+        :disabled="favBusy"
+        class="fav-btn absolute top-2 right-2 z-20 w-9 h-9 grid place-items-center rounded-full bg-white/90 dark:bg-black/45 backdrop-blur-sm shadow-card-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-60"
+        :class="isFav ? 'text-brand-secondary' : 'text-gray-400 hover:text-brand-secondary'"
+        @click.prevent.stop="onToggleFav"
+      >
+        <AppHeartIcon
+          :filled="isFav"
+          class="w-[18px] h-[18px] transition-transform"
+          :class="isFav ? 'scale-110' : ''"
+        />
+      </button>
+
       <span
         v-if="isSoldOut"
         class="absolute inset-0 bg-black/50 text-white flex items-center justify-center font-heading font-bold text-lg"
@@ -67,7 +116,7 @@ function fmt(v: number) {
       </span>
       <span
         v-else-if="isBackorder && totalStock <= 0"
-        class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-brand-gold text-white text-xs font-bold"
+        class="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-brand-gold text-white text-xs font-bold"
       >
         {{ t('storefront.backorder') }}
       </span>

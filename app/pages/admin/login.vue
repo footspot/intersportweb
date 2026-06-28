@@ -54,8 +54,15 @@ async function enterMfaStep(): Promise<boolean> {
   return true
 }
 
+const route = useRoute()
+
 // * On arrival, resume any session that signed in but never cleared 2FA.
 onMounted(async () => {
+  // * Bounced here from the customer magic-link flow (/confirm) because the
+  // * account is back-office — back-office must sign in with a password here.
+  if (route.query.error === 'use_admin_login') {
+    errorMsg.value = t('auth.errors.useAdminLogin')
+  }
   const { data } = await client.auth.mfa.getAuthenticatorAssuranceLevel()
   if (data?.currentLevel === 'aal1' && data?.nextLevel === 'aal2') {
     await enterMfaStep()

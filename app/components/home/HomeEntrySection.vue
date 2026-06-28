@@ -17,7 +17,7 @@ const s = computed(() => flow.siteSettings.settings)
 </script>
 
 <template>
-  <section class="px-6 md:px-10 lg:px-12 py-10 bg-white dark:bg-sidebar">
+  <section data-home-entry class="px-6 md:px-10 lg:px-12 py-10 bg-white dark:bg-sidebar">
     <div class="flex gap-4 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
       <!-- Catalogues -->
       <HomeEntryCard

@@ -50,12 +50,15 @@ watch(overlayOpen, (open) => {
 })
 
 // * Replace the edited slot's image with the flattened PNG (destructive bake).
-// * Keep the slot id so its position in the gallery is preserved.
+// * Keep the slot id (gallery position) AND its color_key — dropping the latter
+// * silently turned a per-color image into an "all colors" one, which spawned
+// * duplicate/wrong thumbnails on the storefront. `existing` is cleared since the
+// * baked file now supersedes any previously-uploaded path.
 function onOverlayApplied(file: File) {
   if (overlayIndex.value == null) return
   const next = props.modelValue.slice()
   const slot = next[overlayIndex.value]
-  next[overlayIndex.value] = { id: slot.id, file }
+  next[overlayIndex.value] = { id: slot.id, file, color_key: slot.color_key ?? null }
   emitNext(next)
 }
 

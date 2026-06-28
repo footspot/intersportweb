@@ -7,12 +7,13 @@
 // * The interactive state machine lives in `useHomeFlow()`; it is created here
 // * once and shared with the split section components via provide/inject.
 import { useHomeFlow, HomeFlowKey } from '~/composables/useHomeFlow'
-import { useInstagramStore } from '~/stores/instagram'
+// * Instagram store import disabled with its fetch below — re-enable together.
+// import { useInstagramStore } from '~/stores/instagram'
 
 const flow = useHomeFlow()
 provide(HomeFlowKey, flow)
 
-const instagram = useInstagramStore()
+// const instagram = useInstagramStore()
 
 // * Admin preview mode (`/?preview`): renders the full home exactly as a visitor
 // * first sees it (intro video → hero banner → carousel → marquee → …) but fully
@@ -32,7 +33,11 @@ await useAsyncData('home-bootstrap', async () => {
     flow.siteSettings.fetchAll(),
     flow.productDiscounts.fetchAll(),
     flow.featuredProducts.fetchAll(),
-    instagram.fetchAll(),
+    // * Instagram feed disabled — the `instagram_posts` table / sync worker isn't
+    // * provisioned yet, so this call 404s and intermittently breaks the bootstrap.
+    // * Re-enable once instagram-sync is set up. HomeInstagramLatest stays hidden
+    // * (it renders only when a post exists). See store: app/stores/instagram.ts
+    // instagram.fetchAll(),
   ])
   return true
 })

@@ -2,11 +2,43 @@
 // * Club products grid — opens once a club is selected. Category filters,
 // * discount/flocking/pack badges, per-club accent colour.
 import { useHomeFlowCtx } from '~/composables/useHomeFlow'
+import { useFavoritesStore } from '~/stores/favorites'
+import type { Product } from '~/stores/products'
 
 const flow = useHomeFlowCtx()
 const { t, locale } = flow
 // * Local alias so scoped `v-bind()` can reference the accent colour.
 const accentCss = flow.accentCss
+
+const favorites = useFavoritesStore()
+const user = useSupabaseUser()
+const toast = useToast()
+const favBusyId = ref<string | null>(null)
+
+// * Heart click on a shop card. Guests get the login prompt (no redirect);
+// * signed-in users toggle. `.prevent.stop` on the button keeps the card's
+// * NuxtLink from navigating to the product page.
+async function onToggleFav(p: Product) {
+  if (!user.value) {
+    favorites.openPrompt()
+    return
+  }
+  if (favBusyId.value) return
+  favBusyId.value = p.id
+  const wasFav = favorites.isFavorite(p.id)
+  try {
+    await favorites.toggle(p.id)
+    toast.add({
+      title: wasFav ? t('favorites.removed') : t('favorites.added'),
+      icon: wasFav ? 'i-lucide-heart-off' : 'i-lucide-heart',
+      color: 'success',
+    })
+  } catch {
+    toast.add({ title: t('favorites.error'), color: 'error' })
+  } finally {
+    favBusyId.value = null
+  }
+}
 </script>
 
 <template>
@@ -129,6 +161,19 @@ const accentCss = flow.accentCss
             >
               {{ t('storefront.home.badgePack') }}
             </span>
+
+            <!-- * Favorite toggle — top-right circular button. -->
+            <button
+              type="button"
+              :aria-label="favorites.isFavorite(p.id) ? t('favorites.remove') : t('favorites.add')"
+              :aria-pressed="favorites.isFavorite(p.id)"
+              :disabled="favBusyId === p.id"
+              class="fav-btn absolute top-1.5 right-1.5 z-20 w-7 h-7 grid place-items-center rounded-full bg-white/90 dark:bg-black/45 backdrop-blur-sm shadow-md ring-1 ring-black/5 dark:ring-white/10 transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-60"
+              :class="favorites.isFavorite(p.id) ? 'text-brand-secondary' : 'text-gray-400 hover:text-brand-secondary'"
+              @click.prevent.stop="onToggleFav(p)"
+            >
+              <AppHeartIcon :filled="favorites.isFavorite(p.id)" class="w-3.5 h-3.5" />
+            </button>
 
             <span class="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full bg-ink text-white flex items-center justify-center text-sm shadow-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
               +

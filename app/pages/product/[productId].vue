@@ -8,6 +8,7 @@ import { useClubAccessStore } from '~/stores/clubAccess'
 import { useProductDiscountsStore } from '~/stores/productDiscounts'
 import { computeUnitPricing, applyClubDiscount } from '~/composables/usePricingPreview'
 import { useBundleAvailability } from '~/composables/useBundleAvailability'
+import { useFavoritesStore } from '~/stores/favorites'
 
 const route = useRoute()
 const productId = computed(() => String(route.params.productId))
@@ -20,6 +21,9 @@ const access = useClubAccessStore()
 const productDiscounts = useProductDiscountsStore()
 const client = useSupabaseClient()
 const cartOpen = useState('customer:cart-open', () => false)
+const favorites = useFavoritesStore()
+const user = useSupabaseUser()
+const toast = useToast()
 
 await useAsyncData(`product-${productId.value}`, async () => {
   await Promise.all([clubs.fetchAll(), products.fetchAll(), productDiscounts.fetchAll()])
@@ -41,6 +45,33 @@ await useAsyncData(`product-${productId.value}`, async () => {
 
 const product = computed(() => products.byId(productId.value))
 const club = computed(() => (product.value ? clubs.byId(product.value.club_id) : null))
+
+// * Favorite toggle for this product. Guests get the login prompt (no redirect);
+// * signed-in users toggle their saved list.
+const isFav = computed(() => (product.value ? favorites.isFavorite(product.value.id) : false))
+const favBusy = ref(false)
+async function onToggleFav() {
+  if (!product.value) return
+  if (!user.value) {
+    favorites.openPrompt()
+    return
+  }
+  if (favBusy.value) return
+  favBusy.value = true
+  const wasFav = isFav.value
+  try {
+    await favorites.toggle(product.value.id)
+    toast.add({
+      title: wasFav ? t('favorites.removed') : t('favorites.added'),
+      icon: wasFav ? 'i-lucide-heart-off' : 'i-lucide-heart',
+      color: 'success',
+    })
+  } catch {
+    toast.add({ title: t('favorites.error'), color: 'error' })
+  } finally {
+    favBusy.value = false
+  }
+}
 
 const requiresPassword = computed(
   () => !!club.value?.is_password_protected && !access.hasAccess(club.value.id),
@@ -225,13 +256,18 @@ const secondaryOptions = computed(() => {
   })
 })
 
-// * Gallery filtered to the picked color. Untagged images (color_id null) show
-// * for every color. Falls back to the full gallery if the color has none.
+// * Gallery for the picked color. When the color has its own images, show ONLY
+// * those — never mix in the color-agnostic (null) ones, or a stray duplicate /
+// * other-color "all colors" photo resurfaces as a phantom thumbnail and can
+// * even hijack the main image (the bug this guards against). Only fall back to
+// * the null images when the color has none of its own, then to the full set.
 const galleryImages = computed(() => {
   const imgs = product.value?.images ?? []
   if (!hasColors.value || !selectedColorId.value) return imgs
-  const matching = imgs.filter((i) => i.color_id === selectedColorId.value || i.color_id == null)
-  return matching.length ? matching : imgs
+  const own = imgs.filter((i) => i.color_id === selectedColorId.value)
+  if (own.length) return own
+  const general = imgs.filter((i) => i.color_id == null)
+  return general.length ? general : imgs
 })
 const selectedImageIndex = ref(0)
 
@@ -463,7 +499,7 @@ useSchemaOrg([
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div class="space-y-3">
-        <div class="aspect-square rounded-card bg-gray-100 dark:bg-sidebar-surface overflow-hidden">
+        <div class="relative aspect-square rounded-card bg-gray-100 dark:bg-sidebar-surface overflow-hidden">
           <img
             v-if="imageUrl"
             :src="imageUrl"
@@ -473,6 +509,23 @@ useSchemaOrg([
           <div v-else class="w-full h-full flex items-center justify-center">
             <UIcon name="i-lucide-image" class="w-14 h-14 text-gray-300" />
           </div>
+
+          <!-- * Favorite toggle — top-right circular button. -->
+          <button
+            type="button"
+            :aria-label="isFav ? t('favorites.remove') : t('favorites.add')"
+            :aria-pressed="isFav"
+            :disabled="favBusy"
+            class="fav-btn absolute top-3 right-3 z-20 w-11 h-11 grid place-items-center rounded-full bg-white/90 dark:bg-black/45 backdrop-blur-sm shadow-card-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-60"
+            :class="isFav ? 'text-brand-secondary' : 'text-gray-400 hover:text-brand-secondary'"
+            @click="onToggleFav"
+          >
+            <AppHeartIcon
+              :filled="isFav"
+              class="w-5 h-5 transition-transform"
+              :class="isFav ? 'scale-110' : ''"
+            />
+          </button>
         </div>
         <div
           v-if="galleryImages.length > 1"

@@ -21,7 +21,7 @@ const { t, locale } = flow
         <button
           type="button"
           class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent px-3.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 transition"
-          @click="flow.goHome()"
+          @click="flow.goHome({ scroll: true })"
         >
           ← {{ t('storefront.home.backToHomeCatalog') }}
         </button>

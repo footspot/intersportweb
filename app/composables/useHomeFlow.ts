@@ -199,36 +199,65 @@ export function useHomeFlow() {
     // * Client-only: the body touches document/window, which don't exist on the
     // * server (the deferred timer would otherwise throw inside the SSR function).
     if (import.meta.server) return
-    // * Poll for the target rather than guessing a single delay: the section may
-    // * be behind a panel Transition and, on a route change (e.g. the product
-    // * page's back button → `/?club=`), behind the page's out-in transition too.
-    // * Polling also lands our scroll *after* the router's scroll-to-top, so it
-    // * wins instead of being overridden. Give up after ~3s.
-    let tries = 0
+
+    let cancelled = false
+    const onUserScroll = () => { cancelled = true; cleanup() }
+    const cleanup = () => {
+      window.removeEventListener('wheel', onUserScroll)
+      window.removeEventListener('touchmove', onUserScroll)
+      window.removeEventListener('keydown', onUserScroll)
+    }
+    // * Yield the instant the visitor takes over. We listen to input events, NOT
+    // * `scroll`, so our own (later) smooth scroll can't make us cancel ourselves.
+    window.addEventListener('wheel', onUserScroll, { passive: true })
+    window.addEventListener('touchmove', onUserScroll, { passive: true })
+    window.addEventListener('keydown', onUserScroll)
+
+    // * The fix for the up/down/down jitter: DON'T chase the target. The previous
+    // * version re-issued a smooth scroll on every drift, so the panel enter/leave
+    // * Transition, the 700ms carousel height transition, the sticky-header
+    // * collapse and (on a fresh reload) late-loading images each kicked off a new
+    // * competing scroll that fought the last one. Instead we stay put until the
+    // * target's absolute top STOPS moving, then issue exactly ONE smooth scroll.
+    // * One scroll = no oscillation. (rect.top + scrollY is absolute, so sitting
+    // * still doesn't perturb the measurement — only real layout shifts do.)
+    let elapsed = 0
     let lastTop = Number.NaN
     let stable = 0
-    const attempt = () => {
+    const TICK = 50
+    const MAX_TICKS = 80 // * ~4s hard safety cap
+    const STABLE_TICKS = 5 // * target must hold still ~0.25s before we commit
+    const tick = () => {
+      if (cancelled) return
+      elapsed++
       const el = document.querySelector(sel) as HTMLElement | null
+      // * Not painted yet (behind a Transition / route change) — keep waiting.
       if (!el || el.getBoundingClientRect().height === 0) {
-        if (tries++ < 60) setTimeout(attempt, 50)
+        if (elapsed < MAX_TICKS) setTimeout(tick, TICK)
+        else cleanup()
         return
       }
-      const header = document.querySelector('header') as HTMLElement | null
-      const offset = (header?.offsetHeight ?? 0) + 12
-      const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset)
-      window.scrollTo({ top, behavior: 'smooth' })
-      // * Re-aim until the target settles instead of firing once: the panel's
-      // * enter Transition (~0.5s), the carousel's height transition (0.7s) and
-      // * late-loading tile/club images all move the target *after* the first
-      // * scroll — on a slow connection the one-shot scroll lands short and the
-      // * carousel never comes into view. Keep nudging the smooth scroll toward
-      // * the converging position until `top` is unchanged for 3 checks (~1.5s).
-      if (Math.abs(top - lastTop) > 2) stable = 0
+      const top = el.getBoundingClientRect().top + window.scrollY
+      if (Number.isNaN(lastTop) || Math.abs(top - lastTop) > 1) stable = 0
       else stable++
       lastTop = top
-      if (stable < 3 && tries++ < 60) setTimeout(attempt, 100)
+
+      if (stable >= STABLE_TICKS || elapsed >= MAX_TICKS) {
+        if (!cancelled) {
+          // * Measure the header once, now, and land the section just below it.
+          // * A late ~7px header-collapse delta is imperceptible and — crucially —
+          // * we never re-scroll to correct it, so there is no bounce.
+          const header = document.querySelector('header') as HTMLElement | null
+          const offset = (header?.offsetHeight ?? 0) + 12
+          const dest = Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset)
+          window.scrollTo({ top: dest, behavior: 'smooth' })
+        }
+        cleanup()
+        return
+      }
+      setTimeout(tick, TICK)
     }
-    setTimeout(attempt, 60)
+    setTimeout(tick, 60)
   }
 
   function pickEntry(kind: 'catalog' | 'shop' | 'clearance') {
@@ -290,7 +319,11 @@ export function useHomeFlow() {
     nextTick(() => scrollToSelector('[data-home-products]'))
   }
 
-  function goHome() {
+  // * `scroll` lifts the viewport back up to the entry cards (catalog / shop /
+  // * clearance). Used by the in-flow "← Accueil" buttons: collapsing the open
+  // * sections shrinks the page, so without this the visitor is left stranded
+  // * further down (on the brand-partner band) instead of back at the cards.
+  function goHome(opts: { scroll?: boolean } = {}) {
     selectedSportId.value = null
     selectedClubId.value = null
     selectedHomeSectionId.value = null
@@ -298,6 +331,7 @@ export function useHomeFlow() {
     activeNav.value = 'home'
     currentSlide.value = 0
     replaceQuery({})
+    if (opts.scroll) nextTick(() => scrollToSelector('[data-home-entry]'))
   }
 
   function goBackToSports() {
@@ -319,7 +353,13 @@ export function useHomeFlow() {
     () => route.query.club as string | undefined,
     (clubId) => {
       if (!clubId) {
-        goHome()
+        // * Only fall back to the home view when a club was actually being shown
+        // * and ?club was cleared EXTERNALLY (browser back / manual URL edit).
+        // * Internal nav (goBackToSports / goHome / pickEntry) nulls selectedClubId
+        // * *before* clearing the query, so here it's already null — bailing out
+        // * keeps us from clobbering the currentSlide they just set (the bug that
+        // * turned "← Sports" into "close the carousel").
+        if (selectedClubId.value) goHome()
         return
       }
       if (selectedClubId.value === clubId) return

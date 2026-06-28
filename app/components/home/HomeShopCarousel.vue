@@ -152,7 +152,7 @@ const header = computed(() => {
               <button
                 type="button"
                 class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink dark:text-gray-200 px-3.5 py-1.5 rounded-lg bg-ink/10 dark:bg-white/10 hover:bg-ink/20 transition"
-                @click="flow.goHome()"
+                @click="flow.goHome({ scroll: true })"
               >
                 ← {{ t('storefront.home.backToHome') }}
               </button>
@@ -222,7 +222,7 @@ const header = computed(() => {
               <button
                 type="button"
                 class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent px-3.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 transition"
-                @click="flow.goHome()"
+                @click="flow.goHome({ scroll: true })"
               >
                 ← {{ t('storefront.home.backToHome') }}
               </button>

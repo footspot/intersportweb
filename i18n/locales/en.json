@@ -417,6 +417,7 @@
       "generic": "An error occurred",
       "notBackoffice": "This account has no back-office access. Use the customer sign-in page.",
       "notCustomer": "This is a back-office account. Use the admin sign-in page.",
+      "useAdminLogin": "This is a back-office account. Sign in here with your password (magic-link sign-in isn't allowed for this account).",
       "passwordMismatch": "Passwords don't match."
     },
     "registerSuccess": "Check your inbox to confirm your email, then sign in.",
@@ -440,20 +441,95 @@
     }
   },
   "account": {
+    "eyebrow": "Member area",
+    "hero": {
+      "title1": "Your account,",
+      "title2": "your perks.",
+      "subtitle": "Sign in to access your personal space. Here's a preview of what's waiting for you."
+    },
+    "tabs": {
+      "orders": "My orders",
+      "favorites": "My favorites",
+      "offers": "My offers"
+    },
+    "preview": {
+      "ordersTitle": "Simplified purchase tracking",
+      "ordersCount": "{count} orders",
+      "favoritesTitle": "Centralized favorites",
+      "favoritesCount": "{count} items",
+      "offersTitle": "Exclusive promotional offers",
+      "offersCount": "{count} offers",
+      "lockedOrders": "Sign in to see your full history",
+      "lockedFavorites": "Sign in to manage your favorites",
+      "lockedOffers": "Sign in to access all your offers"
+    },
+    "card": {
+      "title": "My account",
+      "subtitle": "Sign in or create one in seconds",
+      "signin": "Sign in",
+      "signup": "Create account"
+    },
+    "features": {
+      "orders": "Order tracking",
+      "favorites": "Favorites",
+      "offers": "Exclusive offers",
+      "secure": "Secure access"
+    },
     "login": {
       "title": "My account",
       "subtitle": "Passwordless sign-in — by email.",
-      "send": "Email me a link",
-      "sent": "Link sent to {email}. Click it to access your orders.",
+      "firstName": "First name",
+      "send": "Email me a sign-in link",
+      "create": "Create my free account",
+      "sent": "Link sent to {email}. Click it to access your space.",
       "useAnother": "Use a different address",
-      "hint": "We'll email you a sign-in link."
+      "hint": "We'll email you a secure sign-in link.",
+      "noAccount": "No account yet?",
+      "createFree": "Create one for free",
+      "haveAccount": "Already a member?",
+      "signinLink": "Sign in",
+      "terms": "By creating an account, you accept our",
+      "termsLink": "terms and conditions"
+    },
+    "dashboard": {
+      "greeting": "Hello, {name}",
+      "logout": "Sign out",
+      "statOrders": "Orders placed",
+      "statFavorites": "Saved favorites",
+      "statOffers": "Offers available",
+      "soon": "Soon",
+      "favoritesSoon": "Your favorites are coming soon",
+      "favoritesSoonHint": "Save your favorite items to find them here.",
+      "offersEmpty": "No offers right now",
+      "offersEmptyHint": "Clearance and discounted products will appear here."
     },
     "history": {
       "title": "My orders",
+      "colRef": "Reference",
+      "colDate": "Date",
+      "colAmount": "Amount",
+      "colStatus": "Status",
       "empty": "No orders yet.",
       "browse": "Browse the shop",
-      "view": "View",
+      "view": "Details",
+      "track": "Track",
       "error": "Couldn't load your orders."
+    }
+  },
+  "favorites": {
+    "add": "Add to favorites",
+    "remove": "Remove from favorites",
+    "added": "Added to your favorites",
+    "removed": "Removed from your favorites",
+    "error": "Something went wrong. Try again.",
+    "empty": "You have no favorites yet.",
+    "emptyHint": "Tap the heart on a product to save it here.",
+    "loginPrompt": {
+      "title": "Save your favorites",
+      "subtitle": "Sign in or create a free account to save your favorite items and find them anywhere.",
+      "signin": "Sign in",
+      "signup": "Create account",
+      "later": "Later"
     }
   },
   "admin": {

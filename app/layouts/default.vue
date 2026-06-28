@@ -17,5 +17,10 @@ const cartOpen = useState('customer:cart-open', () => false)
     <LayoutAppFooter />
 
     <CartDrawer v-model="cartOpen" />
+
+    <!-- * Global "sign in to save favorites" prompt (opened from product cards). -->
+    <ClientOnly>
+      <HomeFavoritesLoginModal />
+    </ClientOnly>
   </div>
 </template>

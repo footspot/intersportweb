@@ -417,6 +417,7 @@
       "generic": "Une erreur est survenue",
       "notBackoffice": "Ce compte n'a pas accès au back-office. Utilisez la page de connexion client.",
       "notCustomer": "Ce compte est un compte back-office. Utilisez la page de connexion admin.",
+      "useAdminLogin": "Ce compte est réservé au back-office. Connectez-vous ici avec votre mot de passe (le lien magique n'est pas autorisé pour ce compte).",
       "passwordMismatch": "Les mots de passe ne correspondent pas."
     },
     "registerSuccess": "Vérifiez votre boîte mail pour confirmer votre email, puis connectez-vous.",
@@ -440,20 +441,95 @@
     }
   },
   "account": {
+    "eyebrow": "Espace membre",
+    "hero": {
+      "title1": "Votre compte,",
+      "title2": "vos avantages.",
+      "subtitle": "Connectez-vous pour accéder à votre espace personnel. Voici un aperçu de ce qui vous attend."
+    },
+    "tabs": {
+      "orders": "Mes commandes",
+      "favorites": "Mes favoris",
+      "offers": "Mes offres"
+    },
+    "preview": {
+      "ordersTitle": "Suivi de vos achats simplifié",
+      "ordersCount": "{count} commandes",
+      "favoritesTitle": "Favoris centralisés",
+      "favoritesCount": "{count} articles",
+      "offersTitle": "Offres promotionnelles exclusives",
+      "offersCount": "{count} offres",
+      "lockedOrders": "Connectez-vous pour voir tout l’historique",
+      "lockedFavorites": "Connectez-vous pour gérer vos favoris",
+      "lockedOffers": "Connectez-vous pour accéder à toutes vos offres"
+    },
+    "card": {
+      "title": "Mon compte",
+      "subtitle": "Connexion ou création en quelques secondes",
+      "signin": "Se connecter",
+      "signup": "Créer un compte"
+    },
+    "features": {
+      "orders": "Suivi commandes",
+      "favorites": "Favoris",
+      "offers": "Offres exclusives",
+      "secure": "Accès sécurisé"
+    },
     "login": {
       "title": "Mon compte",
       "subtitle": "Connexion sans mot de passe — par e-mail.",
-      "send": "Recevoir mon lien",
-      "sent": "Lien envoyé à {email}. Cliquez dessus pour accéder à vos commandes.",
+      "firstName": "Prénom",
+      "send": "Recevoir mon lien de connexion",
+      "create": "Créer mon compte gratuitement",
+      "sent": "Lien envoyé à {email}. Cliquez dessus pour accéder à votre espace.",
       "useAnother": "Utiliser une autre adresse",
-      "hint": "Un lien de connexion vous sera envoyé par e-mail."
+      "hint": "Un lien sécurisé vous sera envoyé par e-mail.",
+      "noAccount": "Pas encore de compte ?",
+      "createFree": "Créez-en un gratuitement",
+      "haveAccount": "Déjà membre ?",
+      "signinLink": "Connectez-vous",
+      "terms": "En créant un compte, vous acceptez nos",
+      "termsLink": "conditions générales"
+    },
+    "dashboard": {
+      "greeting": "Bonjour, {name}",
+      "logout": "Se déconnecter",
+      "statOrders": "Commandes passées",
+      "statFavorites": "Articles en favoris",
+      "statOffers": "Offres disponibles",
+      "soon": "Bientôt",
+      "favoritesSoon": "Vos favoris arrivent bientôt",
+      "favoritesSoonHint": "Enregistrez vos articles préférés pour les retrouver ici.",
+      "offersEmpty": "Aucune offre en ce moment",
+      "offersEmptyHint": "Les produits en déstockage et en promotion s’afficheront ici."
     },
     "history": {
       "title": "Mes commandes",
+      "colRef": "Référence",
+      "colDate": "Date",
+      "colAmount": "Montant",
+      "colStatus": "Statut",
       "empty": "Aucune commande pour le moment.",
       "browse": "Découvrir la boutique",
-      "view": "Voir",
+      "view": "Détails",
+      "track": "Suivre",
       "error": "Impossible de charger vos commandes."
+    }
+  },
+  "favorites": {
+    "add": "Ajouter aux favoris",
+    "remove": "Retirer des favoris",
+    "added": "Ajouté à vos favoris",
+    "removed": "Retiré de vos favoris",
+    "error": "Une erreur est survenue. Réessayez.",
+    "empty": "Vous n’avez aucun favori pour le moment.",
+    "emptyHint": "Touchez le cœur sur un produit pour l’enregistrer ici.",
+    "loginPrompt": {
+      "title": "Enregistrez vos favoris",
+      "subtitle": "Connectez-vous ou créez un compte gratuit pour sauvegarder vos articles préférés et les retrouver partout.",
+      "signin": "Se connecter",
+      "signup": "Créer un compte",
+      "later": "Plus tard"
     }
   },
   "admin": {

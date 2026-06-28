@@ -7,6 +7,11 @@ const { t, locale, setLocale } = useI18n()
 const cart = useCartStore()
 const products = useProductsStore()
 const colorMode = useColorMode()
+const auth = useAuthStore()
+
+// * Whether a storefront customer is signed in — drives the green status dot
+// * on the account icon.
+const customerLoggedIn = computed(() => auth.profile?.role === 'customer')
 
 // * Top promo ticker — the FIRST item's text is admin-customizable
 // * (Personalization → Banner); the other two are static brand promises.
@@ -204,13 +209,20 @@ function isActive(key: string) {
             </button>
           </div>
           <!-- * Customer account — order history. When signed out, /account's
-               middleware bounces to the passwordless login. -->
+               middleware bounces to the passwordless login. A green dot marks a
+               signed-in customer. -->
           <NuxtLink
             to="/account"
-            class="ic-btn w-[41px]"
+            class="ic-btn w-[41px] relative"
             :aria-label="t('nav.orders')"
           >
             <UIcon name="i-lucide-user-round" class="w-[19px] h-[19px]" />
+            <ClientOnly>
+              <span
+                v-if="customerLoggedIn"
+                class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-sidebar-surface"
+              />
+            </ClientOnly>
           </NuxtLink>
           <button
             type="button"

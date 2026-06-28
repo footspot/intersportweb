@@ -43,7 +43,7 @@ const { t } = flow
             color: flow.selectedHomeSection.value.accent_color,
             backgroundColor: flow.selectedHomeSection.value.accent_color + '1a',
           }"
-          @click="flow.goHome()"
+          @click="flow.goHome({ scroll: true })"
         >
           ← {{ t('storefront.home.backToHomeCatalog') }}
         </button>
