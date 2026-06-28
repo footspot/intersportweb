@@ -149,8 +149,8 @@ function isActive(key: string) {
         :class="scrolled ? 'h-[44px]' : 'h-[51px]'"
       >
         <NuxtLink to="/" class="shrink-0 flex items-center" :aria-label="t('app.name')" @click.prevent="resetHome">
-          <img src="/logo_horizontal.svg" :alt="t('app.name')" class="h-[25px] sm:h-[30px] w-auto block dark:hidden">
-          <img src="/logo_horizontal.svg" :alt="t('app.name')" class="h-[25px] sm:h-[30px] w-auto hidden dark:block dark:brightness-0 dark:invert">
+          <img src="/logo_horizontal.svg" :alt="t('app.name')" class="h-[20px] sm:h-[24px] w-auto block dark:hidden">
+          <img src="/logo_horizontal.svg" :alt="t('app.name')" class="h-[20px] sm:h-[24px] w-auto hidden dark:block dark:brightness-0 dark:invert">
         </NuxtLink>
 
         <!-- Product search — sport selector + paginated results -->
@@ -183,14 +183,18 @@ function isActive(key: string) {
               <UIcon name="i-lucide-search" class="w-[19px] h-[19px]" />
             </button>
           </div>
-          <button
-            type="button"
-            class="ic-btn px-2.5 text-sm font-semibold"
-            :aria-label="t('nav.language')"
-            @click="swapLocale"
-          >
-            {{ locale.toUpperCase() }}
-          </button>
+          <!-- * Desktop-only — on mobile the language switch lives in the menu to
+               save header space. -->
+          <div class="hidden md:block">
+            <button
+              type="button"
+              class="ic-btn px-2.5 text-sm font-semibold"
+              :aria-label="t('nav.language')"
+              @click="swapLocale"
+            >
+              {{ locale.toUpperCase() }}
+            </button>
+          </div>
           <!-- * Desktop-only — on mobile the dark toggle lives in the menu to save
                header space (wrapper carries visibility; see the note below). -->
           <div class="hidden md:block">
@@ -278,6 +282,16 @@ function isActive(key: string) {
       >
         {{ t('nav.orders') }}
       </NuxtLink>
+
+      <!-- * Language switch — moved here on mobile to keep the header compact. -->
+      <button
+        type="button"
+        class="flex w-full items-center gap-2 py-2 font-semibold text-ink dark:text-gray-200 hover:text-accent"
+        @click="swapLocale"
+      >
+        <UIcon name="i-lucide-languages" class="w-[19px] h-[19px]" />
+        {{ locale.toUpperCase() }}
+      </button>
 
       <!-- * Dark-mode toggle — moved here on mobile to keep the header compact. -->
       <button
