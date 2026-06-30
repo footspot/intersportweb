@@ -95,10 +95,13 @@ interface ProductData {
   options?: OptionPayload[]
   colors?: ColorPayload[]
   image_slots?: ImageSlot[]
+  // * Ids of size guides assigned to this product (many-to-many). Optional on
+  // * PUT: omit to leave the set untouched, pass [] to clear it.
+  size_guide_ids?: string[]
 }
 
 const PRODUCT_SELECT =
-  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position, allow_custom_input, input_label), colors:product_colors(id, name, hex, position)'
+  '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position, allow_custom_input, input_label), colors:product_colors(id, name, hex, position), size_guide_links:product_size_guides(position, guide:size_guides(id, name, file_path, file_type))'
 
 function normaliseVariants(vs: VariantPayload[] | undefined): VariantPayload[] | string {
   if (!Array.isArray(vs) || vs.length === 0) return 'at least one variant is required'
@@ -299,6 +302,36 @@ async function cleanupUploads(
   paths: string[],
 ): Promise<void> {
   for (const p of paths) await removeImage(sb, BUCKET, p)
+}
+
+// * Dedupe a list of size-guide ids, dropping blanks. Existence isn't checked
+// * here — a stale id just fails the FK insert and rolls the save back.
+function normaliseSizeGuideIds(ids: unknown): string[] {
+  if (!Array.isArray(ids)) return []
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const id of ids) {
+    if (typeof id === 'string' && id.trim() && !seen.has(id)) {
+      seen.add(id)
+      out.push(id)
+    }
+  }
+  return out
+}
+
+// * Replace the product's whole size-guide link set (delete-all + reinsert),
+// * mirroring how options are handled. Order is preserved via `position`.
+async function replaceProductSizeGuides(
+  sb: ReturnType<typeof serviceClient>,
+  productId: string,
+  ids: string[],
+) {
+  const { error: dErr } = await sb.from('product_size_guides').delete().eq('product_id', productId)
+  if (dErr) throw dErr
+  if (ids.length === 0) return
+  const rows = ids.map((size_guide_id, position) => ({ product_id: productId, size_guide_id, position }))
+  const { error: iErr } = await sb.from('product_size_guides').insert(rows)
+  if (iErr) throw iErr
 }
 
 // * Upsert the product's colors (diff by id) and return a map from each payload
@@ -573,6 +606,20 @@ async function duplicateProduct(
       if (error) throw error
     }
 
+    // * 4b. Size-guide links — copy the assignments (guides themselves are shared).
+    const guideRows = ((src as any).size_guide_links ?? [])
+      .map((l: any) => l.guide?.id)
+      .filter((id: string | undefined): id is string => !!id)
+      .map((size_guide_id: string, position: number) => ({
+        product_id: product.id,
+        size_guide_id,
+        position,
+      }))
+    if (guideRows.length) {
+      const { error } = await sb.from('product_size_guides').insert(guideRows)
+      if (error) throw error
+    }
+
     if ((src as any).is_pack) {
       // * 5a. Bundle composition (no own variants).
       const rows = ((src as any).bundle_components ?? []).map((bc: any) => ({
@@ -771,6 +818,8 @@ Deno.serve(async (req) => {
 
         await replaceProductOptions(sb, product.id, optionsResult)
 
+        await replaceProductSizeGuides(sb, product.id, normaliseSizeGuideIds(data.size_guide_ids))
+
         if (isPack) {
           const rows = components.map((c) => ({
             bundle_product_id: product.id,
@@ -921,6 +970,12 @@ Deno.serve(async (req) => {
         await replaceProductImages(sb, data.id!, finalItems, keyToId)
 
         if (optionsProvided) await replaceProductOptions(sb, data.id!, optionsResult)
+
+        // * Size guides: omitted → leave untouched (toggle-only updates don't
+        // * wipe them); present (even as []) → replace the whole set.
+        if (data.size_guide_ids !== undefined && data.size_guide_ids !== null) {
+          await replaceProductSizeGuides(sb, data.id!, normaliseSizeGuideIds(data.size_guide_ids))
+        }
 
         if (isPack) {
           // * Drop any lingering variants if the product used to be non-pack.

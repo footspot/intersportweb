@@ -398,7 +398,9 @@
         "title": "Options",
         "inputPlaceholder": "Your entry (optional)"
       },
-      "noSizesForColor": "No sizes for this color yet."
+      "noSizesForColor": "No sizes for this color yet.",
+      "sizeGuide": "Size guide",
+      "openSizeGuide": "Open size guide"
     }
   },
   "auth": {
@@ -786,6 +788,25 @@
         "count": "{n} product(s)",
         "rename": "Rename",
         "deleteConfirm": "Remove this category from {n} product(s)?"
+      },
+      "sizeGuides": {
+        "button": "Size guides",
+        "title": "Size guides",
+        "hint": "Upload size-guide files, then assign them to products.",
+        "add": "Add a guide",
+        "namePlaceholder": "Guide name (e.g. Nike sizing)",
+        "upload": "Upload",
+        "view": "View",
+        "replace": "Replace file",
+        "rename": "Rename",
+        "empty": "No guides yet.",
+        "deleteConfirm": "Delete this guide? It will be removed from all products.",
+        "assignTitle": "Size guides",
+        "assignHint": "Assign one or more guides to this product.",
+        "assignEmpty": "No guides available. Create one from \"Size guides\".",
+        "errors": {
+          "nameAndFile": "Enter a name and choose a file."
+        }
       },
       "image": "Product images",
       "gallery": {

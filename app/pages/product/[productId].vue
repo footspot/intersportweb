@@ -270,6 +270,9 @@ const galleryImages = computed(() => {
   return general.length ? general : imgs
 })
 const selectedImageIndex = ref(0)
+// * Size-guide panel toggle (declared before the product watcher, which resets
+// * it via `immediate`, so it must exist by then). Open by default.
+const sizeGuideOpen = ref(true)
 
 // * Reset pickers + gallery index + default color whenever we land on a
 // * different product (immediate so the first color is selected on load).
@@ -287,6 +290,7 @@ watch(
     selectedOptionIds.value = []
     for (const k of Object.keys(optionValues)) delete optionValues[k]
     selectedImageIndex.value = 0
+    sizeGuideOpen.value = true
   },
   { immediate: true },
 )
@@ -302,6 +306,17 @@ function storageUrl(path: string | null): string | null {
   if (!path) return null
   const { data } = client.storage.from('product-images').getPublicUrl(path)
   return data?.publicUrl ?? null
+}
+
+// * Size guides assigned to this product (brand size charts). Public URLs live
+// * in the `size-guides` bucket. Shown in a collapsible panel below the sizes.
+const sizeGuides = computed(() => product.value?.size_guides ?? [])
+function sizeGuideUrl(path: string): string | null {
+  const { data } = client.storage.from('size-guides').getPublicUrl(path)
+  return data?.publicUrl ?? null
+}
+function isGuideImage(type: string | null): boolean {
+  return !!type && type.startsWith('image/')
 }
 
 const imageUrl = computed(() =>
@@ -666,6 +681,51 @@ useSchemaOrg([
             <UIcon name="i-lucide-check" class="w-4 h-4" />
             {{ t('storefront.product.uniqueSize') }}
           </span>
+        </div>
+
+        <!-- * Size guides — brand size charts attached to this product. -->
+        <div v-if="sizeGuides.length" class="border-t border-gray-100 dark:border-sidebar pt-4">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 text-sm font-medium text-brand-primary hover:underline"
+            :aria-expanded="sizeGuideOpen"
+            @click="sizeGuideOpen = !sizeGuideOpen"
+          >
+            <UIcon name="i-lucide-ruler" class="w-4 h-4" />
+            {{ t('storefront.product.sizeGuide') }}
+            <UIcon
+              :name="sizeGuideOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+              class="w-4 h-4"
+            />
+          </button>
+          <div v-if="sizeGuideOpen" class="mt-3 space-y-4">
+            <div v-for="g in sizeGuides" :key="g.id" class="space-y-1.5">
+              <p class="text-sm font-medium">{{ g.name }}</p>
+              <a
+                v-if="isGuideImage(g.file_type)"
+                :href="sizeGuideUrl(g.file_path)!"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  :src="sizeGuideUrl(g.file_path)!"
+                  class="rounded-lg border border-gray-200 dark:border-sidebar w-full h-auto"
+                  :alt="g.name"
+                  loading="lazy"
+                />
+              </a>
+              <a
+                v-else
+                :href="sizeGuideUrl(g.file_path)!"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex items-center gap-1.5 text-sm text-brand-primary hover:underline"
+              >
+                <UIcon name="i-lucide-file-text" class="w-4 h-4" />
+                {{ t('storefront.product.openSizeGuide') }}
+              </a>
+            </div>
+          </div>
         </div>
 
         <HomeFlockingOptions

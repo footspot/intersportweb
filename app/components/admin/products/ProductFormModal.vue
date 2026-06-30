@@ -11,6 +11,7 @@ interface DraftOption {
   input_label: string
 }
 import { useClubsStore } from '~/stores/clubs'
+import { useSizeGuidesStore } from '~/stores/sizeGuides'
 import type { DiscountSource } from '~/composables/usePricingPreview'
 import type { DraftVariant } from './VariantStockEditor.vue'
 import type { DraftBundleComponent } from './BundleComponentsEditor.vue'
@@ -31,6 +32,7 @@ const { t } = useI18n()
 const { edgeErrorMessage } = useEdgeError()
 const products = useProductsStore()
 const clubs = useClubsStore()
+const sizeGuides = useSizeGuidesStore()
 const supabase = useSupabaseClient()
 
 // * Public URL of the selected club's logo (club-logos bucket), fed to the
@@ -66,6 +68,8 @@ const footspotCategory = ref<string>('')
 const variants = ref<DraftVariant[]>([])
 const options = ref<DraftOption[]>([])
 const colors = ref<DraftColor[]>([])
+// * Ids of size guides assigned to this product (works for packs too).
+const selectedSizeGuideIds = ref<string[]>([])
 
 const FOOTSPOT_CATEGORIES = [
   'jersey', 'shorts', 'socks', 'ball', 'cone', 'bib',
@@ -140,6 +144,8 @@ watch(
   () => props.modelValue,
   (open) => {
     if (!open) return
+    // * Load the size-guide library so the picker can render names + previews.
+    sizeGuides.fetchAll()
     const p = props.product
     // * Leave the club unset on new products so staff must pick one consciously
     // * (avoids accidentally filing a product under the first club). Save()
@@ -183,6 +189,7 @@ watch(
       axis: bc.axis,
       quantity: bc.quantity,
     }))
+    selectedSizeGuideIds.value = (p?.size_guides ?? []).map((g) => g.id)
     errorMsg.value = null
   },
   { immediate: true },
@@ -198,6 +205,12 @@ function addOption() {
 
 function removeOption(index: number) {
   options.value.splice(index, 1)
+}
+
+function toggleSizeGuide(id: string) {
+  selectedSizeGuideIds.value = selectedSizeGuideIds.value.includes(id)
+    ? selectedSizeGuideIds.value.filter((x) => x !== id)
+    : [...selectedSizeGuideIds.value, id]
 }
 
 async function save() {
@@ -311,6 +324,9 @@ async function save() {
       colors: isPack.value
         ? []
         : colors.value.map((c) => ({ id: c.id, key: c.key, name: c.name.trim(), hex: c.hex })),
+      // * Assigned size guides (applies to packs too). Always sent so the set is
+      // * replaced — clearing all checkboxes removes every assignment.
+      size_guide_ids: [...selectedSizeGuideIds.value],
     }
 
     const payload: ProductPayload = isPack.value
@@ -722,6 +738,40 @@ async function save() {
               class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
             />
             <p class="text-xs text-gray-500 mt-1">{{ t('admin.products.options.inputHint') }}</p>
+          </label>
+        </div>
+      </div>
+
+      <!-- * Size guides (applies to regular products and packs) -->
+      <div class="border-t border-gray-100 dark:border-sidebar pt-4 space-y-3">
+        <div>
+          <h4 class="font-heading font-bold flex items-center gap-1.5">
+            <UIcon name="i-lucide-ruler" class="w-4 h-4 text-brand-primary" />
+            {{ t('admin.products.sizeGuides.assignTitle') }}
+          </h4>
+          <p class="text-xs text-gray-500">{{ t('admin.products.sizeGuides.assignHint') }}</p>
+        </div>
+
+        <p v-if="sizeGuides.items.length === 0" class="text-sm text-gray-400">
+          {{ t('admin.products.sizeGuides.assignEmpty') }}
+        </p>
+
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <label
+            v-for="g in sizeGuides.items"
+            :key="g.id"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm transition-colors"
+            :class="selectedSizeGuideIds.includes(g.id)
+              ? 'border-brand-primary bg-brand-primary/5'
+              : 'border-gray-200 dark:border-sidebar hover:bg-gray-50 dark:hover:bg-sidebar'"
+          >
+            <input
+              type="checkbox"
+              class="w-4 h-4 accent-brand-primary"
+              :checked="selectedSizeGuideIds.includes(g.id)"
+              @change="toggleSizeGuide(g.id)"
+            />
+            <span class="truncate">{{ g.name }}</span>
           </label>
         </div>
       </div>

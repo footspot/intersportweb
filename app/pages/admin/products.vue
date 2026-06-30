@@ -3,6 +3,7 @@
 import { useProductsStore, type Product } from '~/stores/products'
 import { useClubsStore } from '~/stores/clubs'
 import { useSiteSettingsStore } from '~/stores/siteSettings'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: 'admin', middleware: ['backoffice'], ssr: false })
 
@@ -11,6 +12,7 @@ const { edgeErrorMessage, notifyEdgeError } = useEdgeError()
 const products = useProductsStore()
 const clubs = useClubsStore()
 const settings = useSiteSettingsStore()
+const auth = useAuthStore()
 
 type VisibilityFilter = 'all' | 'visible' | 'hidden'
 const clubFilter = ref<'all' | string>('all')
@@ -49,6 +51,7 @@ async function toggleClearanceFlag(p: Product) {
 const showForm = ref(false)
 const editing = ref<Product | null>(null)
 const showCategories = ref(false)
+const showSizeGuides = ref(false)
 
 const confirmOpen = ref(false)
 const deleting = ref<Product | null>(null)
@@ -192,6 +195,16 @@ async function duplicate(p: Product) {
         >
           <UIcon name="i-lucide-tags" class="w-4 h-4" />
           <span>{{ t('admin.products.categoryManager.button') }}</span>
+        </button>
+        <!-- * Brand size guides — admin only. -->
+        <button
+          v-if="auth.isAdmin"
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-sidebar text-sm font-medium hover:bg-gray-50 dark:hover:bg-sidebar"
+          @click="showSizeGuides = true"
+        >
+          <UIcon name="i-lucide-ruler" class="w-4 h-4" />
+          <span>{{ t('admin.products.sizeGuides.button') }}</span>
         </button>
         <button
           type="button"
@@ -356,6 +369,8 @@ async function duplicate(p: Product) {
     />
 
     <AdminProductsCategoryManagerModal v-model="showCategories" />
+
+    <AdminProductsSizeGuidesManagerModal v-if="auth.isAdmin" v-model="showSizeGuides" />
 
     <AdminProductsCardPreviewModal
       v-model="previewOpen"

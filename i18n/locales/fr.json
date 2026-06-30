@@ -398,7 +398,9 @@
         "title": "Options",
         "inputPlaceholder": "Votre saisie (facultatif)"
       },
-      "noSizesForColor": "Aucune taille pour cette couleur."
+      "noSizesForColor": "Aucune taille pour cette couleur.",
+      "sizeGuide": "Guide des tailles",
+      "openSizeGuide": "Ouvrir le guide des tailles"
     }
   },
   "auth": {
@@ -786,6 +788,25 @@
         "count": "{n} produit(s)",
         "rename": "Renommer",
         "deleteConfirm": "Supprimer cette catégorie de {n} produit(s) ?"
+      },
+      "sizeGuides": {
+        "button": "Guides des tailles",
+        "title": "Guides des tailles",
+        "hint": "Importez des fichiers de guide des tailles, puis assignez-les aux produits.",
+        "add": "Ajouter un guide",
+        "namePlaceholder": "Nom du guide (ex. Tailles Nike)",
+        "upload": "Importer",
+        "view": "Voir",
+        "replace": "Remplacer le fichier",
+        "rename": "Renommer",
+        "empty": "Aucun guide pour l'instant.",
+        "deleteConfirm": "Supprimer ce guide ? Il sera retiré de tous les produits.",
+        "assignTitle": "Guides des tailles",
+        "assignHint": "Assignez un ou plusieurs guides à ce produit.",
+        "assignEmpty": "Aucun guide disponible. Créez-en depuis « Guides des tailles ».",
+        "errors": {
+          "nameAndFile": "Indiquez un nom et choisissez un fichier."
+        }
       },
       "image": "Images du produit",
       "gallery": {

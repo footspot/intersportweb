@@ -51,6 +51,15 @@ export interface ProductImage {
   color_id: string | null
 }
 
+// * A brand size guide (chart) — a named file (image/PDF) uploaded by an admin
+// * and assignable to many products. Stored in the `size-guides` bucket.
+export interface SizeGuide {
+  id: string
+  name: string
+  file_path: string
+  file_type: string | null
+}
+
 // * A paid add-on the seller defines per product (name + price). Free-form,
 // * dynamic count — distinct from the structured flocking options.
 export interface ProductOption {
@@ -107,11 +116,13 @@ export interface Product {
   options: ProductOption[]
   // * Ordered color variants (by position). Empty when the product has no colors.
   colors: ProductColor[]
+  // * Size guides assigned to this product (ordered). Empty when none assigned.
+  size_guides: SizeGuide[]
 }
 
 export type ProductPayload = Omit<
   Product,
-  'id' | 'created_at' | 'variants' | 'bundle_components' | 'images' | 'options' | 'colors'
+  'id' | 'created_at' | 'variants' | 'bundle_components' | 'images' | 'options' | 'colors' | 'size_guides'
 > & {
   id?: string
   variants?: Array<
@@ -125,6 +136,9 @@ export type ProductPayload = Omit<
   options?: Array<{ name: string; price: number; allow_custom_input?: boolean; input_label?: string | null }>
   colors?: ColorPayload[]
   image_slots?: ImageSlot[]
+  // * Ids of size guides assigned to this product. Omit on PUT to leave the
+  // * existing set untouched; pass [] to clear it.
+  size_guide_ids?: string[]
 }
 
 interface ProductState {
@@ -149,6 +163,18 @@ function sortColors(colors: ProductColor[] | null | undefined): ProductColor[] {
   return [...(colors ?? [])].sort((a, b) => a.position - b.position)
 }
 
+// * Flatten the size-guide join rows (`size_guide_links: [{ position, guide }]`)
+// * into an ordered SizeGuide[]. Tolerates the field being absent.
+function flattenSizeGuides(raw: any): SizeGuide[] {
+  const links = raw?.size_guide_links ?? raw?.size_guides
+  if (!Array.isArray(links)) return []
+  return links
+    .map((l: any) => ({ position: l.position ?? 0, guide: l.guide ?? l }))
+    .filter((l: any) => l.guide?.id)
+    .sort((a: any, b: any) => a.position - b.position)
+    .map((l: any) => l.guide as SizeGuide)
+}
+
 function enrich(p: Product): Product {
   return {
     ...p,
@@ -157,6 +183,7 @@ function enrich(p: Product): Product {
     images: sortImages(p.images),
     options: sortOptions(p.options),
     colors: sortColors(p.colors),
+    size_guides: flattenSizeGuides(p),
   }
 }
 
@@ -203,7 +230,7 @@ export const useProductsStore = defineStore('products', {
         const { data, error } = await client
           .from('products')
           .select(
-            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position, allow_custom_input, input_label), colors:product_colors(id, name, hex, position)',
+            '*, variants:product_variants(*), bundle_components!bundle_components_bundle_product_id_fkey(*), images:product_images(id, image_path, position, color_id), options:product_options(id, name, price, position, allow_custom_input, input_label), colors:product_colors(id, name, hex, position), size_guide_links:product_size_guides(position, guide:size_guides(id, name, file_path, file_type))',
           )
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: false })
