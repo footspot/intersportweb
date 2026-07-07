@@ -4,6 +4,13 @@
 // * recovery session — deliberately NOT routed through /confirm, which tears
 // * down back-office sessions (that page is the customer magic-link surface).
 // *
+// * The email template links here with `?token_hash={{ .TokenHash }}&type=recovery`
+// * and this page consumes it via verifyOtp — no PKCE flow state, so the link
+// * works from any browser/device (not just the one that requested the reset)
+// * and isn't invalidated by requesting a second reset. The legacy
+// * `{{ .ConfirmationURL }}` flow (session exchanged by the auth module after
+// * mount) still works as a fallback.
+// *
 // * A recovery session carries no "password" amr, so _shared/auth.ts keeps it
 // * away from every admin/employee edge function; all this session can do is
 // * set a new password. Accounts with 2FA enrolled must clear their TOTP code
@@ -79,11 +86,24 @@ watchEffect(() => {
   if (user.value?.id) init()
 })
 
-onMounted(() => {
+onMounted(async () => {
   if (linkHasError()) {
     step.value = 'invalid'
     initialized = true
     return
+  }
+  // * token_hash flow: consume the OTP here, on this page's own JS — immune to
+  // * email-scanner prefetches and to the PKCE same-browser constraint.
+  const tokenHash = typeof route.query.token_hash === 'string' ? route.query.token_hash : null
+  if (tokenHash) {
+    const { error } = await client.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash })
+    if (error && !initialized) {
+      step.value = 'invalid'
+      initialized = true
+      return
+    }
+    // * Success: the recovery session lands in useSupabaseUser() and the
+    // * watchEffect above runs init(). Timeout below stays as a safety net.
   }
   setTimeout(() => {
     if (step.value === 'checking' && !initialized) step.value = 'invalid'
