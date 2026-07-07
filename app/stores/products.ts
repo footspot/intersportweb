@@ -2,6 +2,7 @@
 // * and drives admin CRUD.
 import { defineStore } from 'pinia'
 import { invokeEdge } from '~/composables/useEdgeFunction'
+import { sortVariantsForDisplay } from '~/utils/sizeOrder'
 import type { DiscountSource } from '~/composables/usePricingPreview'
 
 export type FlockingKind = 'none' | 'members' | 'supporters'
@@ -25,6 +26,8 @@ export interface Variant {
   footspot_size: FootspotSize | null
   // * Null when the product has no colors. Otherwise points at a product_colors row.
   color_id: string | null
+  // * Display order set by the admin (top-to-bottom in the product form).
+  position: number
 }
 
 // * A color variant of a product: display name + hex (from the admin color
@@ -178,7 +181,8 @@ function flattenSizeGuides(raw: any): SizeGuide[] {
 function enrich(p: Product): Product {
   return {
     ...p,
-    variants: p.variants ?? [],
+    // * Admin-defined display order (position), canonical size order fallback.
+    variants: sortVariantsForDisplay(p.variants),
     bundle_components: p.bundle_components ?? [],
     images: sortImages(p.images),
     options: sortOptions(p.options),

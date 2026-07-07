@@ -440,6 +440,24 @@
       "verify": "Vérifier",
       "useAnother": "Se connecter avec un autre compte",
       "invalidCode": "Code invalide ou expiré. Réessayez."
+    },
+    "forgot": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Recevez un lien de réinitialisation par email.",
+      "send": "Envoyer le lien",
+      "sent": "Si un compte existe pour {email}, un lien de réinitialisation vient d'être envoyé.",
+      "back": "Retour à la connexion"
+    },
+    "reset": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+      "newPassword": "Nouveau mot de passe",
+      "submit": "Réinitialiser",
+      "done": "Mot de passe mis à jour. Connectez-vous.",
+      "tooShort": "8 caractères minimum.",
+      "invalidTitle": "Lien invalide ou expiré",
+      "invalidBody": "Demandez un nouveau lien depuis la page de connexion.",
+      "backToLogin": "Retour à la connexion"
     }
   },
   "account": {
@@ -924,7 +942,11 @@
         "footspotNotSynced": "Non synchronisée",
         "color": "Couleur",
         "colorNone": "Aucune",
-        "replicate": "Dupliquer les tailles sur toutes les couleurs"
+        "replicate": "Dupliquer les tailles sur toutes les couleurs",
+        "orderHint": "L'ordre haut → bas est celui affiché sur la page produit.",
+        "sortAuto": "Trier (XS → XXL)",
+        "moveUp": "Monter",
+        "moveDown": "Descendre"
       },
       "flocking": {
         "title": "Flocage",

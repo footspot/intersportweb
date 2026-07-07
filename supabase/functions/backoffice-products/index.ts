@@ -641,6 +641,7 @@ async function duplicateProduct(
         sku: null,
         footspot_size: v.footspot_size ?? null,
         color_id: v.color_id ? colorIdMap.get(v.color_id) ?? null : null,
+        position: v.position ?? 0,
       }))
       if (rows.length) {
         const { error } = await sb.from('product_variants').insert(rows)
@@ -838,14 +839,16 @@ Deno.serve(async (req) => {
             components.map((c) => c.component_product_id),
           )
         } else {
+          // * Array order = display order on the product page (position).
           const { error: vErr } = await sb.from('product_variants').insert(
-            variants.map((v) => ({
+            variants.map((v, i) => ({
               product_id: product.id,
               size: v.size,
               stock: v.stock,
               sku: v.sku ?? null,
               footspot_size: v.footspot_size ?? null,
               color_id: v.color_key ? keyToId.get(v.color_key) ?? null : null,
+              position: i,
             })),
           )
           if (vErr) throw vErr
@@ -1034,13 +1037,15 @@ Deno.serve(async (req) => {
           if (existErr) throw existErr
 
           const keepIds = new Set<string>()
-          for (const v of variants) {
+          // * Array order = display order on the product page (position).
+          for (const [i, v] of variants.entries()) {
             const row = {
               size: v.size,
               stock: v.stock,
               sku: v.sku ?? null,
               footspot_size: v.footspot_size ?? null,
               color_id: v.color_key ? keyToId.get(v.color_key) ?? null : null,
+              position: i,
             }
             if (v.id) {
               keepIds.add(v.id)

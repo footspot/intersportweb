@@ -440,6 +440,24 @@
       "verify": "Verify",
       "useAnother": "Sign in with a different account",
       "invalidCode": "Invalid or expired code. Try again."
+    },
+    "forgot": {
+      "title": "Forgot password",
+      "subtitle": "Get a reset link by email.",
+      "send": "Send link",
+      "sent": "If an account exists for {email}, a reset link has been sent.",
+      "back": "Back to sign-in"
+    },
+    "reset": {
+      "title": "New password",
+      "subtitle": "Choose a new password for your account.",
+      "newPassword": "New password",
+      "submit": "Reset password",
+      "done": "Password updated. Sign in.",
+      "tooShort": "Minimum 8 characters.",
+      "invalidTitle": "Invalid or expired link",
+      "invalidBody": "Request a new link from the sign-in page.",
+      "backToLogin": "Back to sign-in"
     }
   },
   "account": {
@@ -924,7 +942,11 @@
         "footspotNotSynced": "Not synced",
         "color": "Color",
         "colorNone": "None",
-        "replicate": "Replicate sizes to all colors"
+        "replicate": "Replicate sizes to all colors",
+        "orderHint": "Top-to-bottom order is the order shown on the product page.",
+        "sortAuto": "Sort (XS → XXL)",
+        "moveUp": "Move up",
+        "moveDown": "Move down"
       },
       "flocking": {
         "title": "Flocking",

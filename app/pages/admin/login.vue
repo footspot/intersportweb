@@ -13,13 +13,18 @@ const { t } = useI18n()
 const client = useSupabaseClient()
 const auth = useAuthStore()
 
-type Step = 'credentials' | 'mfa'
+type Step = 'credentials' | 'mfa' | 'forgot'
 const step = ref<Step>('credentials')
 
 const email = ref('')
 const password = ref('')
 const errorMsg = ref<string | null>(null)
+const successMsg = ref<string | null>(null)
 const loading = ref(false)
+
+// * Forgot-password state — the link emails a recovery URL that lands on
+// * /admin/reset-password (NOT /confirm, which tears down back-office sessions).
+const forgotSent = ref(false)
 
 // * MFA challenge state
 const mfaFactorId = ref<string | null>(null)
@@ -63,14 +68,50 @@ onMounted(async () => {
   if (route.query.error === 'use_admin_login') {
     errorMsg.value = t('auth.errors.useAdminLogin')
   }
+  // * Back from a completed password reset on /admin/reset-password.
+  if (route.query.reset === 'success') {
+    successMsg.value = t('auth.reset.done')
+  }
   const { data } = await client.auth.mfa.getAuthenticatorAssuranceLevel()
   if (data?.currentLevel === 'aal1' && data?.nextLevel === 'aal2') {
     await enterMfaStep()
   }
 })
 
+// * Send the password-recovery email. Success copy is deliberately vague
+// * ("if an account exists…") so the form can't be used to probe for emails.
+async function onSendReset() {
+  errorMsg.value = null
+  loading.value = true
+  try {
+    const { error } = await client.auth.resetPasswordForEmail(email.value.trim(), {
+      redirectTo: `${window.location.origin}/admin/reset-password`,
+    })
+    if (error) throw error
+    forgotSent.value = true
+  } catch (err: any) {
+    errorMsg.value = err?.message || t('auth.errors.generic')
+  } finally {
+    loading.value = false
+  }
+}
+
+function openForgot() {
+  errorMsg.value = null
+  successMsg.value = null
+  forgotSent.value = false
+  step.value = 'forgot'
+}
+
+function backToCredentials() {
+  errorMsg.value = null
+  forgotSent.value = false
+  step.value = 'credentials'
+}
+
 async function onSubmit() {
   errorMsg.value = null
+  successMsg.value = null
   loading.value = true
   try {
     const { data, error } = await client.auth.signInWithPassword({
@@ -185,6 +226,7 @@ async function cancelMfa() {
       </label>
 
       <p v-if="errorMsg" class="text-sm text-brand-secondary">{{ errorMsg }}</p>
+      <p v-if="successMsg" class="text-sm text-emerald-400">{{ successMsg }}</p>
 
       <button
         type="submit"
@@ -194,6 +236,62 @@ async function cancelMfa() {
         {{ loading ? t('common.loading') : t('auth.signIn') }}
       </button>
 
+      <button
+        type="button"
+        class="w-full text-xs text-center text-gray-400 hover:text-gray-200"
+        @click="openForgot"
+      >
+        {{ t('auth.forgotPassword') }}
+      </button>
+
+    </form>
+
+    <!-- Forgot password — email a recovery link -->
+    <form
+      v-else-if="step === 'forgot'"
+      class="w-full max-w-md space-y-4 bg-sidebar-surface rounded-card shadow-card-md p-8 border border-sidebar"
+      @submit.prevent="onSendReset"
+    >
+      <div class="text-center">
+        <UIcon name="i-lucide-key-round" class="w-8 h-8 text-brand-primary mx-auto" />
+        <h1 class="font-heading text-2xl font-bold mt-2">{{ t('auth.forgot.title') }}</h1>
+        <p class="text-sm text-gray-400">{{ t('auth.forgot.subtitle') }}</p>
+      </div>
+
+      <template v-if="!forgotSent">
+        <label class="block">
+          <span class="text-sm font-medium">{{ t('auth.email') }}</span>
+          <input
+            v-model="email"
+            type="email"
+            required
+            autocomplete="email"
+            class="mt-1 w-full px-3 py-2 rounded-lg border border-sidebar bg-sidebar text-gray-100 focus:ring-2 focus:ring-brand-primary focus:outline-none"
+          />
+        </label>
+
+        <p v-if="errorMsg" class="text-sm text-brand-secondary">{{ errorMsg }}</p>
+
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full py-2.5 rounded-card bg-brand-primary text-white font-medium hover:bg-brand-primary-dark disabled:opacity-60"
+        >
+          {{ loading ? t('common.loading') : t('auth.forgot.send') }}
+        </button>
+      </template>
+
+      <p v-else class="text-sm text-emerald-400 text-center">
+        {{ t('auth.forgot.sent', { email }) }}
+      </p>
+
+      <button
+        type="button"
+        class="w-full text-xs text-center text-gray-400 hover:text-gray-200"
+        @click="backToCredentials"
+      >
+        {{ t('auth.forgot.back') }}
+      </button>
     </form>
 
     <!-- Step 2 — 2FA code -->

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 // * Dynamic size/stock/SKU rows. Packs use `BundleComponentsEditor` instead —
 // * this editor is only used for regular (non-pack) products.
+// * Row order = display order of the size pills on the product page: rows can
+// * be moved with the ▲▼ arrows or auto-sorted in canonical order (XS → XXL).
+import { compareSizes } from '~/utils/sizeOrder'
 import type { FootspotSize } from '~/stores/products'
 import type { DraftColor } from './ProductColorsEditor.vue'
 
@@ -39,12 +42,12 @@ const hasColors = computed(() => props.colors.length > 0)
 const gridCols = computed(() => {
   if (hasColors.value) {
     return props.footspotEnabled
-      ? 'grid-cols-[130px_0.5fr_110px_1fr_140px_32px]'
-      : 'grid-cols-[130px_0.5fr_140px_1fr_32px]'
+      ? 'grid-cols-[22px_130px_0.5fr_110px_1fr_140px_32px]'
+      : 'grid-cols-[22px_130px_0.5fr_140px_1fr_32px]'
   }
   return props.footspotEnabled
-    ? 'grid-cols-[0.5fr_110px_1fr_140px_32px]'
-    : 'grid-cols-[0.5fr_140px_1fr_32px]'
+    ? 'grid-cols-[22px_0.5fr_110px_1fr_140px_32px]'
+    : 'grid-cols-[22px_0.5fr_140px_1fr_32px]'
 })
 
 function update(next: DraftVariant[]) {
@@ -61,6 +64,22 @@ function removeRow(i: number) {
   const next = [...props.modelValue]
   next.splice(i, 1)
   update(next)
+}
+
+// * Move a row up/down — the top-to-bottom order here is the order the size
+// * pills appear in on the storefront product page.
+function moveRow(i: number, dir: -1 | 1) {
+  const j = i + dir
+  if (j < 0 || j >= props.modelValue.length) return
+  const next = [...props.modelValue]
+  const [row] = next.splice(i, 1)
+  next.splice(j, 0, row!)
+  update(next)
+}
+
+// * One-click canonical ordering (4XS → 5XL, then numeric sizes ascending).
+function sortRowsAuto() {
+  update([...props.modelValue].sort((a, b) => compareSizes(a.size, b.size)))
 }
 
 // * Ensure every defined color carries the same set of sizes. Existing rows are
@@ -90,6 +109,11 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
 <template>
   <div>
     <span class="text-sm font-medium">{{ t('admin.products.variants.title') }}</span>
+    <!-- * Tell the admin the row order drives the storefront size order. -->
+    <p class="mt-0.5 text-xs text-gray-500 flex items-center gap-1">
+      <UIcon name="i-lucide-info" class="w-3.5 h-3.5 shrink-0" />
+      {{ t('admin.products.variants.orderHint') }}
+    </p>
 
     <div
       v-if="modelValue.length === 0"
@@ -100,6 +124,7 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
 
     <div v-else class="mt-2 space-y-2">
       <div class="grid gap-2 text-xs uppercase tracking-wider text-gray-500" :class="gridCols">
+        <div></div>
         <div v-if="hasColors" class="px-2">{{ t('admin.products.variants.color') }}</div>
         <div class="px-3">{{ t('admin.products.variants.size') }}</div>
         <div class="px-3">{{ t('admin.products.variants.stock') }}</div>
@@ -113,6 +138,27 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
         class="grid gap-2 items-center"
         :class="gridCols"
       >
+        <!-- * ▲▼ reorder — top-to-bottom = size order on the product page. -->
+        <div class="flex flex-col items-center">
+          <button
+            type="button"
+            class="p-0.5 rounded text-gray-400 hover:text-brand-primary disabled:opacity-30 disabled:hover:text-gray-400"
+            :disabled="i === 0"
+            :aria-label="t('admin.products.variants.moveUp')"
+            @click="moveRow(i, -1)"
+          >
+            <UIcon name="i-lucide-chevron-up" class="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            class="p-0.5 rounded text-gray-400 hover:text-brand-primary disabled:opacity-30 disabled:hover:text-gray-400"
+            :disabled="i === modelValue.length - 1"
+            :aria-label="t('admin.products.variants.moveDown')"
+            @click="moveRow(i, 1)"
+          >
+            <UIcon name="i-lucide-chevron-down" class="w-4 h-4" />
+          </button>
+        </div>
         <div v-if="hasColors" class="relative">
           <select
             :value="v.color_key ?? ''"
@@ -184,6 +230,16 @@ function setField<K extends keyof DraftVariant>(i: number, key: K, value: DraftV
       >
         <UIcon name="i-lucide-plus" class="w-4 h-4" />
         <span>{{ t('admin.products.variants.add') }}</span>
+      </button>
+      <!-- * One-click canonical size ordering (XS → XXL, numeric ascending). -->
+      <button
+        v-if="modelValue.length > 1"
+        type="button"
+        class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-sidebar transition-colors"
+        @click="sortRowsAuto"
+      >
+        <UIcon name="i-lucide-arrow-down-narrow-wide" class="w-4 h-4" />
+        <span>{{ t('admin.products.variants.sortAuto') }}</span>
       </button>
       <!-- * Shortcut to copy the typed size list onto every color (per-color stock). -->
       <button
