@@ -20,7 +20,11 @@ definePageMeta({ layout: 'auth' })
 
 const { t } = useI18n()
 const client = useSupabaseClient()
-const user = useSupabaseUser()
+// * useSupabaseSession, NOT useSupabaseUser: with SSR cookies + asymmetric JWT
+// * keys the user ref holds raw JWT *claims* (`sub`, no `id`), so `user.id` is
+// * undefined and any gate on it never opens. The session ref carries the full
+// * user object and is set synchronously on every auth event.
+const session = useSupabaseSession()
 const route = useRoute()
 
 type Step = 'checking' | 'mfa' | 'form' | 'invalid'
@@ -57,7 +61,7 @@ async function init() {
   const { data: profile } = await client
     .from('profiles')
     .select('role')
-    .eq('id', user.value!.id)
+    .eq('id', session.value!.user.id)
     .single()
   const role = (profile as { role?: string } | null)?.role
   if (role !== 'admin' && role !== 'employee') {
@@ -80,10 +84,11 @@ async function init() {
   step.value = 'form'
 }
 
-// * The recovery session appears asynchronously (the module exchanges the URL
-// * code after mount). Wait for it; give up after a few seconds → invalid link.
+// * The recovery session appears asynchronously (verifyOtp in onMounted, or
+// * the module's code exchange on the legacy link). Wait for it; give up after
+// * a few seconds → invalid link.
 watchEffect(() => {
-  if (user.value?.id) init()
+  if (session.value?.user?.id) init()
 })
 
 onMounted(async () => {
