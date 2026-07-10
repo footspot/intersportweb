@@ -2,10 +2,13 @@
 import type { Club } from '~/stores/clubs'
 import type { Product } from '~/stores/products'
 
-export type Period = '7d' | '30d' | '90d' | '12m'
+export type Period = '7d' | '30d' | '90d' | '12m' | 'custom'
 
 interface Props {
   period: Period
+  // * Custom range bounds ('YYYY-MM-DD'), used when period === 'custom'.
+  dateFrom: string
+  dateTo: string
   clubId: string | null
   category: string | null
   productId: string | null
@@ -19,6 +22,8 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'update:period', v: Period): void
+  (e: 'update:dateFrom', v: string): void
+  (e: 'update:dateTo', v: string): void
   (e: 'update:clubId', v: string | null): void
   (e: 'update:category', v: string | null): void
   (e: 'update:productId', v: string | null): void
@@ -27,7 +32,13 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const periods: Period[] = ['7d', '30d', '90d', '12m']
+const periods: Period[] = ['7d', '30d', '90d', '12m', 'custom']
+
+// * Today in local time, for the date inputs' max attribute.
+const today = computed(() => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
 
 // * Searchable product picker — input + dropdown.
 const productQuery = ref('')
@@ -109,6 +120,31 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
         </button>
       </div>
     </div>
+
+    <!-- * Custom range pickers — only when the custom period is active -->
+    <template v-if="props.period === 'custom'">
+      <div>
+        <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.from') }}</span>
+        <input
+          :value="props.dateFrom"
+          type="date"
+          :max="props.dateTo || today"
+          class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
+          @change="emit('update:dateFrom', ($event.target as HTMLInputElement).value)"
+        />
+      </div>
+      <div>
+        <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.to') }}</span>
+        <input
+          :value="props.dateTo"
+          type="date"
+          :min="props.dateFrom || undefined"
+          :max="today"
+          class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
+          @change="emit('update:dateTo', ($event.target as HTMLInputElement).value)"
+        />
+      </div>
+    </template>
 
     <div class="min-w-40">
       <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.club') }}</span>

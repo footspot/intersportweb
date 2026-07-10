@@ -98,6 +98,55 @@ const canDownloadInvoice = computed(() => {
   return s && ['paid', 'partially_refunded', 'shipped', 'delivered', 'refunded'].includes(s)
 })
 
+// * Bon de commande — internal picking PDF (items + flocking/options + delivery).
+const purchaseOrderLoading = ref(false)
+const purchaseOrderError = ref<string | null>(null)
+
+async function downloadPurchaseOrder() {
+  if (!detail.value) return
+  purchaseOrderLoading.value = true
+  purchaseOrderError.value = null
+  try {
+    const { data, error } = await invokeEdge<{ signed_url: string }>('generate-purchase-order', {
+      method: 'POST',
+      body: { order_id: detail.value.id, locale: 'fr' },
+    })
+    if (error) throw new Error(error.message)
+    if (data?.signed_url) window.open(data.signed_url, '_blank')
+  } catch (err) {
+    purchaseOrderError.value = edgeErrorMessage(err)
+  } finally {
+    purchaseOrderLoading.value = false
+  }
+}
+
+// * Delivery address block — shape depends on the delivery method.
+const deliveryAddressLines = computed<string[]>(() => {
+  const o = detail.value
+  if (!o) return []
+  if (o.delivery_method === 'colissimo') {
+    const a = o.shipping_address ?? {}
+    return [
+      a.full_name,
+      a.line1,
+      a.line2,
+      `${a.postal_code ?? ''} ${a.city ?? ''}`.trim(),
+      a.country,
+      a.phone,
+    ].filter(Boolean)
+  }
+  if (o.delivery_method === 'shop_pickup' && o.shop) {
+    return [
+      o.shop.name,
+      o.shop.address,
+      `${o.shop.postal_code ?? ''} ${o.shop.city ?? ''}`.trim(),
+      o.shop.phone,
+    ].filter(Boolean) as string[]
+  }
+  // * club_pickup — the club itself is the pickup point.
+  return [o.club?.name].filter(Boolean) as string[]
+})
+
 const labelLoading = ref(false)
 const labelError = ref<string | null>(null)
 async function openLabel() {
@@ -248,9 +297,20 @@ const trackingUrl = computed(() => {
           <div class="flex justify-between font-heading text-lg font-bold pt-1"><span>{{ t('admin.orders.detail.total') }}</span><span>{{ fmt(detail.total) }}</span></div>
         </section>
 
-        <!-- Shipping -->
-        <section v-if="detail.shipping_tracking || detail.shipped_at" class="text-sm space-y-1">
+        <!-- Delivery method + address -->
+        <section class="text-sm space-y-1">
           <h4 class="font-heading font-bold">{{ t('admin.orders.detail.shippingSection') }}</h4>
+          <div class="flex items-center gap-1.5 text-brand-primary font-medium">
+            <UIcon
+              :name="detail.delivery_method === 'colissimo' ? 'i-lucide-truck' : detail.delivery_method === 'club_pickup' ? 'i-lucide-building' : 'i-lucide-store'"
+              class="w-4 h-4"
+            />
+            {{ t(`admin.orders.delivery.${detail.delivery_method}`) }}
+          </div>
+          <div v-if="deliveryAddressLines.length" class="text-gray-600 dark:text-gray-300">
+            <div class="text-xs text-gray-500">{{ t('admin.orders.detail.deliveryAddress') }}</div>
+            <div v-for="(l, li) in deliveryAddressLines" :key="li">{{ l }}</div>
+          </div>
           <div v-if="detail.shipping_tracking">
             <span class="text-gray-500">{{ t('admin.orders.detail.tracking') }}:</span>
             <a :href="trackingUrl" target="_blank" class="text-brand-primary hover:underline ml-1 font-mono">
@@ -294,10 +354,7 @@ const trackingUrl = computed(() => {
           </div>
         </section>
 
-        <section
-          v-if="canDownloadInvoice || detail.label_pdf_path"
-          class="border-t border-gray-100 dark:border-sidebar pt-4 flex flex-wrap gap-2"
-        >
+        <section class="border-t border-gray-100 dark:border-sidebar pt-4 flex flex-wrap gap-2">
           <button
             v-if="canDownloadInvoice"
             type="button"
@@ -318,8 +375,18 @@ const trackingUrl = computed(() => {
             <UIcon name="i-lucide-printer" class="w-4 h-4" />
             {{ labelLoading ? t('common.loading') : t('admin.orders.detail.openLabel') }}
           </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-primary/10 text-brand-primary text-xs font-medium hover:bg-brand-primary/20 disabled:opacity-60"
+            :disabled="purchaseOrderLoading"
+            @click="downloadPurchaseOrder"
+          >
+            <UIcon name="i-lucide-clipboard-list" class="w-4 h-4" />
+            {{ purchaseOrderLoading ? t('common.loading') : t('admin.orders.detail.purchaseOrder') }}
+          </button>
           <p v-if="invoiceError" class="basis-full text-xs text-brand-secondary">{{ invoiceError }}</p>
           <p v-if="labelError" class="basis-full text-xs text-brand-secondary">{{ labelError }}</p>
+          <p v-if="purchaseOrderError" class="basis-full text-xs text-brand-secondary">{{ purchaseOrderError }}</p>
         </section>
       </div>
     </aside>

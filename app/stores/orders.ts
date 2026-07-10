@@ -70,6 +70,24 @@ export interface OrderItem {
   }[]
 }
 
+// * Internal back-office comment — read/written only via backoffice-orders/comments
+// * (the table has no client grants), never visible on the shop side.
+export interface OrderComment {
+  id: string
+  order_id: string
+  author_id: string | null
+  author_name: string
+  staff_name: string | null
+  body: string
+  created_at: string
+}
+
+export interface StaffOption {
+  id: string
+  name: string
+  role: 'admin' | 'employee'
+}
+
 export interface Refund {
   id: string
   order_id: string
@@ -107,6 +125,8 @@ export interface Order {
   delivery_method: 'colissimo' | 'club_pickup' | 'shop_pickup'
   pickup_shop_id: string | null
   club?: { name: string } | null
+  // * Pickup shop join — populated on detail fetches for shop_pickup orders.
+  shop?: { name: string; address: string; postal_code: string; city: string; phone: string | null } | null
   items?: OrderItem[]
   refunds?: Refund[]
 }
@@ -164,7 +184,7 @@ export const useOrdersStore = defineStore('orders', {
       const { data, error } = await client
         .from('orders')
         .select(
-          '*, club:clubs(name),' +
+          '*, club:clubs(name), shop:intersport_shops(name,address,postal_code,city,phone),' +
             'items:order_items(*, product:products(name,reference,weight_grams,images:product_images(image_path,position)),' +
               'components:order_item_components(axis, product:products(name), variant:product_variants(size))),' +
             'refunds(*)',
@@ -202,6 +222,33 @@ export const useOrdersStore = defineStore('orders', {
       if (error) throw new Error(error.message)
       if (data?.order) this.upsert(data.order)
       return data?.order
+    },
+
+    // * Internal comments — all through the edge function (no client grants).
+    async fetchComments(orderId: string) {
+      const { data, error } = await invokeEdge<{ comments: OrderComment[]; staff: StaffOption[] }>(
+        'backoffice-orders/comments',
+        { method: 'GET', query: { order_id: orderId } },
+      )
+      if (error) throw new Error(error.message)
+      return { comments: data?.comments ?? [], staff: data?.staff ?? [] }
+    },
+
+    async addComment(orderId: string, body: string, staffName: string | null) {
+      const { data, error } = await invokeEdge<{ comment: OrderComment }>('backoffice-orders/comments', {
+        method: 'POST',
+        body: { order_id: orderId, body, staff_name: staffName },
+      })
+      if (error) throw new Error(error.message)
+      return data?.comment ?? null
+    },
+
+    async deleteComment(id: string) {
+      const { error } = await invokeEdge<{ ok: true }>('backoffice-orders/comments', {
+        method: 'DELETE',
+        query: { id },
+      })
+      if (error) throw new Error(error.message)
     },
 
     async refundLines(

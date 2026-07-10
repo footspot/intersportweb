@@ -1103,7 +1103,30 @@
       "actions": {
         "tracking": "Colissimo tracking",
         "detail": "Details",
-        "refund": "Refund"
+        "refund": "Refund",
+        "comments": "Internal comments"
+      },
+      "clubFilter": {
+        "all": "All clubs"
+      },
+      "deliveryFilter": {
+        "all": "All deliveries",
+        "colissimo": "Colissimo",
+        "club_pickup": "Club pickup",
+        "shop_pickup": "Shop pickup"
+      },
+      "delivery": {
+        "colissimo": "Home delivery (Colissimo)",
+        "club_pickup": "Club pickup",
+        "shop_pickup": "Intersport shop pickup"
+      },
+      "comments": {
+        "title": "Comments — {n}",
+        "internalHint": "Internal notes, never visible on the shop side.",
+        "placeholder": "Add a comment…",
+        "noStaff": "— Staff member (optional) —",
+        "add": "Add",
+        "empty": "No comments on this order."
       },
       "sound": {
         "title": "Order sound",
@@ -1156,7 +1179,9 @@
         "changeStatus": "Change status",
         "downloadInvoice": "Download invoice",
         "openLabel": "Label (print)",
-        "options": "Options"
+        "options": "Options",
+        "purchaseOrder": "Purchase order",
+        "deliveryAddress": "Address"
       }
     },
     "fund": {
@@ -1822,6 +1847,9 @@
         "30d": "30 days",
         "90d": "90 days",
         "12m": "12 months",
+        "custom": "Custom",
+        "from": "From",
+        "to": "To",
         "club": "Club",
         "allClubs": "All",
         "category": "Category",
@@ -1869,7 +1897,8 @@
       "confirmPickup": "Confirm pickup",
       "shop": "Shop",
       "club": "Club",
-      "noPickups": "No pickups to manage right now."
+      "noPickups": "No pickups to manage right now.",
+      "allClubs": "All clubs"
     },
     "entryCards": {
       "title": "Home cards",

@@ -16,6 +16,7 @@ interface PickupRow {
   order_number: string
   status: string
   delivery_method: string
+  club_id: string | null
   ready_for_pickup_at: string | null
   picked_up_at: string | null
   guest_email: string | null
@@ -37,7 +38,7 @@ async function fetchAll() {
   let q = client
     .from('orders')
     .select(
-      'id, order_number, status, delivery_method, ready_for_pickup_at, picked_up_at, guest_email, guest_first_name, guest_last_name, shipping_address, club:clubs(name), shop:intersport_shops(name, city)',
+      'id, order_number, status, delivery_method, club_id, ready_for_pickup_at, picked_up_at, guest_email, guest_first_name, guest_last_name, shipping_address, club:clubs(name), shop:intersport_shops(name, city)',
     )
     .in('delivery_method', ['club_pickup', 'shop_pickup'])
 
@@ -51,6 +52,21 @@ async function fetchAll() {
 }
 watch(tab, fetchAll)
 await useAsyncData('admin-pickups', fetchAll)
+
+// * Club filter — options derived from the loaded rows of the current tab.
+const clubFilter = ref<string>('all')
+const clubOptions = computed(() => {
+  const map = new Map<string, string>()
+  for (const r of rows.value) {
+    if (r.club_id && r.club?.name) map.set(r.club_id, r.club.name)
+  }
+  return [...map.entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+const filteredRows = computed(() =>
+  clubFilter.value === 'all' ? rows.value : rows.value.filter((r) => r.club_id === clubFilter.value),
+)
 
 function fmtDate(iso: string | null) {
   if (!iso) return '—'
@@ -90,17 +106,24 @@ function customerName(r: PickupRow) {
   <section class="px-4 py-6 max-w-6xl mx-auto space-y-4">
     <h1 class="font-heading text-2xl font-bold">{{ t('admin.pickups.title') }}</h1>
 
-    <div class="flex gap-2 text-sm">
+    <div class="flex flex-wrap items-center gap-2 text-sm">
       <button :class="tab === 'prep'      ? 'bg-brand-primary text-white' : 'bg-gray-100 dark:bg-sidebar text-gray-600'" class="px-3 py-2 rounded-lg" @click="tab = 'prep'">{{ t('admin.pickups.awaitingPrep') }}</button>
       <button :class="tab === 'awaiting'  ? 'bg-brand-primary text-white' : 'bg-gray-100 dark:bg-sidebar text-gray-600'" class="px-3 py-2 rounded-lg" @click="tab = 'awaiting'">{{ t('admin.pickups.awaitingPickup') }}</button>
       <button :class="tab === 'pickedup'  ? 'bg-brand-primary text-white' : 'bg-gray-100 dark:bg-sidebar text-gray-600'" class="px-3 py-2 rounded-lg" @click="tab = 'pickedup'">{{ t('admin.pickups.pickedUp') }}</button>
+      <select
+        v-model="clubFilter"
+        class="ml-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
+      >
+        <option value="all">{{ t('admin.pickups.allClubs') }}</option>
+        <option v-for="c in clubOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
+      </select>
     </div>
 
     <p v-if="flash" :class="flash.kind === 'ok' ? 'text-brand-primary' : 'text-brand-secondary'" class="text-sm">{{ flash.msg }}</p>
 
     <div class="bg-white dark:bg-sidebar-surface rounded-card shadow-card-sm overflow-hidden">
       <div v-if="loading" class="p-6 text-gray-400 text-sm">…</div>
-      <div v-else-if="rows.length === 0" class="p-6 text-sm text-gray-500 italic">{{ t('admin.pickups.noPickups') }}</div>
+      <div v-else-if="filteredRows.length === 0" class="p-6 text-sm text-gray-500 italic">{{ t('admin.pickups.noPickups') }}</div>
       <table v-else class="w-full text-sm">
         <thead class="bg-gray-50 dark:bg-sidebar/40 text-xs uppercase text-gray-500">
           <tr>
@@ -112,7 +135,7 @@ function customerName(r: PickupRow) {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-sidebar">
-          <tr v-for="r in rows" :key="r.id">
+          <tr v-for="r in filteredRows" :key="r.id">
             <td class="px-4 py-2 font-mono">{{ r.order_number }}</td>
             <td class="px-4 py-2">{{ customerName(r) }}<br /><span class="text-xs text-gray-500">{{ r.guest_email }}</span></td>
             <td class="px-4 py-2 text-gray-600">

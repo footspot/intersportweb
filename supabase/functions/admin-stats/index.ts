@@ -5,10 +5,14 @@ import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { verifyAdmin } from '../_shared/auth.ts'
 import { serviceClient } from '../_shared/supabase.ts'
 
-type Period = '7d' | '30d' | '90d' | '12m'
+type Period = '7d' | '30d' | '90d' | '12m' | 'custom'
+type Granularity = 'day' | 'month'
 
 interface StatsFilters {
   period?: Period
+  // * Custom range bounds (period === 'custom'), 'YYYY-MM-DD' inclusive.
+  date_from?: string | null
+  date_to?: string | null
   club_id?: string | null
   category?: string | null
   product_id?: string | null
@@ -16,15 +20,33 @@ interface StatsFilters {
   reference?: string | null
 }
 
-function sinceFor(period: Period): Date {
+function parseDay(s: string | null | undefined): Date | null {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null
+  const d = new Date(`${s}T00:00:00`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+// * Resolve the [since, until] window + chart granularity for a filter set.
+// * Custom ranges longer than 120 days switch to monthly buckets so the
+// * series stays readable; an invalid/incomplete custom range falls back to 30d.
+function resolveRange(filters: StatsFilters): { since: Date; until: Date; granularity: Granularity } {
   const now = new Date()
+
+  if (filters.period === 'custom') {
+    let since = parseDay(filters.date_from)
+    let until = parseDay(filters.date_to)
+    if (since && until) {
+      if (since > until) [since, until] = [until, since]
+      until.setHours(23, 59, 59, 999)
+      const days = (until.getTime() - since.getTime()) / 86_400_000
+      return { since, until, granularity: days > 120 ? 'month' : 'day' }
+    }
+  }
+
   const d = new Date(now)
-  switch (period) {
+  switch (filters.period ?? '30d') {
     case '7d':
       d.setDate(now.getDate() - 7)
-      break
-    case '30d':
-      d.setDate(now.getDate() - 30)
       break
     case '90d':
       d.setDate(now.getDate() - 90)
@@ -32,32 +54,32 @@ function sinceFor(period: Period): Date {
     case '12m':
       d.setMonth(now.getMonth() - 12)
       break
+    default:
+      d.setDate(now.getDate() - 30)
   }
-  return d
+  return { since: d, until: now, granularity: filters.period === '12m' ? 'month' : 'day' }
 }
 
-function bucketLabel(d: Date, period: Period): string {
-  if (period === '12m') {
+function bucketLabel(d: Date, granularity: Granularity): string {
+  if (granularity === 'month') {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   }
-  // * Daily buckets for 7d / 30d / 90d
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function enumerateBuckets(since: Date, period: Period): string[] {
+function enumerateBuckets(since: Date, until: Date, granularity: Granularity): string[] {
   const out: string[] = []
   const cursor = new Date(since)
-  const now = new Date()
-  if (period === '12m') {
+  if (granularity === 'month') {
     cursor.setDate(1)
-    while (cursor <= now) {
-      out.push(bucketLabel(cursor, period))
+    while (cursor <= until) {
+      out.push(bucketLabel(cursor, granularity))
       cursor.setMonth(cursor.getMonth() + 1)
     }
   } else {
     cursor.setHours(0, 0, 0, 0)
-    while (cursor <= now) {
-      out.push(bucketLabel(cursor, period))
+    while (cursor <= until) {
+      out.push(bucketLabel(cursor, granularity))
       cursor.setDate(cursor.getDate() + 1)
     }
   }
@@ -80,13 +102,14 @@ Deno.serve(async (req) => {
   try {
     const filters = (await req.json().catch(() => ({}))) as StatsFilters
     const period: Period = filters.period ?? '30d'
-    const since = sinceFor(period)
+    const { since, until, granularity } = resolveRange(filters)
 
     // * Pull orders in range (paid + partially_refunded + shipped + delivered count as revenue)
     const orderQuery = sb
       .from('orders')
       .select('id, club_id, total, subtotal, status, paid_at, created_at')
       .gte('created_at', since.toISOString())
+      .lte('created_at', until.toISOString())
       .in('status', ['paid', 'partially_refunded', 'shipped', 'delivered', 'refunded'])
     // * The club filter is applied per item (via products.club_id) rather than
     // * on orders.club_id, so mixed-club orders still count toward each club.
@@ -135,7 +158,7 @@ Deno.serve(async (req) => {
       { product_id: string; name: any; reference: string; club_id: string; qty: number; revenue: number; margin: number }
     >()
 
-    const buckets = enumerateBuckets(since, period)
+    const buckets = enumerateBuckets(since, until, granularity)
     for (const b of buckets) revenueByBucket.set(b, { revenue: 0, margin: 0 })
 
     const orderById = new Map<string, any>()
@@ -151,7 +174,7 @@ Deno.serve(async (req) => {
       revenue += lineRevenue
       margin += lineMargin
 
-      const bucket = bucketLabel(new Date(o.created_at), period)
+      const bucket = bucketLabel(new Date(o.created_at), granularity)
       const existing = revenueByBucket.get(bucket)
       if (existing) {
         existing.revenue += lineRevenue
@@ -238,6 +261,8 @@ Deno.serve(async (req) => {
     return jsonResponse({
       filters: {
         period,
+        date_from: filters.date_from ?? null,
+        date_to: filters.date_to ?? null,
         club_id: filters.club_id ?? null,
         category: filters.category ?? null,
         product_id: filters.product_id ?? null,

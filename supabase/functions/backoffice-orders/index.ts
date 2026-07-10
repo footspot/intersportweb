@@ -27,6 +27,13 @@ interface SetTrackingPayload {
   mark_shipped?: boolean
 }
 
+interface AddCommentPayload {
+  order_id: string
+  body: string
+  // * Optional admin/employee name the comment mentions / is addressed to.
+  staff_name?: string | null
+}
+
 async function callInternal(name: string, body: Record<string, unknown>): Promise<void> {
   const url = Deno.env.get('SUPABASE_URL')
   const serviceRole = serviceRoleKey()
@@ -126,6 +133,84 @@ Deno.serve(async (req) => {
       }
 
       return jsonResponse({ order: data })
+    }
+
+    // * Internal comments — the order_comments table has no client grants, so
+    // * list/add/delete all pass through here with the service-role client.
+    // * Comments are back-office only and never reach the shop side.
+    if (action === 'comments') {
+      if (req.method === 'GET') {
+        const orderId = url.searchParams.get('order_id')
+        if (!orderId) return jsonResponse({ error: 'order_id required' }, { status: 400 })
+
+        const { data: comments, error } = await sb
+          .from('order_comments')
+          .select('*')
+          .eq('order_id', orderId)
+          .order('created_at', { ascending: false })
+        if (error) throw error
+
+        // * Active staff names for the "mention" select — employees can't read
+        // * the profiles table client-side, so the list is served from here.
+        const { data: staff } = await sb
+          .from('profiles')
+          .select('id, full_name, email, role')
+          .in('role', ['admin', 'employee'])
+          .eq('active', true)
+          .order('full_name')
+
+        return jsonResponse({
+          comments: comments ?? [],
+          staff: (staff ?? []).map((p) => ({ id: p.id, name: p.full_name || p.email, role: p.role })),
+        })
+      }
+
+      if (req.method === 'POST') {
+        const body = (await req.json()) as AddCommentPayload
+        const text = body?.body?.trim()
+        if (!body?.order_id) return jsonResponse({ error: 'order_id required' }, { status: 400 })
+        if (!text) return jsonResponse({ error: 'body required' }, { status: 400 })
+
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', guard.id)
+          .single()
+
+        const { data, error } = await sb
+          .from('order_comments')
+          .insert({
+            order_id: body.order_id,
+            author_id: guard.id,
+            author_name: profile?.full_name || profile?.email || guard.email,
+            staff_name: body.staff_name?.trim() || null,
+            body: text,
+          })
+          .select()
+          .single()
+        if (error) throw error
+        return jsonResponse({ comment: data })
+      }
+
+      if (req.method === 'DELETE') {
+        const id = url.searchParams.get('id')
+        if (!id) return jsonResponse({ error: 'id required' }, { status: 400 })
+
+        const { data: existing } = await sb
+          .from('order_comments')
+          .select('id, author_id')
+          .eq('id', id)
+          .single()
+        if (!existing) return jsonResponse({ error: 'not found' }, { status: 404 })
+        // * Authors delete their own comments; admins can delete any.
+        if (guard.role !== 'admin' && existing.author_id !== guard.id) {
+          return jsonResponse({ error: 'forbidden' }, { status: 403 })
+        }
+
+        const { error } = await sb.from('order_comments').delete().eq('id', id)
+        if (error) throw error
+        return jsonResponse({ ok: true })
+      }
     }
 
     return jsonResponse({ error: 'Method or action not allowed' }, { status: 405 })

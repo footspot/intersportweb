@@ -9,6 +9,7 @@ defineEmits<{
   (e: 'open', o: Order): void
   (e: 'tracking', o: Order): void
   (e: 'refund', o: Order): void
+  (e: 'comments', o: Order): void
 }>()
 
 const { t } = useI18n()
@@ -230,6 +231,15 @@ onMounted(() => {
                 @click="$emit('tracking', o)"
               >
                 <UIcon name="i-lucide-truck" class="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+                :aria-label="t('admin.orders.actions.comments')"
+                :title="t('admin.orders.actions.comments')"
+                @click="$emit('comments', o)"
+              >
+                <UIcon name="i-lucide-message-square" class="w-4 h-4" />
               </button>
               <button
                 type="button"

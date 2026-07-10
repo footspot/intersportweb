@@ -10,7 +10,10 @@ const orders = useOrdersStore()
 const toast = useToast()
 
 type FilterValue = 'all' | OrderStatus
+type DeliveryFilter = 'all' | 'colissimo' | 'club_pickup' | 'shop_pickup'
 const filter = ref<FilterValue>('all')
+const clubFilter = ref<string>('all')
+const deliveryFilter = ref<DeliveryFilter>('all')
 const search = ref('')
 
 const detailOpen = ref(false)
@@ -21,6 +24,9 @@ const trackingOrder = ref<Order | null>(null)
 
 const refundOpen = ref(false)
 const refundOrder = ref<Order | null>(null)
+
+const commentsOpen = ref(false)
+const commentsOrder = ref<Order | null>(null)
 
 await useAsyncData('admin-orders-page', async () => { await orders.fetchAll(); return true })
 
@@ -44,11 +50,32 @@ const filters: Array<{ value: FilterValue; label: string }> = [
   { value: 'refunded', label: 'admin.orders.filter.refunded' },
 ]
 
+// * Club options derived from the loaded orders — only clubs that actually
+// * have orders show up in the filter.
+const clubOptions = computed(() => {
+  const map = new Map<string, string>()
+  for (const o of orders.items) {
+    if (o?.club_id && o.club?.name) map.set(o.club_id, o.club.name)
+  }
+  return [...map.entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const deliveryFilters: Array<{ value: DeliveryFilter; label: string }> = [
+  { value: 'all', label: 'admin.orders.deliveryFilter.all' },
+  { value: 'colissimo', label: 'admin.orders.deliveryFilter.colissimo' },
+  { value: 'club_pickup', label: 'admin.orders.deliveryFilter.club_pickup' },
+  { value: 'shop_pickup', label: 'admin.orders.deliveryFilter.shop_pickup' },
+]
+
 const filteredOrders = computed<Order[]>(() => {
   const q = search.value.trim().toLowerCase()
   return orders.items.filter((o) => {
     if (!o) return false
     if (filter.value !== 'all' && o.status !== filter.value) return false
+    if (clubFilter.value !== 'all' && o.club_id !== clubFilter.value) return false
+    if (deliveryFilter.value !== 'all' && o.delivery_method !== deliveryFilter.value) return false
     if (q) {
       const hay = `${o.order_number} ${o.guest_email ?? ''} ${o.guest_first_name ?? ''} ${o.guest_last_name ?? ''}`.toLowerCase()
       if (!hay.includes(q)) return false
@@ -68,6 +95,10 @@ function openTracking(o: Order) {
 function openRefund(o: Order) {
   refundOrder.value = o
   refundOpen.value = true
+}
+function openComments(o: Order) {
+  commentsOrder.value = o
+  commentsOpen.value = true
 }
 </script>
 
@@ -111,6 +142,34 @@ function openRefund(o: Order) {
       </button>
     </div>
 
+    <!-- * Club + delivery-method filters -->
+    <div class="flex flex-wrap items-center gap-3">
+      <select
+        v-model="clubFilter"
+        class="px-3 py-2 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
+      >
+        <option value="all">{{ t('admin.orders.clubFilter.all') }}</option>
+        <option v-for="c in clubOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
+      </select>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="f in deliveryFilters"
+          :key="f.value"
+          type="button"
+          class="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5"
+          :class="deliveryFilter === f.value ? 'bg-brand-primary text-white' : 'bg-gray-100 dark:bg-sidebar text-gray-700 dark:text-gray-300'"
+          @click="deliveryFilter = f.value"
+        >
+          <UIcon
+            v-if="f.value !== 'all'"
+            :name="f.value === 'colissimo' ? 'i-lucide-truck' : f.value === 'club_pickup' ? 'i-lucide-building' : 'i-lucide-store'"
+            class="w-3 h-3"
+          />
+          <span>{{ t(f.label) }}</span>
+        </button>
+      </div>
+    </div>
+
     <div v-if="orders.loading" class="p-10 text-center text-gray-500">
       {{ t('common.loading') }}
     </div>
@@ -120,9 +179,11 @@ function openRefund(o: Order) {
       @open="openDetail"
       @tracking="openTracking"
       @refund="openRefund"
+      @comments="openComments"
     />
 
     <AdminOrdersOrderDetailDrawer v-model="detailOpen" :order-id="detailId" />
+    <AdminOrdersCommentsModal v-model="commentsOpen" :order="commentsOrder" />
     <AdminOrdersTrackingModal v-model="trackingOpen" :order="trackingOrder" @saved="orders.fetchAll()" />
     <AdminOrdersRefundModal v-model="refundOpen" :order="refundOrder" @refunded="orders.fetchAll()" />
   </div>

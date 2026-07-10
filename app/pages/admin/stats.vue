@@ -14,6 +14,15 @@ const clubs = useClubsStore()
 const products = useProductsStore()
 
 const period = ref<Period>('7d')
+
+// * Custom range ('YYYY-MM-DD'), prefilled with the last 30 days so picking
+// * "custom" shows data immediately.
+function isoDay(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const dateFrom = ref(isoDay(new Date(Date.now() - 30 * 86_400_000)))
+const dateTo = ref(isoDay(new Date()))
+
 const clubId = ref<string | null>(null)
 const category = ref<string | null>(null)
 const productId = ref<string | null>(null)
@@ -49,6 +58,8 @@ const loading = ref(false)
 const errorMsg = ref<string | null>(null)
 
 async function fetchStats() {
+  // * Custom period needs both bounds before it's worth a round-trip.
+  if (period.value === 'custom' && (!dateFrom.value || !dateTo.value)) return
   loading.value = true
   errorMsg.value = null
   try {
@@ -56,6 +67,8 @@ async function fetchStats() {
       method: 'POST',
       body: {
         period: period.value,
+        date_from: period.value === 'custom' ? dateFrom.value : null,
+        date_to: period.value === 'custom' ? dateTo.value : null,
         club_id: clubId.value,
         category: category.value,
         product_id: productId.value,
@@ -76,7 +89,7 @@ onMounted(async () => {
   await Promise.all([clubs.fetchAll(), products.fetchAll(), fetchStats()])
 })
 
-watch([period, clubId, category, productId, size], () => fetchStats())
+watch([period, dateFrom, dateTo, clubId, category, productId, size], () => fetchStats())
 let refTimer: ReturnType<typeof setTimeout> | null = null
 watch(reference, () => {
   if (refTimer) clearTimeout(refTimer)
@@ -126,6 +139,8 @@ const kpis = computed(() => {
     <ClientOnly>
       <AdminStatsFiltersBar
         :period="period"
+        :date-from="dateFrom"
+        :date-to="dateTo"
         :club-id="clubId"
         :category="category"
         :product-id="productId"
@@ -136,6 +151,8 @@ const kpis = computed(() => {
         :products="products.items"
         :available-sizes="availableSizes"
         @update:period="(v) => (period = v)"
+        @update:date-from="(v) => (dateFrom = v)"
+        @update:date-to="(v) => (dateTo = v)"
         @update:club-id="(v) => (clubId = v)"
         @update:category="(v) => (category = v)"
         @update:product-id="(v) => (productId = v)"

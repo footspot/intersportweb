@@ -1103,7 +1103,30 @@
       "actions": {
         "tracking": "Suivi Colissimo",
         "detail": "Détail",
-        "refund": "Rembourser"
+        "refund": "Rembourser",
+        "comments": "Commentaires internes"
+      },
+      "clubFilter": {
+        "all": "Tous les clubs"
+      },
+      "deliveryFilter": {
+        "all": "Toutes livraisons",
+        "colissimo": "Colissimo",
+        "club_pickup": "Retrait club",
+        "shop_pickup": "Retrait magasin"
+      },
+      "delivery": {
+        "colissimo": "Livraison à domicile (Colissimo)",
+        "club_pickup": "Retrait au club",
+        "shop_pickup": "Retrait en magasin Intersport"
+      },
+      "comments": {
+        "title": "Commentaires — {n}",
+        "internalHint": "Notes internes, jamais visibles côté boutique.",
+        "placeholder": "Ajouter un commentaire…",
+        "noStaff": "— Personne concernée (optionnel) —",
+        "add": "Ajouter",
+        "empty": "Aucun commentaire pour cette commande."
       },
       "sound": {
         "title": "Son des commandes",
@@ -1156,7 +1179,9 @@
         "changeStatus": "Changer le statut",
         "downloadInvoice": "Télécharger la facture",
         "openLabel": "Étiquette (imprimer)",
-        "options": "Options"
+        "options": "Options",
+        "purchaseOrder": "Bon de commande",
+        "deliveryAddress": "Adresse"
       }
     },
     "fund": {
@@ -1822,6 +1847,9 @@
         "30d": "30 jours",
         "90d": "90 jours",
         "12m": "12 mois",
+        "custom": "Personnalisée",
+        "from": "Du",
+        "to": "Au",
         "club": "Club",
         "allClubs": "Tous",
         "category": "Catégorie",
@@ -1869,7 +1897,8 @@
       "confirmPickup": "Confirmer le retrait",
       "shop": "Magasin",
       "club": "Club",
-      "noPickups": "Aucun retrait à gérer pour le moment."
+      "noPickups": "Aucun retrait à gérer pour le moment.",
+      "allClubs": "Tous les clubs"
     },
     "entryCards": {
       "title": "Cartes d'accueil",
