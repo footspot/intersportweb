@@ -40,7 +40,7 @@ interface StatsPayload {
   }
   revenue_series: Array<{ bucket: string; revenue: number; margin: number }>
   revenue_by_sport: Array<{ label: string; value: number }>
-  size_breakdown: Array<{ size: string; qty: number }>
+  size_breakdown: Array<{ size: string | null; qty: number }>
   available_sizes: string[]
   best_sellers: Array<{
     product_id: string

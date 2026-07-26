@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     let margin = 0
     const revenueByBucket = new Map<string, { revenue: number; margin: number }>()
     const revenueByClub = new Map<string, number>()
-    const qtyBySize = new Map<string, number>()
+    const qtyBySize = new Map<string | null, number>()
     const bestSellers = new Map<
       string,
       { product_id: string; name: any; reference: string; club_id: string; qty: number; revenue: number; margin: number }
@@ -188,7 +188,9 @@ Deno.serve(async (req) => {
         revenueByClub.set(itemClubId, (revenueByClub.get(itemClubId) ?? 0) + lineRevenue)
       }
 
-      qtyBySize.set(it.size, (qtyBySize.get(it.size) ?? 0) + it.quantity)
+      // * One-size products have no size ('' or null) — collapse both into a single null bucket
+      const sizeKey = it.size?.trim() || null
+      qtyBySize.set(sizeKey, (qtyBySize.get(sizeKey) ?? 0) + it.quantity)
 
       const key = it.product_id
       const prev = bestSellers.get(key)
