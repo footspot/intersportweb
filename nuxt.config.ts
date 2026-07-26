@@ -65,7 +65,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   supabase: {
-    // * Keys read from env: SUPABASE_URL, SUPABASE_KEY
+    // * Keys read from env: NUXT_PUBLIC_SUPABASE_URL / NUXT_PUBLIC_SUPABASE_KEY
+    // * (the module falls back to SUPABASE_URL / SUPABASE_KEY if those are unset).
     // * redirect: false — authentication gates are handled by our custom
     // * middlewares (admin.ts, backoffice.ts, auth.ts, customer-only.ts)
     // * because admin routes must redirect to /admin/login, not /login.
@@ -123,21 +124,17 @@ export default defineNuxtConfig({
     },
   },
 
+  // * No server-only block: every secret (Brevo, Colissimo, SystemPay merchant
+  // * credentials, service-role key) lives on the Supabase edge-function side
+  // * and is read there via Deno.env. Nothing in app/ or server/ reads them.
   runtimeConfig: {
-    // * Server-only — never exposed to client
-    paymentProvider: process.env.PAYMENT_PROVIDER || 'card',
-    paypalClientSecret: process.env.PAYPAL_CLIENT_SECRET || '',
-    colissimoApiKey: process.env.COLISSIMO_API_KEY || '',
-    brevoApiKey: process.env.BREVO_API_KEY || '',
-    brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || '',
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     public: {
       // * Exposed to client — only publishable values
-      paymentProvider: process.env.PAYMENT_PROVIDER || 'card',
       systempayEndpoint: process.env.NUXT_PUBLIC_SYSTEMPAY_ENDPOINT || '',
       systempayPublicKey: process.env.NUXT_PUBLIC_SYSTEMPAY_PUBLIC_KEY,
-      paypalClientId: process.env.NUXT_PUBLIC_PAYPAL_CLIENT_ID || '',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || '',
+      // ? Fallback for server/api/__sitemap__/urls.ts — @nuxtjs/supabase's own
+      // ? public.supabase.{url,key} stays the primary source.
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL,
       supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY,
     },

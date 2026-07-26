@@ -2,10 +2,15 @@
 import type { Club } from '~/stores/clubs'
 import type { Product } from '~/stores/products'
 
-export type Period = '7d' | '30d' | '90d' | '12m' | 'custom'
+// * Shared back-office filter bar (stats + orders). `all` is opt-in via the
+// * `periods` prop — stats always works on a bounded window, orders defaults
+// * to the full list.
+export type Period = 'all' | '7d' | '30d' | '90d' | '12m' | 'custom'
 
 interface Props {
   period: Period
+  // * Which period buttons to render. Defaults to the stats set.
+  periods?: Period[]
   // * Custom range bounds ('YYYY-MM-DD'), used when period === 'custom'.
   dateFrom: string
   dateTo: string
@@ -32,7 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const periods: Period[] = ['7d', '30d', '90d', '12m', 'custom']
+const periods = computed<Period[]>(() => props.periods ?? ['7d', '30d', '90d', '12m', 'custom'])
 
 // * Today in local time, for the date inputs' max attribute.
 const today = computed(() => {
@@ -106,7 +111,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 <template>
   <div class="bg-white dark:bg-sidebar-surface rounded-card shadow-card-sm p-4 flex flex-wrap items-end gap-3">
     <div>
-      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.period') }}</span>
+      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.period') }}</span>
       <div class="flex gap-1">
         <button
           v-for="p in periods"
@@ -116,7 +121,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
           :class="props.period === p ? 'bg-brand-primary text-white' : 'bg-gray-100 dark:bg-sidebar text-gray-700 dark:text-gray-300'"
           @click="emit('update:period', p)"
         >
-          {{ t(`admin.stats.filters.${p}`) }}
+          {{ t(`admin.filters.${p}`) }}
         </button>
       </div>
     </div>
@@ -124,7 +129,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
     <!-- * Custom range pickers — only when the custom period is active -->
     <template v-if="props.period === 'custom'">
       <div>
-        <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.from') }}</span>
+        <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.from') }}</span>
         <input
           :value="props.dateFrom"
           type="date"
@@ -134,7 +139,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
         />
       </div>
       <div>
-        <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.to') }}</span>
+        <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.to') }}</span>
         <input
           :value="props.dateTo"
           type="date"
@@ -147,36 +152,36 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
     </template>
 
     <div class="min-w-40">
-      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.club') }}</span>
+      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.club') }}</span>
       <select
         :value="props.clubId ?? ''"
         class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
         @change="emit('update:clubId', ($event.target as HTMLSelectElement).value || null)"
       >
-        <option value="">{{ t('admin.stats.filters.allClubs') }}</option>
+        <option value="">{{ t('admin.filters.allClubs') }}</option>
         <option v-for="c in props.clubs" :key="c.id" :value="c.id">{{ c.name }}</option>
       </select>
     </div>
 
     <div class="min-w-40">
-      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.category') }}</span>
+      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.category') }}</span>
       <select
         :value="props.category ?? ''"
         class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
         @change="emit('update:category', ($event.target as HTMLSelectElement).value || null)"
       >
-        <option value="">{{ t('admin.stats.filters.allCategories') }}</option>
+        <option value="">{{ t('admin.filters.allCategories') }}</option>
         <option v-for="c in props.categories" :key="c" :value="c">{{ c }}</option>
       </select>
     </div>
 
     <div ref="pickerEl" class="relative min-w-56">
-      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.product') }}</span>
+      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.product') }}</span>
       <div class="relative">
         <input
           :value="productQuery"
           type="text"
-          :placeholder="t('admin.stats.filters.productPlaceholder')"
+          :placeholder="t('admin.filters.productPlaceholder')"
           class="w-full pl-3 pr-8 py-1.5 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
           @input="onProductInput"
           @focus="productOpen = true"
@@ -185,7 +190,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
           v-if="props.productId"
           type="button"
           class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:text-brand-secondary"
-          :aria-label="t('admin.stats.filters.clearProduct')"
+          :aria-label="t('admin.filters.clearProduct')"
           @click="clearProduct"
         >
           <UIcon name="i-lucide-x" class="w-3.5 h-3.5" />
@@ -207,26 +212,29 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
     </div>
 
     <div class="min-w-32">
-      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.size') }}</span>
+      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.size') }}</span>
       <select
         :value="props.size ?? ''"
         class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-sidebar bg-white dark:bg-sidebar-surface text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
         @change="emit('update:size', ($event.target as HTMLSelectElement).value || null)"
       >
-        <option value="">{{ t('admin.stats.filters.allSizes') }}</option>
+        <option value="">{{ t('admin.filters.allSizes') }}</option>
         <option v-for="s in props.availableSizes" :key="s" :value="s">{{ s }}</option>
       </select>
     </div>
 
     <div class="flex-1 min-w-48">
-      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.stats.filters.reference') }}</span>
+      <span class="text-xs uppercase tracking-wider text-gray-500 block mb-1">{{ t('admin.filters.reference') }}</span>
       <input
         :value="props.reference"
         type="text"
-        :placeholder="t('admin.stats.filters.referencePlaceholder')"
+        :placeholder="t('admin.filters.referencePlaceholder')"
         class="w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-sidebar bg-transparent text-sm focus:ring-2 focus:ring-brand-primary focus:outline-none"
         @input="emit('update:reference', ($event.target as HTMLInputElement).value)"
       />
     </div>
+
+    <!-- * Page-specific trailing actions (e.g. the orders export button) -->
+    <slot />
   </div>
 </template>

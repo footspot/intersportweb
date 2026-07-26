@@ -1065,6 +1065,35 @@
       "empty": "Aucune commande pour ce filtre.",
       "realtime": "Temps réel",
       "searchPlaceholder": "Rechercher par numéro email ou client",
+      "export": {
+        "button": "Exporter",
+        "title": "Exporter les commandes",
+        "subtitle": "Zip avec le bon de commande et la facture de chaque commande sélectionnée.",
+        "empty": "Aucune commande à exporter.",
+        "selectAll": "Tout sélectionner",
+        "selected": "{n} / {total} sélectionnées",
+        "invoiceNote": "La facture n'est incluse que pour les commandes payées.",
+        "progress": "Génération {done} / {total}…",
+        "failed": "Échec de l'export pour : {orders}",
+        "confirm": "Télécharger ({n})",
+        "csvButton": "CSV",
+        "csv": {
+          "number": "Numéro",
+          "date": "Date",
+          "status": "Statut",
+          "client": "Client",
+          "email": "Email",
+          "club": "Club",
+          "delivery": "Livraison",
+          "payment": "Paiement",
+          "items": "Articles",
+          "subtotal": "Sous-total",
+          "shippingCost": "Frais de livraison",
+          "refunds": "Remboursements",
+          "total": "Total",
+          "tracking": "Suivi"
+        }
+      },
       "filter": {
         "all": "Toutes",
         "pending": "En attente",
@@ -1105,9 +1134,6 @@
         "detail": "Détail",
         "refund": "Rembourser",
         "comments": "Commentaires internes"
-      },
-      "clubFilter": {
-        "all": "Tous les clubs"
       },
       "deliveryFilter": {
         "all": "Toutes livraisons",
@@ -1814,6 +1840,28 @@
         "colorInvalid": "Utilisez une couleur hex à 6 chiffres (ex. #0331f9)."
       }
     },
+    "filters": {
+      "period": "Période",
+      "all": "Tout",
+      "7d": "7 jours",
+      "30d": "30 jours",
+      "90d": "90 jours",
+      "12m": "12 mois",
+      "custom": "Personnalisée",
+      "from": "Du",
+      "to": "Au",
+      "club": "Club",
+      "allClubs": "Tous",
+      "category": "Catégorie",
+      "allCategories": "Toutes",
+      "product": "Produit",
+      "productPlaceholder": "Rechercher un produit…",
+      "clearProduct": "Effacer la sélection",
+      "size": "Taille",
+      "allSizes": "Toutes",
+      "reference": "Référence produit",
+      "referencePlaceholder": "XYZ-42…"
+    },
     "stats": {
       "title": "Statistiques",
       "subtitle": "Chiffres clés et tendances sur la période choisie.",
@@ -1840,27 +1888,6 @@
         "qty": "Qté",
         "revenue": "CA",
         "margin": "Cagnotte"
-      },
-      "filters": {
-        "period": "Période",
-        "7d": "7 jours",
-        "30d": "30 jours",
-        "90d": "90 jours",
-        "12m": "12 mois",
-        "custom": "Personnalisée",
-        "from": "Du",
-        "to": "Au",
-        "club": "Club",
-        "allClubs": "Tous",
-        "category": "Catégorie",
-        "allCategories": "Toutes",
-        "product": "Produit",
-        "productPlaceholder": "Rechercher un produit…",
-        "clearProduct": "Effacer la sélection",
-        "size": "Taille",
-        "allSizes": "Toutes",
-        "reference": "Référence produit",
-        "referencePlaceholder": "XYZ-42…"
       }
     },
     "shops": {

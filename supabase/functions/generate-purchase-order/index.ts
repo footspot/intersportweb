@@ -9,6 +9,7 @@
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { verifyBackoffice } from '../_shared/auth.ts'
 import { serviceClient } from '../_shared/supabase.ts'
+import { drawLogo, LOGO_ASPECT } from '../_shared/pdf-logo.ts'
 import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1'
 
 interface Payload {
@@ -131,9 +132,10 @@ export async function renderPurchaseOrder(opts: {
     }
   }
 
-  // * Header
-  page.drawText('Intersport Club IDF', { x: MARGIN, y, size: 18, font: bold, color: PRIMARY })
-  y -= 22
+  // * Header — official Intersport logo instead of a text wordmark.
+  const LOGO_WIDTH = 150
+  drawLogo(page, { x: MARGIN, yTop: y + 13, width: LOGO_WIDTH })
+  y -= 14 + LOGO_WIDTH * LOGO_ASPECT
   page.drawText(safe(d.title), { x: MARGIN, y, size: 14, font: bold, color: TEXT })
   page.drawText(`${d.orderNumber}: ${order.order_number}`, { x: 360, y: y + 20, size: 11, font, color: TEXT })
   page.drawText(`${d.date}: ${safe(fmtDate(order.created_at, loc))}`, { x: 360, y: y + 4, size: 10, font, color: TEXT })

@@ -4,7 +4,7 @@
 import { useClubsStore } from '~/stores/clubs'
 import { useProductsStore } from '~/stores/products'
 import { invokeEdge } from '~/composables/useEdgeFunction'
-import type { Period } from '~/components/admin/stats/FiltersBar.vue'
+import type { Period } from '~/components/admin/FiltersBar.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin'] })
 
@@ -137,7 +137,7 @@ const kpis = computed(() => {
     </div>
 
     <ClientOnly>
-      <AdminStatsFiltersBar
+      <AdminFiltersBar
         :period="period"
         :date-from="dateFrom"
         :date-to="dateTo"

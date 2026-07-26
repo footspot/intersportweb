@@ -1065,6 +1065,35 @@
       "empty": "No orders match this filter.",
       "realtime": "Live",
       "searchPlaceholder": "Search by number, email or client",
+      "export": {
+        "button": "Export",
+        "title": "Export orders",
+        "subtitle": "Zip with the purchase order and invoice of each selected order.",
+        "empty": "No orders to export.",
+        "selectAll": "Select all",
+        "selected": "{n} / {total} selected",
+        "invoiceNote": "The invoice is only included for paid orders.",
+        "progress": "Generating {done} / {total}…",
+        "failed": "Export failed for: {orders}",
+        "confirm": "Download ({n})",
+        "csvButton": "CSV",
+        "csv": {
+          "number": "Number",
+          "date": "Date",
+          "status": "Status",
+          "client": "Client",
+          "email": "Email",
+          "club": "Club",
+          "delivery": "Delivery",
+          "payment": "Payment",
+          "items": "Items",
+          "subtotal": "Subtotal",
+          "shippingCost": "Shipping cost",
+          "refunds": "Refunds",
+          "total": "Total",
+          "tracking": "Tracking"
+        }
+      },
       "filter": {
         "all": "All",
         "pending": "Pending",
@@ -1105,9 +1134,6 @@
         "detail": "Details",
         "refund": "Refund",
         "comments": "Internal comments"
-      },
-      "clubFilter": {
-        "all": "All clubs"
       },
       "deliveryFilter": {
         "all": "All deliveries",
@@ -1814,6 +1840,28 @@
         "colorInvalid": "Use a 6-digit hex color (e.g. #0331f9)."
       }
     },
+    "filters": {
+      "period": "Period",
+      "all": "All",
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "12m": "12 months",
+      "custom": "Custom",
+      "from": "From",
+      "to": "To",
+      "club": "Club",
+      "allClubs": "All",
+      "category": "Category",
+      "allCategories": "All",
+      "product": "Product",
+      "productPlaceholder": "Search a product…",
+      "clearProduct": "Clear selection",
+      "size": "Size",
+      "allSizes": "All",
+      "reference": "Product reference",
+      "referencePlaceholder": "XYZ-42…"
+    },
     "stats": {
       "title": "Statistics",
       "subtitle": "Key numbers and trends for the selected period.",
@@ -1840,27 +1888,6 @@
         "qty": "Qty",
         "revenue": "Revenue",
         "margin": "Fund"
-      },
-      "filters": {
-        "period": "Period",
-        "7d": "7 days",
-        "30d": "30 days",
-        "90d": "90 days",
-        "12m": "12 months",
-        "custom": "Custom",
-        "from": "From",
-        "to": "To",
-        "club": "Club",
-        "allClubs": "All",
-        "category": "Category",
-        "allCategories": "All",
-        "product": "Product",
-        "productPlaceholder": "Search a product…",
-        "clearProduct": "Clear selection",
-        "size": "Size",
-        "allSizes": "All",
-        "reference": "Product reference",
-        "referencePlaceholder": "XYZ-42…"
       }
     },
     "shops": {

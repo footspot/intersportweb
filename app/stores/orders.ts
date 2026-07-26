@@ -59,6 +59,8 @@ export interface OrderItem {
   product?: {
     name: { fr: string; en: string }
     reference: string
+    // * Only selected on the list join (fetchAll), for the catalogue filters.
+    category?: string | null
     weight_grams?: number
     images?: { image_path: string; position: number }[]
   } | null
@@ -164,9 +166,14 @@ export const useOrdersStore = defineStore('orders', {
       this.error = null
       try {
         const client = useSupabaseClient()
+        // * The item join is deliberately minimal — just what the list filters
+        // * (product / category / size / reference) need. Full lines still come
+        // * from fetchDetail.
         const { data, error } = await client
           .from('orders')
-          .select('*, club:clubs(name)')
+          .select(
+            '*, club:clubs(name), items:order_items(product_id, size, secondary_size, product:products(reference, category))',
+          )
           .order('created_at', { ascending: false })
           .limit(500)
         if (error) throw error
