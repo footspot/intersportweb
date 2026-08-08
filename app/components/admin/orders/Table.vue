@@ -65,9 +65,29 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   delivered: 'bg-gray-200 dark:bg-sidebar text-gray-600 dark:text-gray-300',
   cancelled: 'bg-brand-secondary/10 text-brand-secondary',
   refunded: 'bg-brand-secondary/10 text-brand-secondary',
+  abandoned: 'bg-gray-100 dark:bg-sidebar text-gray-400 dark:text-gray-500',
 }
 
 const TRANSITIONS = ORDER_TRANSITIONS
+
+// * The preparation badge only makes sense while the order is still being
+// * prepared — once it's sent (or dead), the column goes back to empty.
+const PREPARATION_DONE: OrderStatus[] = [
+  'shipped',
+  'awaiting_pickup',
+  'picked_up',
+  'delivered',
+  'cancelled',
+  'refunded',
+  'abandoned',
+]
+function inPreparation(o: Order) {
+  return o.preparation_status === 'in_progress' && !PREPARATION_DONE.includes(o.status)
+}
+// * Unrelated to inPreparation — both badges can show at once (stacked).
+function inFlocking(o: Order) {
+  return o.flocking_status === 'in_flocking' && !PREPARATION_DONE.includes(o.status)
+}
 
 const openMenuFor = ref<string | null>(null)
 const confirmTarget = ref<{ order: Order; status: OrderStatus } | null>(null)
@@ -123,10 +143,12 @@ onMounted(() => {
       <table class="w-full text-sm">
         <thead class="bg-gray-50 dark:bg-sidebar text-left text-xs uppercase tracking-wider text-gray-500">
           <tr>
-            <th class="px-4 py-3">{{ t('admin.orders.col.number') }}</th>
-            <th class="px-4 py-3">{{ t('admin.orders.col.client') }}</th>
-            <th class="px-4 py-3">{{ t('admin.orders.col.club') }}</th>
-            <th class="px-4 py-3">
+            <!-- * px-2 between columns (edges keep px-4) so the table fits
+                 13" laptops without horizontal scroll. -->
+            <th class="pl-4 pr-2 py-3">{{ t('admin.orders.col.number') }}</th>
+            <th class="px-2 py-3">{{ t('admin.orders.col.client') }}</th>
+            <th class="px-2 py-3">{{ t('admin.orders.col.club') }}</th>
+            <th class="px-2 py-3">
               <button
                 type="button"
                 class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
@@ -141,7 +163,7 @@ onMounted(() => {
                 />
               </button>
             </th>
-            <th class="px-4 py-3">
+            <th class="px-2 py-3">
               <button
                 type="button"
                 class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
@@ -156,7 +178,8 @@ onMounted(() => {
                 />
               </button>
             </th>
-            <th class="px-4 py-3">
+            <th class="px-2 py-3">{{ t('admin.orders.col.preparation') }}</th>
+            <th class="px-2 py-3">
               <button
                 type="button"
                 class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200"
@@ -171,19 +194,19 @@ onMounted(() => {
                 />
               </button>
             </th>
-            <th class="px-4 py-3 text-right">{{ t('admin.orders.col.actions') }}</th>
+            <th class="pl-2 pr-4 py-3 text-right">{{ t('admin.orders.col.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="o in sortedOrders" :key="o.id" class="border-t border-gray-100 dark:border-sidebar">
-            <td class="px-4 py-3 font-medium">{{ o.order_number }}</td>
-            <td class="px-4 py-3">
+            <td class="pl-4 pr-2 py-3 font-medium">{{ o.order_number }}</td>
+            <td class="px-2 py-3">
               <div class="font-medium truncate">{{ [o.guest_first_name, o.guest_last_name].filter(Boolean).join(' ') || '—' }}</div>
               <div class="text-xs text-gray-500 truncate">{{ o.guest_email }}</div>
             </td>
-            <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ o.club?.name || '—' }}</td>
-            <td class="px-4 py-3 font-medium">{{ fmt(o.total) }}</td>
-            <td class="px-4 py-3">
+            <td class="px-2 py-3 text-gray-600 dark:text-gray-300">{{ o.club?.name || '—' }}</td>
+            <td class="px-2 py-3 font-medium">{{ fmt(o.total) }}</td>
+            <td class="px-2 py-3">
               <!-- * Inline status editor — click the badge, pick a target,
                    confirm in the modal. Falls back to read-only when no
                    forward transitions are available. -->
@@ -221,11 +244,29 @@ onMounted(() => {
                 </div>
               </div>
             </td>
-            <td class="px-4 py-3 text-gray-500 text-xs">{{ fmtDate(o.created_at) }}</td>
-            <td class="px-4 py-3 text-right space-x-1">
+            <td class="px-2 py-3">
+              <div class="flex flex-col items-start gap-1">
+                <span
+                  v-if="inPreparation(o)"
+                  class="inline-flex px-2 py-0.5 rounded-full text-xs bg-brand-gold/10 text-brand-gold"
+                >
+                  {{ t('admin.orders.preparation.in_progress') }}
+                </span>
+                <span
+                  v-if="inFlocking(o)"
+                  class="inline-flex px-2 py-0.5 rounded-full text-xs bg-brand-purple/10 text-brand-purple"
+                >
+                  {{ t('admin.orders.preparation.in_flocking') }}
+                </span>
+              </div>
+            </td>
+            <td class="px-2 py-3 text-gray-500 text-xs">{{ fmtDate(o.created_at) }}</td>
+            <td class="pl-2 pr-4 py-3">
+              <!-- * 2×2 icon grid keeps the actions column narrow. -->
+              <div class="grid grid-cols-2 gap-0.5 w-fit ml-auto">
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
                 :aria-label="t('admin.orders.actions.tracking')"
                 :title="t('admin.orders.actions.tracking')"
                 @click="$emit('tracking', o)"
@@ -234,7 +275,7 @@ onMounted(() => {
               </button>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
                 :aria-label="t('admin.orders.actions.comments')"
                 :title="t('admin.orders.actions.comments')"
                 @click="$emit('comments', o)"
@@ -243,7 +284,7 @@ onMounted(() => {
               </button>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
                 :aria-label="t('admin.orders.actions.detail')"
                 :title="t('admin.orders.actions.detail')"
                 @click="$emit('open', o)"
@@ -252,13 +293,14 @@ onMounted(() => {
               </button>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-brand-secondary/10 text-brand-secondary"
+                class="p-1.5 rounded-lg hover:bg-brand-secondary/10 text-brand-secondary"
                 :aria-label="t('admin.orders.actions.refund')"
                 :title="t('admin.orders.actions.refund')"
                 @click="$emit('refund', o)"
               >
                 <UIcon name="i-lucide-rotate-ccw" class="w-4 h-4" />
               </button>
+              </div>
             </td>
           </tr>
         </tbody>

@@ -116,11 +116,12 @@ const autoBundleBuyingPrice = computed(() => {
   }, 0)
 })
 
-// * Whenever the components or their underlying prices change, keep bundle's
-// * own buying_price in sync (sum of components × qty). The seller can still
-// * override it manually afterwards.
+// * The bundle's buying_price follows the component sum (× qty) only until
+// * the admin types their own value — a manual override then wins, including
+// * across reopens of the modal.
+const buyingPriceAuto = ref(true)
 watch(autoBundleBuyingPrice, (v) => {
-  if (v != null) buyingPrice.value = Number(v.toFixed(2))
+  if (v != null && buyingPriceAuto.value) buyingPrice.value = Number(v.toFixed(2))
 })
 
 // * When colors change, drop any variant/image references to a color that no
@@ -189,6 +190,12 @@ watch(
       axis: bc.axis,
       quantity: bc.quantity,
     }))
+    // * A stored pack price that differs from the component sum is a manual
+    // * override — stop auto-syncing so it isn't clobbered on open.
+    buyingPriceAuto.value =
+      !p ||
+      !isPack.value ||
+      Math.abs(Number(p.buying_price) - (autoBundleBuyingPrice.value ?? 0)) < 0.005
     selectedSizeGuideIds.value = (p?.size_guides ?? []).map((g) => g.id)
     errorMsg.value = null
   },
@@ -542,12 +549,14 @@ async function save() {
                   type="number"
                   min="0"
                   step="0.01"
-                  :disabled="isPack"
-                  :title="isPack ? 'Auto: somme des composants' : undefined"
-                  class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none disabled:opacity-60"
+                  class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+                  @input="buyingPriceAuto = false"
                 />
                 <span class="text-gray-500">€</span>
               </div>
+              <p v-if="isPack" class="text-xs text-gray-500 mt-1">
+                {{ t('admin.products.pack.buyingPriceHint') }}
+              </p>
             </label>
             <label class="block">
               <span class="text-sm font-medium">{{ t('admin.products.sellingPrice') }}</span>

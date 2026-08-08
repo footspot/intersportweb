@@ -12,6 +12,10 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled'
   | 'refunded'
+  // * Checkout that never reached payment, auto-expired by the hourly
+  // * expire_stale_pending_orders cron. System-set only — never offered as
+  // * a manual transition target.
+  | 'abandoned'
 
 export type PaymentMethod = 'paypal' | 'card' | 'prepaid' | 'free' | null
 export type OrderLineStatus = 'ok' | 'refunded_oos'
@@ -31,6 +35,7 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   partially_refunded:    ['shipped', 'delivered', 'refunded'],
   cancelled:             [],
   refunded:              [],
+  abandoned:             [],
 }
 
 export interface OrderItem {
@@ -105,6 +110,13 @@ export interface Order {
   order_number: string
   club_id: string | null
   status: OrderStatus
+  // * Preparation state, set when purchase orders are bulk-exported.
+  // * Independent from the payment-driven `status`; the UI hides it once
+  // * the order is sent.
+  preparation_status: 'in_progress' | null
+  // * Flocking state, set when a flocking order (ordre de flocage) is
+  // * downloaded. Unrelated to preparation_status — both can be set at once.
+  flocking_status: 'in_flocking' | null
   payment_method: PaymentMethod
   payment_id: string | null
   shipping_tracking: string | null
@@ -219,6 +231,26 @@ export const useOrdersStore = defineStore('orders', {
       if (error) throw new Error(error.message)
       if (data?.order) this.upsert(data.order)
       return data?.order
+    },
+
+    async setPreparation(ids: string[], state: 'in_progress' | null) {
+      const { data, error } = await invokeEdge<{ orders: Order[] }>('backoffice-orders/preparation', {
+        method: 'POST',
+        body: { ids, state },
+      })
+      if (error) throw new Error(error.message)
+      for (const o of data?.orders ?? []) this.upsert(o)
+      return data?.orders ?? []
+    },
+
+    async setFlocking(ids: string[], state: 'in_flocking' | null) {
+      const { data, error } = await invokeEdge<{ orders: Order[] }>('backoffice-orders/flocking', {
+        method: 'POST',
+        body: { ids, state },
+      })
+      if (error) throw new Error(error.message)
+      for (const o of data?.orders ?? []) this.upsert(o)
+      return data?.orders ?? []
     },
 
     async setTracking(id: string, tracking: string | null, markShipped = false) {

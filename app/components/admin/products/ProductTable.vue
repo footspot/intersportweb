@@ -117,17 +117,19 @@ function fundPerUnit(p: Product) {
       <table class="w-full text-sm">
         <thead class="bg-gray-50 dark:bg-sidebar text-left text-xs uppercase tracking-wider text-gray-500">
           <tr>
-            <th v-if="reorderable" class="px-4 py-3 w-8"></th>
-            <th class="px-4 py-3">{{ t('admin.products.col.product') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.club') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.price') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.discount') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.margin') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.sizes') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.flocking') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.clearance') }}</th>
-            <th class="px-4 py-3">{{ t('admin.products.col.visible') }}</th>
-            <th class="px-4 py-3 text-right">{{ t('admin.products.col.actions') }}</th>
+            <!-- * px-2 between columns (edges keep px-4) so the table fits
+                 13" laptops without horizontal scroll. -->
+            <th v-if="reorderable" class="px-2 py-3 w-8"></th>
+            <th class="pl-4 pr-2 py-3">{{ t('admin.products.col.product') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.club') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.price') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.discount') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.margin') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.sizes') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.flocking') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.clearance') }}</th>
+            <th class="px-2 py-3">{{ t('admin.products.col.visible') }}</th>
+            <th class="pl-2 pr-4 py-3 text-right">{{ t('admin.products.col.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -145,10 +147,10 @@ function fundPerUnit(p: Product) {
             @drop="onDrop(p.id)"
             @dragend="draggingId = null; overId = null"
           >
-            <td v-if="reorderable" class="px-4 py-3 text-gray-400 cursor-grab">
+            <td v-if="reorderable" class="px-2 py-3 text-gray-400 cursor-grab">
               <UIcon name="i-lucide-grip-vertical" class="w-4 h-4" />
             </td>
-            <td class="px-4 py-3">
+            <td class="pl-4 pr-2 py-3">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-sidebar flex items-center justify-center overflow-hidden shrink-0">
                   <img v-if="imageUrl(p.images[0]?.image_path)" :src="imageUrl(p.images[0]?.image_path)!" class="w-full h-full object-cover" alt="" />
@@ -178,9 +180,9 @@ function fundPerUnit(p: Product) {
                 </div>
               </div>
             </td>
-            <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ clubName(p.club_id) }}</td>
-            <td class="px-4 py-3 font-medium">{{ fmt(p.selling_price) }}</td>
-            <td class="px-4 py-3">
+            <td class="px-2 py-3 text-gray-600 dark:text-gray-300">{{ clubName(p.club_id) }}</td>
+            <td class="px-2 py-3 font-medium">{{ fmt(p.selling_price) }}</td>
+            <td class="px-2 py-3">
               <span v-if="p.discount_percent > 0" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
                 :class="p.discount_source === 'intersport' ? 'bg-brand-purple/10 text-brand-purple' : 'bg-brand-gold/10 text-brand-gold'"
               >
@@ -188,16 +190,16 @@ function fundPerUnit(p: Product) {
               </span>
               <span v-else class="text-xs text-gray-400">—</span>
             </td>
-            <td class="px-4 py-3">
+            <td class="px-2 py-3">
               <span class="text-brand-green font-medium">{{ fmt(fundPerUnit(p)) }}</span>
             </td>
-            <td class="px-4 py-3 text-xs">
+            <td class="px-2 py-3 text-xs">
               <span class="text-gray-600 dark:text-gray-300">{{ sizesSummary(p) }}</span>
               <div class="text-gray-400">
                 {{ t('admin.products.stockTotal', { n: totalStock(p) }) }}
               </div>
             </td>
-            <td class="px-4 py-3 text-center">
+            <td class="px-2 py-3 text-center">
               <UIcon
                 v-if="p.flocking_kind !== 'none'"
                 name="i-lucide-shirt"
@@ -206,7 +208,7 @@ function fundPerUnit(p: Product) {
               />
               <span v-else class="text-xs text-gray-400">—</span>
             </td>
-            <td class="px-4 py-3">
+            <td class="px-2 py-3">
               <button
                 type="button"
                 class="p-1.5 rounded-lg"
@@ -224,7 +226,7 @@ function fundPerUnit(p: Product) {
                 <UIcon v-else :name="p.is_on_clearance ? 'i-lucide-tag' : 'i-lucide-tag'" :class="['w-4 h-4', p.is_on_clearance ? '' : 'opacity-40']" />
               </button>
             </td>
-            <td class="px-4 py-3">
+            <td class="px-2 py-3">
               <button
                 type="button"
                 class="p-1.5 rounded-lg"
@@ -241,10 +243,12 @@ function fundPerUnit(p: Product) {
                 <UIcon v-else :name="p.is_visible ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="w-4 h-4" />
               </button>
             </td>
-            <td class="px-4 py-3 text-right space-x-1">
+            <td class="pl-2 pr-4 py-3">
+              <!-- * 2×2 icon grid keeps the actions column narrow. -->
+              <div class="grid grid-cols-2 gap-0.5 w-fit ml-auto">
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
                 :aria-label="t('common.preview')"
                 :title="t('common.preview')"
                 @click="$emit('preview', p)"
@@ -253,7 +257,7 @@ function fundPerUnit(p: Product) {
               </button>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
                 :aria-label="t('common.edit')"
                 @click="$emit('edit', p)"
               >
@@ -261,7 +265,7 @@ function fundPerUnit(p: Product) {
               </button>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar disabled:opacity-50"
+                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar disabled:opacity-50"
                 :aria-label="t('admin.products.duplicate')"
                 :title="t('admin.products.duplicate')"
                 :disabled="duplicatingIds?.includes(p.id)"
@@ -274,12 +278,13 @@ function fundPerUnit(p: Product) {
               </button>
               <button
                 type="button"
-                class="p-2 rounded-lg hover:bg-brand-secondary/10 text-brand-secondary"
+                class="p-1.5 rounded-lg hover:bg-brand-secondary/10 text-brand-secondary"
                 :aria-label="t('common.delete')"
                 @click="$emit('delete', p)"
               >
                 <UIcon name="i-lucide-trash-2" class="w-4 h-4" />
               </button>
+              </div>
             </td>
           </tr>
         </tbody>

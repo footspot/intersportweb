@@ -964,7 +964,8 @@
       "pack": {
         "title": "Pack",
         "enable": "This product is a pack",
-        "hint": "A pack bundles existing products. Stock and fund are derived from components."
+        "hint": "A pack bundles existing products. Stock and fund are derived from components.",
+        "buyingPriceHint": "Prefilled with the sum of the components — editable."
       },
       "bundle": {
         "componentsTitle": "Bundle composition",
@@ -1068,11 +1069,10 @@
       "export": {
         "button": "Export",
         "title": "Export orders",
-        "subtitle": "Zip with the purchase order and invoice of each selected order.",
+        "subtitle": "Single PDF gathering the purchase order of each selected order.",
         "empty": "No orders to export.",
         "selectAll": "Select all",
         "selected": "{n} / {total} selected",
-        "invoiceNote": "The invoice is only included for paid orders.",
         "progress": "Generating {done} / {total}…",
         "failed": "Export failed for: {orders}",
         "confirm": "Download ({n})",
@@ -1101,7 +1101,8 @@
         "shipped": "Shipped",
         "delivered": "Delivered",
         "cancelled": "Cancelled",
-        "refunded": "Refunded"
+        "refunded": "Refunded",
+        "abandoned": "Abandoned"
       },
       "status": {
         "pending": "Pending",
@@ -1113,6 +1114,7 @@
         "refunded": "Refunded",
         "awaiting_pickup": "Awaiting pickup",
         "picked_up": "Picked up",
+        "abandoned": "Abandoned",
         "changed": "Status updated",
         "changeFailed": "Status update failed",
         "editHint": "Click to change status",
@@ -1126,8 +1128,25 @@
         "club": "Club",
         "amount": "Amount",
         "status": "Status",
+        "preparation": "Preparation",
         "date": "Date",
         "actions": "Actions"
+      },
+      "preparation": {
+        "in_progress": "In progress",
+        "in_flocking": "In flocking"
+      },
+      "flocking": {
+        "button": "Flocking order",
+        "title": "Flocking order",
+        "subtitle": "{n} paid orders",
+        "refsTitle": "References to flock",
+        "sizesTitle": "Quantities per size",
+        "product": "Product",
+        "total": "Tot.",
+        "pieces": "{n} pieces to flock",
+        "empty": "No pieces to flock in the paid orders.",
+        "confirm": "Download and mark in flocking"
       },
       "actions": {
         "tracking": "Colissimo tracking",
@@ -2004,7 +2023,8 @@
       "delivered": "Delivered",
       "cancelled": "Cancelled",
       "refunded": "Refunded",
-      "partially_refunded": "Partially refunded"
+      "partially_refunded": "Partially refunded",
+      "abandoned": "Abandoned"
     }
   }
 }

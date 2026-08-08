@@ -49,6 +49,7 @@ const commentsOpen = ref(false)
 const commentsOrder = ref<Order | null>(null)
 
 const exportOpen = ref(false)
+const flockingOpen = ref(false)
 
 // * CSV export of the filtered orders — built client-side from the loaded
 // * list; semicolon-separated with a UTF-8 BOM so French Excel opens it as-is.
@@ -111,6 +112,7 @@ const filters: Array<{ value: FilterValue; label: string }> = [
   { value: 'delivered', label: 'admin.orders.filter.delivered' },
   { value: 'cancelled', label: 'admin.orders.filter.cancelled' },
   { value: 'refunded', label: 'admin.orders.filter.refunded' },
+  { value: 'abandoned', label: 'admin.orders.filter.abandoned' },
 ]
 
 const deliveryFilters: Array<{ value: DeliveryFilter; label: string }> = [
@@ -196,16 +198,27 @@ function matchesBase(o: Order): boolean {
 
 const baseOrders = computed<Order[]>(() => orders.items.filter(matchesBase))
 
+// * Abandoned checkouts (never paid, auto-expired) are noise for day-to-day
+// * order handling: 'all' hides them, they only show via their own pill.
 const counts = computed<Record<string, number>>(() => {
-  const acc: Record<string, number> = { all: baseOrders.value.length }
-  for (const o of baseOrders.value) acc[o.status] = (acc[o.status] ?? 0) + 1
+  const acc: Record<string, number> = { all: 0 }
+  for (const o of baseOrders.value) {
+    acc[o.status] = (acc[o.status] ?? 0) + 1
+    if (o.status !== 'abandoned') acc.all += 1
+  }
   return acc
 })
 
 const filteredOrders = computed<Order[]>(() =>
   filter.value === 'all'
-    ? baseOrders.value
+    ? baseOrders.value.filter((o) => o.status !== 'abandoned')
     : baseOrders.value.filter((o) => o.status === filter.value),
+)
+
+// * Flocking order scope — the filtered list, restricted to paid orders
+// * (partially refunded ones are still paid; their live lines need flocking).
+const flockingOrders = computed<Order[]>(() =>
+  filteredOrders.value.filter((o) => o.status === 'paid' || o.status === 'partially_refunded'),
 )
 
 function openDetail(o: Order) {
@@ -290,8 +303,17 @@ function openComments(o: Order) {
       @update:size="(v) => (size = v)"
       @update:reference="(v) => (reference = v)"
     >
-      <!-- * Export the currently filtered orders (PDF zip / CSV) -->
+      <!-- * Export the currently filtered orders (flocking order / merged PDF / CSV) -->
       <div class="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-gray-100 dark:bg-sidebar text-gray-700 dark:text-gray-300 hover:opacity-90 disabled:opacity-60"
+          :disabled="flockingOrders.length === 0"
+          @click="flockingOpen = true"
+        >
+          <UIcon name="i-lucide-shirt" class="w-3.5 h-3.5" />
+          <span>{{ t('admin.orders.flocking.button') }}</span>
+        </button>
         <button
           type="button"
           class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-gray-100 dark:bg-sidebar text-gray-700 dark:text-gray-300 hover:opacity-90 disabled:opacity-60"
@@ -349,6 +371,7 @@ function openComments(o: Order) {
 
     <AdminOrdersOrderDetailDrawer v-model="detailOpen" :order-id="detailId" />
     <AdminOrdersExportModal v-model="exportOpen" :orders="filteredOrders" />
+    <AdminOrdersFlockingModal v-model="flockingOpen" :orders="flockingOrders" />
     <AdminOrdersCommentsModal v-model="commentsOpen" :order="commentsOrder" />
     <AdminOrdersTrackingModal v-model="trackingOpen" :order="trackingOrder" @saved="orders.fetchAll()" />
     <AdminOrdersRefundModal v-model="refundOpen" :order="refundOrder" @refunded="orders.fetchAll()" />

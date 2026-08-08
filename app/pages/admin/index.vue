@@ -222,16 +222,22 @@ const chart = computed(() => {
 })
 
 // * --- Recent orders ---
-const recentOrders = computed<Order[]>(() => orders.items.slice(0, 5))
+// * Abandoned checkouts are hidden here like on /admin/orders.
+const recentOrders = computed<Order[]>(() =>
+  orders.items.filter((o) => o.status !== 'abandoned').slice(0, 5),
+)
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pending: 'bg-brand-gold/10 text-brand-gold',
   paid: 'bg-brand-green/10 text-brand-green',
   partially_refunded: 'bg-brand-purple/10 text-brand-purple',
   shipped: 'bg-brand-primary/10 text-brand-primary',
+  awaiting_pickup: 'bg-brand-primary/10 text-brand-primary',
+  picked_up: 'bg-gray-200 dark:bg-sidebar text-gray-600 dark:text-gray-300',
   delivered: 'bg-gray-200 dark:bg-sidebar text-gray-600 dark:text-gray-300',
   cancelled: 'bg-brand-secondary/10 text-brand-secondary',
   refunded: 'bg-brand-secondary/10 text-brand-secondary',
+  abandoned: 'bg-gray-100 dark:bg-sidebar text-gray-400 dark:text-gray-500',
 }
 
 function customerInitials(o: Order) {

@@ -27,6 +27,11 @@ interface SetTrackingPayload {
   mark_shipped?: boolean
 }
 
+interface SetStatePayload {
+  ids: string[]
+  state: string | null
+}
+
 interface AddCommentPayload {
   order_id: string
   body: string
@@ -102,6 +107,28 @@ Deno.serve(async (req) => {
       }
 
       return jsonResponse({ order: data })
+    }
+
+    // * Preparation / flocking states — set in bulk when purchase orders or a
+    // * flocking order are exported. Fully independent from `status` (and from
+    // * each other): no transition checks, no emails.
+    if (req.method === 'POST' && (action === 'preparation' || action === 'flocking')) {
+      const body = (await req.json()) as SetStatePayload
+      if (!Array.isArray(body?.ids) || body.ids.length === 0) {
+        return jsonResponse({ error: 'ids required' }, { status: 400 })
+      }
+      const column = action === 'preparation' ? 'preparation_status' : 'flocking_status'
+      const allowed = action === 'preparation' ? 'in_progress' : 'in_flocking'
+      const state = body.state === allowed ? allowed : null
+
+      const { data, error } = await sb
+        .from('orders')
+        .update({ [column]: state })
+        .in('id', body.ids)
+        .select()
+      if (error) throw error
+
+      return jsonResponse({ orders: data ?? [] })
     }
 
     if (req.method === 'POST' && action === 'tracking') {

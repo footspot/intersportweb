@@ -147,8 +147,8 @@ const timeline = computed<TimelineStep[]>(() => {
   const order_states_pickup = ['paid', 'awaiting_pickup', 'picked_up']
   const states = m === 'colissimo' ? order_states_colissimo : order_states_pickup
   const idx = states.indexOf(status)
-  // * 'cancelled' / 'refunded' are terminal off-path states — render minimal.
-  if (status === 'cancelled' || status === 'refunded' || status === 'partially_refunded') {
+  // * 'cancelled' / 'refunded' / 'abandoned' are terminal off-path states — render minimal.
+  if (status === 'cancelled' || status === 'refunded' || status === 'partially_refunded' || status === 'abandoned') {
     return [
       { key: 'paid', label: t(`publicOrder.timeline.paid`), reached: !!o.paid_at, current: false, at: o.paid_at },
       { key: status, label: t(`publicOrder.timeline.${status}`), reached: true, current: true },

@@ -964,7 +964,8 @@
       "pack": {
         "title": "Pack",
         "enable": "Ce produit est un pack",
-        "hint": "Un pack regroupe plusieurs produits existants. Le stock et la cagnotte suivent ceux des composants."
+        "hint": "Un pack regroupe plusieurs produits existants. Le stock et la cagnotte suivent ceux des composants.",
+        "buyingPriceHint": "Prérempli avec la somme des composants — modifiable."
       },
       "bundle": {
         "componentsTitle": "Composition du pack",
@@ -1068,11 +1069,10 @@
       "export": {
         "button": "Exporter",
         "title": "Exporter les commandes",
-        "subtitle": "Zip avec le bon de commande et la facture de chaque commande sélectionnée.",
+        "subtitle": "PDF unique regroupant le bon de commande de chaque commande sélectionnée.",
         "empty": "Aucune commande à exporter.",
         "selectAll": "Tout sélectionner",
         "selected": "{n} / {total} sélectionnées",
-        "invoiceNote": "La facture n'est incluse que pour les commandes payées.",
         "progress": "Génération {done} / {total}…",
         "failed": "Échec de l'export pour : {orders}",
         "confirm": "Télécharger ({n})",
@@ -1101,7 +1101,8 @@
         "shipped": "Expédiées",
         "delivered": "Livrées",
         "cancelled": "Annulées",
-        "refunded": "Remboursées"
+        "refunded": "Remboursées",
+        "abandoned": "Abandonnées"
       },
       "status": {
         "pending": "En attente",
@@ -1113,6 +1114,7 @@
         "refunded": "Remboursée",
         "awaiting_pickup": "En attente de retrait",
         "picked_up": "Retirée",
+        "abandoned": "Abandonnée",
         "changed": "Statut mis à jour",
         "changeFailed": "Échec de la mise à jour du statut",
         "editHint": "Cliquer pour changer le statut",
@@ -1126,8 +1128,25 @@
         "club": "Club",
         "amount": "Montant",
         "status": "Statut",
+        "preparation": "Préparation",
         "date": "Date",
         "actions": "Actions"
+      },
+      "preparation": {
+        "in_progress": "En cours",
+        "in_flocking": "En flocage"
+      },
+      "flocking": {
+        "button": "Ordre de flocage",
+        "title": "Ordre de flocage",
+        "subtitle": "{n} commandes payées",
+        "refsTitle": "Références à floquer",
+        "sizesTitle": "Quantités par taille",
+        "product": "Produit",
+        "total": "Tot.",
+        "pieces": "{n} pièces à floquer",
+        "empty": "Aucune pièce à floquer dans les commandes payées.",
+        "confirm": "Télécharger et passer en flocage"
       },
       "actions": {
         "tracking": "Suivi Colissimo",
@@ -2004,7 +2023,8 @@
       "delivered": "Livrée",
       "cancelled": "Annulée",
       "refunded": "Remboursée",
-      "partially_refunded": "Partiellement remboursée"
+      "partially_refunded": "Partiellement remboursée",
+      "abandoned": "Abandonnée"
     }
   }
 }

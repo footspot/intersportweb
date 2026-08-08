@@ -1,10 +1,9 @@
 <script setup lang="ts">
-// * Bulk export modal — builds a zip with one folder per selected order
-// * containing its bon de commande and, for paid-and-beyond statuses, its
-// * facture. The list is the already-filtered orders from the page; everything
-// * is selected by default and can be unticked one by one.
-import JSZip from 'jszip'
-import type { Order, OrderStatus } from '~/stores/orders'
+// * Bulk export modal — merges the bon de commande of every selected order
+// * into a single PDF. The list is the already-filtered orders from the page;
+// * everything is selected by default and can be unticked one by one.
+import { PDFDocument } from 'pdf-lib'
+import { useOrdersStore, type Order } from '~/stores/orders'
 import { invokeEdge } from '~/composables/useEdgeFunction'
 
 interface Props {
@@ -17,18 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-// * Statuses that have a customer invoice — pending/cancelled orders only get
-// * their internal purchase order in the zip.
-const INVOICE_STATUSES: OrderStatus[] = [
-  'paid',
-  'partially_refunded',
-  'shipped',
-  'awaiting_pickup',
-  'picked_up',
-  'delivered',
-  'refunded',
-]
+const ordersStore = useOrdersStore()
 
 const selected = ref<Record<string, boolean>>({})
 const running = ref(false)
@@ -77,22 +65,10 @@ async function fetchPdf(fn: string, order: Order): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer())
 }
 
-// * One folder per order; failures are collected per order and the zip still
-// * ships with everything that succeeded.
-async function addOrder(zip: JSZip, order: Order) {
-  try {
-    const po = await fetchPdf('generate-purchase-order', order)
-    zip.file(`${order.order_number}/bon-de-commande-${order.order_number}.pdf`, po)
-    if (INVOICE_STATUSES.includes(order.status)) {
-      const inv = await fetchPdf('generate-invoice', order)
-      zip.file(`${order.order_number}/facture-${order.order_number}.pdf`, inv)
-    }
-  } catch {
-    errors.value.push(order.order_number)
-  }
-}
-
-async function exportZip() {
+// * Bons de commande are fetched concurrently but merged in list order;
+// * failures are collected per order and the PDF still ships with everything
+// * that succeeded.
+async function exportPdf() {
   const picked = props.orders.filter((o) => selected.value[o.id])
   if (!picked.length || running.value) return
   running.value = true
@@ -101,25 +77,42 @@ async function exportZip() {
   progress.total = picked.length
 
   try {
-    const zip = new JSZip()
-    const queue = [...picked]
+    const parts: (Uint8Array | null)[] = Array.from({ length: picked.length }, () => null)
+    let next = 0
     const worker = async () => {
-      for (let o = queue.shift(); o; o = queue.shift()) {
-        await addOrder(zip, o)
+      for (let i = next++; i < picked.length; i = next++) {
+        try {
+          parts[i] = await fetchPdf('generate-purchase-order', picked[i]!)
+        } catch {
+          errors.value.push(picked[i]!.order_number)
+        }
         progress.done++
       }
     }
     await Promise.all(Array.from({ length: 3 }, worker))
 
-    if (Object.keys(zip.files).length) {
-      const blob = await zip.generateAsync({ type: 'blob' })
+    const fetched = parts.filter((p): p is Uint8Array => p !== null)
+    if (fetched.length) {
+      const merged = await PDFDocument.create()
+      for (const bytes of fetched) {
+        const doc = await PDFDocument.load(bytes)
+        const pages = await merged.copyPages(doc, doc.getPageIndices())
+        pages.forEach((p) => merged.addPage(p))
+      }
+      const blob = new Blob([await merged.save()], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       const day = new Date().toISOString().slice(0, 10)
       a.href = url
-      a.download = `commandes-${day}.zip`
+      a.download = `bons-de-commande-${day}.pdf`
       a.click()
       URL.revokeObjectURL(url)
+
+      // * Exported orders move to the 'in_progress' preparation state — a
+      // * best-effort side write; the download already happened either way.
+      const okIds = picked.filter((_, i) => parts[i] !== null).map((o) => o.id)
+      if (okIds.length) await ordersStore.setPreparation(okIds, 'in_progress').catch(() => {})
+
       if (!errors.value.length) emit('update:modelValue', false)
     }
   } finally {
@@ -181,8 +174,6 @@ async function exportZip() {
           </label>
         </div>
 
-        <p class="text-xs text-gray-500">{{ t('admin.orders.export.invoiceNote') }}</p>
-
         <div v-if="running" class="space-y-1">
           <div class="h-1.5 rounded-full bg-gray-100 dark:bg-sidebar overflow-hidden">
             <div
@@ -212,7 +203,7 @@ async function exportZip() {
             type="button"
             class="px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
             :disabled="running || selectedCount === 0"
-            @click="exportZip"
+            @click="exportPdf"
           >
             <UIcon name="i-lucide-download" class="w-4 h-4" />
             {{ running ? t('common.loading') : t('admin.orders.export.confirm', { n: selectedCount }) }}
