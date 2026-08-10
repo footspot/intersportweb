@@ -1066,6 +1066,7 @@
       "empty": "No orders match this filter.",
       "realtime": "Live",
       "searchPlaceholder": "Search by number, email or client",
+      "loadingHistory": "Loading order history…",
       "export": {
         "button": "Export",
         "title": "Export orders",

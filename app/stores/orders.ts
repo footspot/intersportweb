@@ -148,16 +148,33 @@ export interface Order {
 interface OrderState {
   items: Order[]
   loading: boolean
+  // * True while older pages are still streaming in after the first paint.
+  loadingMore: boolean
   error: string | null
   detailed: Record<string, Order>         // * cache of orders loaded with items + refunds
+  // * Monotonic token — a newer fetchAll() cancels the previous background loop.
+  fetchSeq: number
 }
+
+// * One PostgREST request per page. Must stay under the project's server-side
+// * "max rows" cap (1000) or pages get silently truncated and the loop stops
+// * early, hiding old orders.
+const PAGE_SIZE = 500
+
+// * The item join is deliberately minimal — just what the list filters
+// * (product / category / size / reference) need. Full lines still come
+// * from fetchDetail.
+const LIST_SELECT =
+  '*, club:clubs(name), items:order_items(product_id, size, secondary_size, product:products(reference, category))'
 
 export const useOrdersStore = defineStore('orders', {
   state: (): OrderState => ({
     items: [],
     loading: false,
+    loadingMore: false,
     error: null,
     detailed: {},
+    fetchSeq: 0,
   }),
 
   getters: {
@@ -173,27 +190,66 @@ export const useOrdersStore = defineStore('orders', {
   },
 
   actions: {
+    // * Full-history load, paged. A flat .limit(500) silently hid every order
+    // * older than the newest 500 (and the server caps any single request at
+    // * 1000 rows anyway) — but the back-office needs the WHOLE list, because
+    // * status counts, stats filters and the CSV export all compute client-side
+    // * over this array. So: the first page resolves fetchAll and paints the
+    // * table immediately; older pages stream in behind it (loadingMore).
     async fetchAll() {
+      const seq = ++this.fetchSeq
       this.loading = true
       this.error = null
       try {
-        const client = useSupabaseClient()
-        // * The item join is deliberately minimal — just what the list filters
-        // * (product / category / size / reference) need. Full lines still come
-        // * from fetchDetail.
-        const { data, error } = await client
-          .from('orders')
-          .select(
-            '*, club:clubs(name), items:order_items(product_id, size, secondary_size, product:products(reference, category))',
-          )
-          .order('created_at', { ascending: false })
-          .limit(500)
-        if (error) throw error
-        this.items = (data ?? []) as Order[]
+        const first = await this._fetchPage(null)
+        if (seq !== this.fetchSeq) return
+        this.items = first
+        if (first.length === PAGE_SIZE) {
+          this.loadingMore = true
+          // * Deliberately not awaited — history keeps loading after first paint.
+          void this._fetchHistory(seq, first[first.length - 1]!.created_at)
+        }
       } catch (err) {
         this.error = err instanceof Error ? err.message : 'Failed to load orders'
       } finally {
-        this.loading = false
+        if (seq === this.fetchSeq) this.loading = false
+      }
+    },
+
+    async _fetchPage(cursor: string | null): Promise<Order[]> {
+      const client = useSupabaseClient()
+      let q = client
+        .from('orders')
+        .select(LIST_SELECT)
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE)
+      // * Keyset cursor, not offset ranges: a realtime insert mid-load shifts
+      // * offsets and would duplicate/skip rows. lte (not lt) so identical
+      // * timestamps can't fall through the page boundary; the re-fetched
+      // * boundary row is dropped by the id dedup in _fetchHistory.
+      if (cursor) q = q.lte('created_at', cursor)
+      const { data, error } = await q
+      if (error) throw error
+      return (data ?? []) as Order[]
+    },
+
+    async _fetchHistory(seq: number, cursor: string) {
+      try {
+        while (true) {
+          const page = await this._fetchPage(cursor)
+          if (seq !== this.fetchSeq) return
+          const seen = new Set(this.items.map((o) => o.id))
+          const fresh = page.filter((o) => !seen.has(o.id))
+          if (fresh.length > 0) this.items = [...this.items, ...fresh]
+          // * fresh empty = only re-fetched boundary rows left → done.
+          if (page.length < PAGE_SIZE || fresh.length === 0) break
+          cursor = page[page.length - 1]!.created_at
+        }
+      } catch (err) {
+        // * A failed history page must not blank the already-painted list.
+        console.error('[orders] history page load failed', err)
+      } finally {
+        if (seq === this.fetchSeq) this.loadingMore = false
       }
     },
 

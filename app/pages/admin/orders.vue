@@ -277,6 +277,15 @@ function openComments(o: Order) {
           {{ counts[f.value] ?? 0 }}
         </span>
       </button>
+      <!-- * Older pages still streaming in — counts/search cover the full
+           history only once this disappears. -->
+      <span
+        v-if="orders.loadingMore"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 dark:text-gray-500"
+      >
+        <UIcon name="i-lucide-loader-2" class="w-3.5 h-3.5 animate-spin" />
+        {{ t('admin.orders.loadingHistory') }}
+      </span>
     </div>
 
     <!-- * Period / club / catalogue filters — shared with /admin/stats -->

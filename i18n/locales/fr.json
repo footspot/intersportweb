@@ -1066,6 +1066,7 @@
       "empty": "Aucune commande pour ce filtre.",
       "realtime": "Temps réel",
       "searchPlaceholder": "Rechercher par numéro email ou client",
+      "loadingHistory": "Chargement de l'historique…",
       "export": {
         "button": "Exporter",
         "title": "Exporter les commandes",
