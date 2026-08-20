@@ -6,9 +6,9 @@
 # * so they are intentionally NOT redirected — the new pages serve them directly.
 
 # --- Legal pages: direct 1:1 equivalents -------------------------------------
-/conditions-gnrale-de-vente        /cgv               301!
-/politique-de-confidentialité      /confidentialite   301!
-/politique-de-confidentialit%C3%A9 /confidentialite   301!
+/conditions-gnrale-de-vente        /cgv               301
+/politique-de-confidentialité      /confidentialite   301
+/politique-de-confidentialit%C3%A9 /confidentialite   301
 
 # --- Shop / catalog entry points ---------------------------------------------
 /boutique             /   301
