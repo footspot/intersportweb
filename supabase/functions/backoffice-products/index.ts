@@ -74,6 +74,8 @@ interface ProductData {
   name: { fr: string; en: string }
   reference: string
   details?: { fr?: string; en?: string } | null
+  // * Optional bilingual customer notice shown on the product page (e.g. lead time).
+  instructions?: { fr?: string; en?: string } | null
   category?: string | null
   buying_price: number
   selling_price: number
@@ -388,6 +390,7 @@ function productRow(body: ProductData) {
     name: body.name,
     reference: body.reference.trim(),
     details: body.details ?? null,
+    instructions: body.instructions ?? null,
     category: body.category?.trim() || null,
     buying_price: Number(body.buying_price),
     selling_price: Number(body.selling_price),
@@ -544,6 +547,7 @@ async function duplicateProduct(
     name: (src as any).name,
     reference,
     details: (src as any).details ?? null,
+    instructions: (src as any).instructions ?? null,
     category: (src as any).category ?? null,
     buying_price: (src as any).buying_price,
     selling_price: (src as any).selling_price,

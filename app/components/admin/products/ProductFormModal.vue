@@ -50,6 +50,9 @@ const reference = ref('')
 const category = ref('')
 const detailsFr = ref('')
 const detailsEn = ref('')
+// * Optional customer notice shown as a callout on the product page.
+const instructionsFr = ref('')
+const instructionsEn = ref('')
 const gallerySlots = ref<GallerySlot[]>([])
 const buyingPrice = ref(0)
 const sellingPrice = ref(0)
@@ -157,6 +160,8 @@ watch(
     category.value = p?.category ?? ''
     detailsFr.value = p?.details?.fr ?? ''
     detailsEn.value = p?.details?.en ?? ''
+    instructionsFr.value = p?.instructions?.fr ?? ''
+    instructionsEn.value = p?.instructions?.en ?? ''
     // * Existing colors use their DB id as the client `key`, so variants and
     // * images can reference them by the same value they carry in color_id.
     colors.value = (p?.colors ?? []).map((c) => ({ id: c.id, key: c.id, name: c.name, hex: c.hex }))
@@ -303,6 +308,11 @@ async function save() {
       details:
         detailsFr.value.trim() || detailsEn.value.trim()
           ? { fr: detailsFr.value.trim() || undefined, en: detailsEn.value.trim() || undefined }
+          : null,
+      // * Both fields empty → null, so the product page renders no callout at all.
+      instructions:
+        instructionsFr.value.trim() || instructionsEn.value.trim()
+          ? { fr: instructionsFr.value.trim() || undefined, en: instructionsEn.value.trim() || undefined }
           : null,
       image_slots: imageSlots,
       category: category.value.trim() || null,
@@ -512,6 +522,35 @@ async function save() {
             class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none resize-y"
           />
         </label>
+      </div>
+
+      <!-- Customer instruction (optional, FR/EN) — shown as a callout on the product page -->
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <UIcon name="i-lucide-info" class="w-4 h-4 text-brand-primary" />
+          <span class="text-sm font-medium">{{ t('admin.products.instructionsTitle') }}</span>
+        </div>
+        <p class="text-xs text-gray-500 mb-2">{{ t('admin.products.instructionsHint') }}</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm font-medium">{{ t('admin.products.instructionsFr') }}</span>
+            <textarea
+              v-model="instructionsFr"
+              rows="2"
+              :placeholder="t('admin.products.instructionsPlaceholder')"
+              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none resize-y"
+            />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium">{{ t('admin.products.instructionsEn') }}</span>
+            <textarea
+              v-model="instructionsEn"
+              rows="2"
+              :placeholder="t('admin.products.instructionsPlaceholder')"
+              class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none resize-y"
+            />
+          </label>
+        </div>
       </div>
 
       <!-- Pack toggle -->

@@ -444,6 +444,28 @@ Deno.serve(async (req) => {
       clubIdSet.add(product.club_id)
     }
 
+    // * Shop-wide minimum order amount. Measured against the GOODS SUBTOTAL —
+    // * articles only, before shipping, promo code and prepaid credit — so a
+    // * discount can't drop a compliant cart back under the floor. 0 (or a row
+    // * predating the column) disables the check. The cart drawer and /checkout
+    // * mirror this, but a tampered client still lands here.
+    {
+      const { data: shopSettings } = await sb
+        .from('site_settings')
+        .select('min_order_subtotal')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const minSubtotal = Number(shopSettings?.min_order_subtotal ?? 0)
+      const goodsSubtotal = Number(subtotal.toFixed(2))
+      if (minSubtotal > 0 && goodsSubtotal < minSubtotal) {
+        return jsonResponse(
+          { error: 'order_below_minimum', min_order_subtotal: minSubtotal, subtotal: goodsSubtotal },
+          { status: 400 },
+        )
+      }
+    }
+
     if (clubIdSet.size === 0) return jsonResponse({ error: 'missing_club' }, { status: 400 })
     const clubIds = Array.from(clubIdSet)
     const isMultiClub = clubIds.length > 1

@@ -6,6 +6,8 @@ import { invokeEdge } from '~/composables/useEdgeFunction'
 export interface SiteSettings {
   id: string
   clearance_active: boolean
+  // * Shop-wide minimum order amount (goods subtotal). 0 = no minimum.
+  min_order_subtotal: number
   promo_banner_text: string | null
   promo_banner_url: string | null
   promo_banner_active: boolean
@@ -52,6 +54,11 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
   const error = ref<string | null>(null)
 
   const clearanceActive = computed(() => !!settings.value?.clearance_active)
+  // * Minimum order amount in euros, checked against the cart's goods subtotal.
+  // * Falls back to 0 (no minimum) when the row predates the feature or hasn't
+  // * loaded yet — never block a checkout because a fetch was slow; create-order
+  // * re-checks against the database anyway.
+  const minOrderSubtotal = computed(() => Number(settings.value?.min_order_subtotal ?? 0) || 0)
   // * Banner defaults to visible when the row predates the feature (null → true).
   const promoBannerActive = computed(() => settings.value?.promo_banner_active !== false)
   const promoBannerText = computed(() => settings.value?.promo_banner_text ?? null)
@@ -100,6 +107,7 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
         | 'promo_banner_url'
         | 'promo_banner_active'
         | 'carousel_autoplay_seconds'
+        | 'min_order_subtotal'
         | 'bons_plans_active'
         | 'bons_plans_title'
       >
@@ -169,6 +177,7 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     loading,
     error,
     clearanceActive,
+    minOrderSubtotal,
     promoBannerActive,
     promoBannerText,
     promoBannerUrl,

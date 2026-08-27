@@ -48,6 +48,7 @@
     "freeShipping": "Free",
     "total": "Total",
     "checkout": "Checkout",
+    "minOrder": "Minimum order: {amount}. Add {missing} more to check out.",
     "clear": "Clear cart",
     "promoApplied": "Code {code}",
     "prepaidApplied": "Prepaid credit",
@@ -131,6 +132,7 @@
     },
     "errors": {
       "cartEmpty": "Your cart is empty.",
+      "belowMinimum": "The minimum order amount is {amount}. Add {missing} more to complete your purchase.",
       "addressIncomplete": "Shipping address is incomplete.",
       "validation": "Some items are no longer available at the selected conditions.",
       "guestIdentity": "Please fill in your name and email.",
@@ -1038,6 +1040,11 @@
       "detailsFr": "Description (FR)",
       "detailsEn": "Description (EN)",
       "detailsPlaceholder": "Product description (optional)",
+      "instructionsTitle": "Customer instruction (optional)",
+      "instructionsHint": "Shown prominently on the product page, only when filled in. Leave empty to show no instruction.",
+      "instructionsFr": "Instruction (FR)",
+      "instructionsEn": "Instruction (EN)",
+      "instructionsPlaceholder": "E.g. delivery for this product takes around 7 days.",
       "colors": {
         "title": "Colors",
         "hint": "Add the product's colors; link each image and size to a color.",
@@ -1296,9 +1303,17 @@
     },
     "settings": {
       "title": "Settings",
-      "subtitle": "Manage your account and security.",
+      "subtitle": "Manage the shop, your account and its security.",
       "wrongPassword": "Current password is incorrect.",
       "genericError": "Something went wrong. Try again.",
+      "shop": {
+        "title": "Shop",
+        "desc": "Order rules applied across the whole shop.",
+        "minOrder": "Minimum order amount",
+        "minOrderHint": "Minimum value of the items (excluding shipping, promo code and prepaid credit) required to place an order. Set 0 to disable the minimum.",
+        "minOrderInvalid": "Enter an amount between 0 and 1000 €.",
+        "saved": "Shop settings saved."
+      },
       "profile": {
         "title": "Profile",
         "desc": "Your name as shown across the back office.",

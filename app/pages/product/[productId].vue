@@ -462,6 +462,14 @@ function addToCart() {
   }, 150)
 }
 
+// * Per-product customer notice, in the active locale with a FR fallback (same
+// * convention as `details` — the admin may fill only the French field).
+const productInstructions = computed(() => {
+  const i = product.value?.instructions
+  const text = i?.[locale.value as 'fr' | 'en'] ?? i?.fr
+  return text?.trim() || null
+})
+
 // * SEO — dynamic title/description/OG + Product JSON-LD. Getters keep it
 // * reactive as the product resolves; absolute Supabase image URL feeds og:image.
 const seoTitle = computed(() =>
@@ -593,6 +601,17 @@ useSchemaOrg([
 
         <div v-if="product.details?.[locale as 'fr' | 'en'] || product.details?.fr" class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
           {{ product.details?.[locale as 'fr' | 'en'] ?? product.details?.fr }}
+        </div>
+
+        <!-- * Admin-written notice for this product (e.g. delivery lead time).
+             * Informational — deliberately styled apart from the description so
+             * it reads as a notice, but it never blocks add-to-cart. -->
+        <div
+          v-if="productInstructions"
+          class="text-sm rounded-lg p-3 bg-brand-primary/10 border border-brand-primary/30 text-brand-primary flex items-start gap-2 whitespace-pre-line"
+        >
+          <UIcon name="i-lucide-info" class="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{{ productInstructions }}</span>
         </div>
 
         <div

@@ -11,9 +11,14 @@ const ENTRY_CARDS = ['catalog', 'shop', 'clearance'] as const
 const ENTRY_COVER_BUCKET = 'entry-card-covers'
 // * Hero launch video lives in the public carousel bucket alongside slide images.
 const HERO_VIDEO_BUCKET = 'home-carousel'
+// * Upper bound for the minimum-order field — a typo like 3000 instead of 30
+// * would take the whole shop offline, so refuse anything beyond a sane ceiling.
+const MAX_MIN_ORDER_SUBTOTAL = 1000
 
 interface SettingsPayload {
   clearance_active?: boolean
+  // * Shop-wide minimum order amount, checked against the goods subtotal.
+  min_order_subtotal?: number
   promo_banner_text?: string | null
   promo_banner_url?: string | null
   promo_banner_active?: boolean
@@ -85,6 +90,15 @@ Deno.serve(async (req) => {
       patch.bons_plans_title = body.bons_plans_title?.trim() || null
     }
     if (body.hero_show_cards !== undefined) patch.hero_show_cards = !!body.hero_show_cards
+    // * Minimum order amount: clamp to the DB CHECK (>= 0) and round to cents.
+    // * 0 disables the minimum. A non-numeric value leaves the setting untouched
+    // * rather than silently resetting the floor to 0.
+    if (body.min_order_subtotal !== undefined) {
+      const n = Number(body.min_order_subtotal)
+      if (Number.isFinite(n)) {
+        patch.min_order_subtotal = Math.round(Math.min(MAX_MIN_ORDER_SUBTOTAL, Math.max(0, n)) * 100) / 100
+      }
+    }
     // * Carousel dwell time: clamp to the 1–60s the DB CHECK allows.
     if (body.carousel_autoplay_seconds !== undefined) {
       const n = Math.round(Number(body.carousel_autoplay_seconds))

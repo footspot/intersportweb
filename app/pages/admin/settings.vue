@@ -1,17 +1,21 @@
 <script setup lang="ts">
-// * /admin/settings — the signed-in admin manages their OWN account:
-// * display name, email, password and two-factor authentication.
-// * Profile / email / password writes go through the admin-account edge
-// * function (service role); 2FA runs against the caller's own session via
-// * the supabase.auth.mfa.* APIs.
+// * /admin/settings — shop-wide commerce rules (minimum order amount) plus the
+// * signed-in admin's OWN account: display name, email, password and two-factor
+// * authentication.
+// * The shop section writes site_settings through the admin-settings edge
+// * function; profile / email / password go through admin-account (service
+// * role); 2FA runs against the caller's own session via supabase.auth.mfa.*.
 import { useAuthStore } from '~/stores/auth'
+import { useSiteSettingsStore } from '~/stores/siteSettings'
 import { invokeEdge } from '~/composables/useEdgeFunction'
 
 definePageMeta({ layout: 'admin', middleware: ['admin'], ssr: false })
 
 const { t } = useI18n()
+const { edgeErrorMessage } = useEdgeError()
 const client = useSupabaseClient()
 const auth = useAuthStore()
+const siteSettings = useSiteSettingsStore()
 
 type Msg = { type: 'ok' | 'err'; text: string } | null
 
@@ -268,9 +272,56 @@ function cancelDisable() {
   disableError.value = null
 }
 
+// * ---------------------------- Shop: minimum order ----------------------------
+// * Kept as a string so the field can be emptied while typing; parsed on save.
+const minOrder = ref('')
+const minOrderSaving = ref(false)
+const minOrderMsg = ref<Msg>(null)
+
+// * Mirror the store into the input whenever the row (re)loads.
+watch(
+  () => siteSettings.minOrderSubtotal,
+  (v) => { minOrder.value = String(v ?? 0) },
+  { immediate: true },
+)
+
+// * The field is bound with v-model, which hands back a String for type="text"
+// * but a Number for type="number" (Vue's vModelText casts when the input type
+// * is numeric). Normalize both shapes, and accept the comma a French keyboard
+// * produces — "20,50" is what an admin here actually types.
+function parseAmount(v: unknown): number {
+  if (typeof v === 'number') return v
+  return Number(String(v ?? '').trim().replace(',', '.'))
+}
+
+const minOrderInvalid = computed(() => {
+  const raw = String(minOrder.value ?? '').trim()
+  const n = parseAmount(minOrder.value)
+  return raw === '' || !Number.isFinite(n) || n < 0 || n > 1000
+})
+
+async function saveMinOrder() {
+  minOrderMsg.value = null
+  if (minOrderInvalid.value) {
+    minOrderMsg.value = { type: 'err', text: t('admin.settings.shop.minOrderInvalid') }
+    return
+  }
+  minOrderSaving.value = true
+  try {
+    // * Accept "30,50" as well as "30.50" — French keyboards produce the comma.
+    await siteSettings.update({ min_order_subtotal: parseAmount(minOrder.value) })
+    minOrderMsg.value = { type: 'ok', text: t('admin.settings.shop.saved') }
+  } catch (err) {
+    minOrderMsg.value = { type: 'err', text: edgeErrorMessage(err) }
+  } finally {
+    minOrderSaving.value = false
+  }
+}
+
 onMounted(() => {
   mounted.value = true
   fullName.value = auth.profile?.full_name ?? ''
+  siteSettings.fetchAll()
   refresh2fa()
 })
 
@@ -284,6 +335,48 @@ const inputClass =
       <h1 class="font-heading text-2xl font-bold">{{ t('admin.settings.title') }}</h1>
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.settings.subtitle') }}</p>
     </div>
+
+    <!-- ============================== Shop ============================== -->
+    <section class="bg-white dark:bg-sidebar-surface rounded-card shadow-card-sm p-6 space-y-4">
+      <div class="flex items-center gap-3">
+        <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary">
+          <UIcon name="i-lucide-shopping-cart" class="w-5 h-5" />
+        </span>
+        <div>
+          <h2 class="font-heading font-semibold">{{ t('admin.settings.shop.title') }}</h2>
+          <p class="text-xs text-gray-500">{{ t('admin.settings.shop.desc') }}</p>
+        </div>
+      </div>
+
+      <form class="space-y-4" @submit.prevent="saveMinOrder">
+        <label class="block">
+          <span class="text-sm font-medium">{{ t('admin.settings.shop.minOrder') }}</span>
+          <div class="relative mt-1">
+            <input
+              v-model="minOrder"
+              type="text"
+              inputmode="decimal"
+              class="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+            />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">€</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">{{ t('admin.settings.shop.minOrderHint') }}</p>
+        </label>
+
+        <p v-if="minOrderMsg" class="text-sm" :class="minOrderMsg.type === 'ok' ? 'text-brand-green' : 'text-brand-secondary'">
+          {{ minOrderMsg.text }}
+        </p>
+
+        <button
+          type="submit"
+          :disabled="minOrderSaving || minOrderInvalid"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-semibold hover:opacity-90 disabled:opacity-60"
+        >
+          <UIcon v-if="minOrderSaving" name="i-lucide-loader-2" class="w-4 h-4 animate-spin" />
+          {{ t('common.save') }}
+        </button>
+      </form>
+    </section>
 
     <!-- ============================ Profile ============================ -->
     <section class="bg-white dark:bg-sidebar-surface rounded-card shadow-card-sm p-6 space-y-4">

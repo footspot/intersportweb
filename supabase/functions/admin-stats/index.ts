@@ -86,6 +86,50 @@ function enumerateBuckets(since: Date, until: Date, granularity: Granularity): s
   return out
 }
 
+// * Statuses that count as revenue (a refund is tracked per item, not per order).
+const REVENUE_STATUSES = ['paid', 'partially_refunded', 'shipped', 'delivered', 'refunded']
+
+// * PostgREST caps a response at the project's `max-rows` (1000 by default), so
+// * a range read has to be paged or a 12-month window silently loses rows.
+// * The cap is server-side config we can't see from here, so the loop below
+// * advances by the page actually returned and stops on `count`, never on an
+// * assumed page size.
+const PAGE_SIZE = 1000
+
+const ITEM_SELECT =
+  'id, order_id, product_id, quantity, size, unit_price_paid, buying_price_snapshot, fund_credit_snapshot, status,' +
+  ' ord:orders!inner(id, club_id, created_at, status),' +
+  ' product:products(name, reference, category, club_id)'
+
+// * Fetch the order items whose parent order falls in [since, until] with a
+// * revenue status, joining order + product in one go.
+// *
+// * This used to be two round-trips — every order id in the window, then
+// * `.in('order_id', ids)` — which supabase-js sends as a GET query string:
+// * past ~200 orders the request line blew Kong's 8 KB buffer and PostgREST
+// * answered 414, surfacing as a bare 500 on /admin/stats for 30d and above.
+// * Filtering through the embedded `orders!inner` keeps the URL constant-size.
+async function fetchItemsInRange(sb: any, since: Date, until: Date): Promise<any[]> {
+  const rows: any[] = []
+  for (;;) {
+    const { data, error, count } = await sb
+      .from('order_items')
+      .select(ITEM_SELECT, { count: 'exact' })
+      .gte('ord.created_at', since.toISOString())
+      .lte('ord.created_at', until.toISOString())
+      .in('ord.status', REVENUE_STATUSES)
+      // * Stable ordering — `range()` paging is meaningless without it.
+      .order('id', { ascending: true })
+      .range(rows.length, rows.length + PAGE_SIZE - 1)
+    if (error) throw error
+    const page = data ?? []
+    rows.push(...page)
+    // * Empty page = server truncated us or we ran off the end; either way stop.
+    if (page.length === 0) return rows
+    if (typeof count !== 'number' || rows.length >= count) return rows
+  }
+}
+
 Deno.serve(async (req) => {
   const pre = handlePreflight(req)
   if (pre) return pre
@@ -104,35 +148,16 @@ Deno.serve(async (req) => {
     const period: Period = filters.period ?? '30d'
     const { since, until, granularity } = resolveRange(filters)
 
-    // * Pull orders in range (paid + partially_refunded + shipped + delivered count as revenue)
-    const orderQuery = sb
-      .from('orders')
-      .select('id, club_id, total, subtotal, status, paid_at, created_at')
-      .gte('created_at', since.toISOString())
-      .lte('created_at', until.toISOString())
-      .in('status', ['paid', 'partially_refunded', 'shipped', 'delivered', 'refunded'])
+    // * One joined+paginated read of the items in range — see fetchItemsInRange.
     // * The club filter is applied per item (via products.club_id) rather than
     // * on orders.club_id, so mixed-club orders still count toward each club.
-    const { data: orders, error: oErr } = await orderQuery
-    if (oErr) throw oErr
-
-    const orderIds = (orders ?? []).map((o) => o.id)
-
-    // * Pull items for those orders. Join product for reference/category/fund breakdown.
-    let itemQuery = sb
-      .from('order_items')
-      .select(
-        'id, order_id, product_id, quantity, size, unit_price_paid, buying_price_snapshot, fund_credit_snapshot, status, product:products(name, reference, category, club_id)',
-      )
-      .in('order_id', orderIds.length ? orderIds : ['00000000-0000-0000-0000-000000000000'])
-    const { data: items, error: iErr } = await itemQuery
-    if (iErr) throw iErr
+    const items = await fetchItemsInRange(sb, since, until)
 
     // * Filter items further by category/product/reference (post-fetch — fine for our scale).
     // * Size filter applies last so we can compute `available_sizes` from the
     // * pre-size pool — the size dropdown should keep all options visible
     // * even after the user picks one.
-    const preSizeItems = (items ?? []).filter((it: any) => {
+    const preSizeItems = items.filter((it: any) => {
       if (it.status === 'refunded_oos') return false
       if (filters.club_id && it.product?.club_id !== filters.club_id) return false
       if (filters.category && it.product?.category !== filters.category) return false
@@ -161,11 +186,11 @@ Deno.serve(async (req) => {
     const buckets = enumerateBuckets(since, until, granularity)
     for (const b of buckets) revenueByBucket.set(b, { revenue: 0, margin: 0 })
 
-    const orderById = new Map<string, any>()
-    for (const o of orders ?? []) orderById.set(o.id, o)
-
     for (const it of filteredItems) {
-      const o = orderById.get(it.order_id)
+      // * `orders!inner` guarantees the embed, but a malformed row shouldn't
+      // * take the whole page down. Aliased `ord`, not `order` — `order` is a
+      // * reserved PostgREST query param and would collide with the sort key.
+      const o = it.ord
       if (!o) continue
 
       const lineRevenue = Number(it.unit_price_paid) * it.quantity
@@ -295,8 +320,12 @@ Deno.serve(async (req) => {
       best_sellers: bestSellersList,
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    console.error('[admin-stats]', msg)
+    // * PostgREST rejects with a plain `{ message, details, hint, code }` object,
+    // * not an Error — `err instanceof Error` alone turned every database failure
+    // * into an undiagnosable "Unknown error".
+    const e = err as { message?: string; details?: string; hint?: string; code?: string }
+    const msg = e?.message ?? 'Unknown error'
+    console.error('[admin-stats]', msg, { code: e?.code, details: e?.details, hint: e?.hint })
     return jsonResponse({ error: msg }, { status: 500 })
   }
 })

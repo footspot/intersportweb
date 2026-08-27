@@ -8,6 +8,7 @@
 // * Submit flow stays the same: validate → cart-validate → create-order →
 // * create-form-token → Smartform takes over the page.
 import { useCartStore } from '~/stores/cart'
+import { useSiteSettingsStore } from '~/stores/siteSettings'
 import { invokeEdge } from '~/composables/useEdgeFunction'
 import type { ShippingAddress } from '~/components/checkout/ShippingForm.vue'
 import type { DeliveryMethod } from '~/components/checkout/DeliveryMethodSelector.vue'
@@ -17,6 +18,7 @@ definePageMeta({ ssr: false })
 
 const { t } = useI18n()
 const cart = useCartStore()
+const siteSettings = useSiteSettingsStore()
 const config = useRuntimeConfig()
 const supabase = useSupabaseClient()
 
@@ -184,8 +186,17 @@ function deliveryOk(): boolean {
   return true
 }
 
+// * Shop-wide minimum order amount, measured against the goods subtotal (before
+// * shipping, promo and prepaid credit) exactly like the create-order check.
+const minOrder = computed(() => siteSettings.minOrderSubtotal)
+const belowMinimum = computed(() => minOrder.value > 0 && cart.subtotal < minOrder.value)
+const missingForMinimum = computed(() => Math.max(0, minOrder.value - cart.subtotal))
+
 function validate(): string | null {
   if (cart.isEmpty) return t('checkout.errors.cartEmpty')
+  if (belowMinimum.value) {
+    return t('checkout.errors.belowMinimum', { amount: fmt(minOrder.value), missing: fmt(missingForMinimum.value) })
+  }
   if (!addressOk()) {
     if (!guest.value.email) return t('checkout.errors.guestIdentity')
     if (!isValidEmail(guest.value.email)) return t('checkout.errors.guestEmailInvalid')
@@ -199,6 +210,12 @@ function validate(): string | null {
   }
   return null
 }
+
+// * The header populates the store on the storefront, but /checkout is
+// * ssr:false and can be opened directly — make sure the floor is loaded.
+onMounted(() => {
+  if (!siteSettings.settings) siteSettings.fetchAll()
+})
 
 const idempotencyKey = useState<string>('checkout-idempotency-key', () => uuid())
 
@@ -285,6 +302,17 @@ async function onSubmit() {
         },
       },
     })
+    if (oErr?.message === 'order_below_minimum') {
+      // * Server refused: the floor moved (or the client was tampered with).
+      // * Re-read it so the message quotes the amount now in force.
+      await siteSettings.fetchAll()
+      throw new Error(
+        t('checkout.errors.belowMinimum', {
+          amount: fmt(minOrder.value),
+          missing: fmt(missingForMinimum.value),
+        }),
+      )
+    }
     if (oErr || !order?.order) throw new Error(oErr?.message ?? 'create_order_failed')
     pendingOrder.value = order.order
 
@@ -477,9 +505,16 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
             </div>
             <p class="text-xs text-gray-500">{{ t('checkout.payment.cardHint') }}</p>
 
+            <p
+              v-if="belowMinimum"
+              class="text-sm text-brand-secondary bg-brand-secondary/10 border border-brand-secondary/30 rounded-card p-3"
+            >
+              {{ t('checkout.errors.belowMinimum', { amount: fmt(minOrder), missing: fmt(missingForMinimum) }) }}
+            </p>
+
             <button
               type="submit"
-              :disabled="submitting"
+              :disabled="submitting || belowMinimum"
               class="w-full py-3 rounded-card bg-brand-primary text-white font-medium hover:bg-brand-primary-dark disabled:opacity-60 inline-flex items-center justify-center gap-2"
             >
               <UIcon v-if="!submitting" name="i-lucide-lock" class="w-4 h-4" />

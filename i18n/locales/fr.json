@@ -48,6 +48,7 @@
     "freeShipping": "Offerte",
     "total": "Total",
     "checkout": "Valider la commande",
+    "minOrder": "Minimum de commande : {amount}. Il vous manque {missing} pour valider votre panier.",
     "clear": "Vider le panier",
     "promoApplied": "Code {code}",
     "prepaidApplied": "Code prépayé",
@@ -131,6 +132,7 @@
     },
     "errors": {
       "cartEmpty": "Votre panier est vide.",
+      "belowMinimum": "Le montant minimum de commande est de {amount}. Il vous manque {missing} d’articles pour finaliser votre achat.",
       "addressIncomplete": "Adresse de livraison incomplète.",
       "validation": "Certains articles ne sont plus disponibles aux conditions choisies.",
       "guestIdentity": "Renseignez votre nom, prénom et e-mail.",
@@ -1038,6 +1040,11 @@
       "detailsFr": "Description (FR)",
       "detailsEn": "Description (EN)",
       "detailsPlaceholder": "Description du produit (optionnel)",
+      "instructionsTitle": "Instruction client (optionnel)",
+      "instructionsHint": "Affichée en évidence sur la fiche produit, uniquement si elle est remplie. Laissez vide pour n'afficher aucune instruction.",
+      "instructionsFr": "Instruction (FR)",
+      "instructionsEn": "Instruction (EN)",
+      "instructionsPlaceholder": "Ex. : le délai de livraison pour ce produit est d'environ 7 jours.",
       "colors": {
         "title": "Couleurs",
         "hint": "Ajoutez les coloris du produit ; liez chaque image et chaque taille à une couleur.",
@@ -1296,9 +1303,17 @@
     },
     "settings": {
       "title": "Paramètres",
-      "subtitle": "Gérez votre compte et sa sécurité.",
+      "subtitle": "Gérez la boutique, votre compte et sa sécurité.",
       "wrongPassword": "Le mot de passe actuel est incorrect.",
       "genericError": "Une erreur est survenue. Réessayez.",
+      "shop": {
+        "title": "Boutique",
+        "desc": "Règles de commande appliquées à toute la boutique.",
+        "minOrder": "Montant minimum de commande",
+        "minOrderHint": "Montant minimum des articles (hors livraison, code promo et code prépayé) pour pouvoir passer commande. Mettez 0 pour désactiver le minimum.",
+        "minOrderInvalid": "Saisissez un montant compris entre 0 et 1000 €.",
+        "saved": "Réglages de la boutique enregistrés."
+      },
       "profile": {
         "title": "Profil",
         "desc": "Votre nom tel qu'il apparaît dans le back-office.",

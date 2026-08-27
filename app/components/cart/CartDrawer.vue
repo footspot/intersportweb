@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
+import { useSiteSettingsStore } from '~/stores/siteSettings'
 
 interface Props {
   modelValue: boolean
@@ -9,12 +10,24 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 
 const { t } = useI18n()
 const cart = useCartStore()
+const siteSettings = useSiteSettingsStore()
+
+function fmt(v: number) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v)
+}
+
+// * Shop-wide minimum order amount — checked against the goods subtotal, the
+// * same basis create-order enforces. 0 (or a not-yet-loaded row) = no floor.
+const minOrder = computed(() => siteSettings.minOrderSubtotal)
+const belowMinimum = computed(() => minOrder.value > 0 && cart.subtotal < minOrder.value)
+const missingForMinimum = computed(() => Math.max(0, minOrder.value - cart.subtotal))
 
 function close() {
   emit('update:modelValue', false)
 }
 
 async function goToCheckout() {
+  if (belowMinimum.value) return
   close()
   await navigateTo('/checkout')
 }
@@ -84,9 +97,16 @@ onBeforeUnmount(() => {
 
         <div v-if="!cart.isEmpty" class="border-t border-gray-100 dark:border-sidebar p-4 space-y-3">
           <CartSummary />
+          <p
+            v-if="belowMinimum"
+            class="text-xs text-brand-secondary bg-brand-secondary/10 border border-brand-secondary/30 rounded-card px-3 py-2"
+          >
+            {{ t('cart.minOrder', { amount: fmt(minOrder), missing: fmt(missingForMinimum) }) }}
+          </p>
           <button
             type="button"
-            class="w-full py-2.5 rounded-card bg-brand-primary text-white font-medium hover:bg-brand-primary-dark"
+            :disabled="belowMinimum"
+            class="w-full py-2.5 rounded-card bg-brand-primary text-white font-medium hover:bg-brand-primary-dark disabled:opacity-50 disabled:hover:bg-brand-primary"
             @click="goToCheckout"
           >
             {{ t('cart.checkout') }}

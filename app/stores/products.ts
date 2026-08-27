@@ -93,6 +93,9 @@ export interface Product {
   name: { fr: string; en: string }
   reference: string
   details: { fr?: string; en?: string } | null
+  // * Optional bilingual notice shown on the product page (e.g. delivery lead
+  // * time). null / empty = nothing shown. Informational only.
+  instructions: { fr?: string; en?: string } | null
   category: string | null
   buying_price: number
   selling_price: number
