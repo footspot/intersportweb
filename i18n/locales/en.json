@@ -154,7 +154,6 @@
     "delivery": {
       "title": "Delivery method",
       "colissimo": "Home delivery (Colissimo)",
-      "colissimoHint": "Delivered in 3–5 business days.",
       "clubPickup": "Pick up at the club",
       "clubPickupHint": "Collect your order at the club. Free.",
       "shopPickup": "Pick up at an Intersport shop",

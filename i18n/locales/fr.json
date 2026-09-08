@@ -154,7 +154,6 @@
     "delivery": {
       "title": "Mode de livraison",
       "colissimo": "Livraison à domicile (Colissimo)",
-      "colissimoHint": "Livraison sous 3–5 jours ouvrés à l'adresse indiquée.",
       "clubPickup": "Retrait au club",
       "clubPickupHint": "Récupérez votre commande directement au siège du club. Gratuit.",
       "shopPickup": "Retrait en magasin Intersport",

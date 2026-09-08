@@ -10,8 +10,8 @@ defineEmits<{ (e: 'update:modelValue', v: DeliveryMethod): void }>()
 
 const { t } = useI18n()
 
-const OPTIONS: Record<DeliveryMethod, { label: string; hint: string; icon: string }> = {
-  colissimo:   { label: 'checkout.delivery.colissimo',   hint: 'checkout.delivery.colissimoHint',   icon: 'i-lucide-truck' },
+const OPTIONS: Record<DeliveryMethod, { label: string; hint?: string; icon: string }> = {
+  colissimo:   { label: 'checkout.delivery.colissimo',                                             icon: 'i-lucide-truck' },
   club_pickup: { label: 'checkout.delivery.clubPickup',  hint: 'checkout.delivery.clubPickupHint',  icon: 'i-lucide-building' },
   shop_pickup: { label: 'checkout.delivery.shopPickup',  hint: 'checkout.delivery.shopPickupHint',  icon: 'i-lucide-store' },
 }
@@ -36,7 +36,7 @@ const OPTIONS: Record<DeliveryMethod, { label: string; hint: string; icon: strin
         <UIcon :name="OPTIONS[opt].icon" class="w-4 h-4 text-brand-primary" />
         <span class="font-semibold">{{ t(OPTIONS[opt].label) }}</span>
       </div>
-      <div class="text-xs text-gray-500 mt-1">{{ t(OPTIONS[opt].hint) }}</div>
+      <div v-if="OPTIONS[opt].hint" class="text-xs text-gray-500 mt-1">{{ t(OPTIONS[opt].hint!) }}</div>
     </button>
   </div>
 </template>
