@@ -48,6 +48,38 @@ export interface PromoBatch {
   created_at: string
 }
 
+// * One order that carried a code, as returned by the support lookup.
+export interface PromoLookupOrder {
+  id: string
+  order_number: string
+  status: string
+  created_at: string
+  paid_at: string | null
+  total: number
+  subtotal: number
+  promo_discount: number
+  refund_total: number
+  promo_code_id: string | null
+  email: string | null
+  name: string | null
+  phone: string | null
+}
+
+export type PromoLookupResult =
+  | {
+      mode: 'code'
+      query: string
+      promo: PromoCode | null
+      orders: PromoLookupOrder[]
+      suggestions: string[]
+    }
+  | {
+      mode: 'email'
+      query: string
+      codes: PromoCode[]
+      orders: PromoLookupOrder[]
+    }
+
 export interface PromoCodeInput {
   id?: string
   code?: string
@@ -150,6 +182,17 @@ export const usePromoCodesStore = defineStore('promoCodes', () => {
     return data?.items ?? []
   }
 
+  // * Support check: a code (single or batch) or a customer email.
+  async function lookup(q: string): Promise<PromoLookupResult> {
+    const { data, error: err } = await invokeEdge<PromoLookupResult>('admin-promo-codes/lookup', {
+      method: 'GET',
+      query: { q },
+    })
+    if (err) throw new Error(err.code ?? err.message)
+    if (!data) throw new Error('empty_response')
+    return data
+  }
+
   async function create(payload: PromoCodeInput) {
     const { data, error: err } = await invokeEdge<{ promo: PromoCode }>('admin-promo-codes', {
       method: 'POST',
@@ -232,6 +275,7 @@ export const usePromoCodesStore = defineStore('promoCodes', () => {
     fetchAll,
     fetchBatches,
     fetchBatchCodes,
+    lookup,
     create,
     createBatch,
     update,

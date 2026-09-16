@@ -14,6 +14,9 @@
 // *   GET    /                    list single codes (no batch_id) + per-status filter
 // *   GET    /batches             aggregate list of batches
 // *   GET    /batch?id=<uuid>     list codes inside one batch (for PDF re-download)
+// *   GET    /lookup?q=<code|email>  support check: a code (any batch) with
+// *                                every order that carried it, or every code
+// *                                used / tried by a customer email
 // *   POST   /                    create one custom code
 // *   POST   /batch               bulk-generate N codes (PREFIX-XXXXXX format)
 // *   PUT    /                    update single code metadata
@@ -54,6 +57,77 @@ interface BatchPayload {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// * Must stay under the project's PostgREST max-rows cap (1000), otherwise a
+// * page comes back truncated and looks like the last one.
+const BATCH_PAGE_SIZE = 500
+
+const PROMO_COLS =
+  'id, code, amount, min_subtotal, absorbs_by, valid_from, valid_until, note, used_at, used_by_order_id, used_by_email, created_at, batch_id, club_id, scope, scope_product_ids'
+
+const LOOKUP_ORDER_COLS =
+  'id, order_number, status, created_at, paid_at, total, subtotal, promo_discount, refund_total, promo_code_id, guest_email, guest_first_name, guest_last_name, shipping_address'
+
+// * Escape LIKE wildcards so `_` / `%` in a code or email match literally.
+function likeEscape(s: string): string {
+  return s.replace(/[\\%_]/g, (m) => `\\${m}`)
+}
+
+// * Levenshtein distance, giving up (returns max + 1) once it exceeds `max`.
+function editDistance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]
+    let rowMin = i
+    for (let j = 1; j <= b.length; j++) {
+      const v = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1))
+      cur.push(v)
+      if (v < rowMin) rowMin = v
+    }
+    if (rowMin > max) return max + 1
+    prev = cur
+  }
+  return prev[b.length]!
+}
+
+interface LookupOrderRow {
+  id: string
+  order_number: string
+  status: string
+  created_at: string
+  paid_at: string | null
+  total: number | string
+  subtotal: number | string
+  promo_discount: number | string
+  refund_total: number | string | null
+  promo_code_id: string | null
+  guest_email: string | null
+  guest_first_name: string | null
+  guest_last_name: string | null
+  shipping_address: { email?: string; full_name?: string; phone?: string } | null
+}
+
+// * Flatten an order for the lookup screen — only the customer identity the
+// * admin needs to settle a dispute, never the postal address.
+function toLookupOrder(o: LookupOrderRow) {
+  const guestName = [o.guest_first_name, o.guest_last_name].filter(Boolean).join(' ')
+  return {
+    id: o.id,
+    order_number: o.order_number,
+    status: o.status,
+    created_at: o.created_at,
+    paid_at: o.paid_at,
+    total: Number(o.total),
+    subtotal: Number(o.subtotal),
+    promo_discount: Number(o.promo_discount),
+    refund_total: Number(o.refund_total ?? 0),
+    promo_code_id: o.promo_code_id,
+    email: o.guest_email ?? o.shipping_address?.email ?? null,
+    name: guestName || o.shipping_address?.full_name || null,
+    phone: o.shipping_address?.phone ?? null,
+  }
+}
 
 interface ResolvedScope {
   scope: PromoScope
@@ -151,16 +225,26 @@ Deno.serve(async (req) => {
     if (req.method === 'GET') {
       if (action === 'batches') {
         // * Aggregate per batch: one row per batch_id with counts + shared metadata.
-        const { data, error } = await sb
-          .from('promo_codes')
-          .select(
-            'batch_id, amount, min_subtotal, absorbs_by, valid_from, valid_until, note, club_id, scope, scope_product_ids, created_at, created_by, used_at',
-          )
-          .not('batch_id', 'is', null)
-          .order('created_at', { ascending: false })
-        if (error) throw error
+        // * Paged: a single select is silently truncated at the project's
+        // * PostgREST max-rows cap (1000), which dropped the oldest batches and
+        // * under-counted their used codes once the table grew past 1000 codes.
+        const data: unknown[] = []
+        for (let from = 0; ; from += BATCH_PAGE_SIZE) {
+          const { data: page, error } = await sb
+            .from('promo_codes')
+            .select(
+              'batch_id, amount, min_subtotal, absorbs_by, valid_from, valid_until, note, club_id, scope, scope_product_ids, created_at, created_by, used_at',
+            )
+            .not('batch_id', 'is', null)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: true })
+            .range(from, from + BATCH_PAGE_SIZE - 1)
+          if (error) throw error
+          data.push(...(page ?? []))
+          if ((page?.length ?? 0) < BATCH_PAGE_SIZE) break
+        }
 
-        const rows = (data ?? []) as Array<{
+        const rows = data as Array<{
           batch_id: string
           amount: number
           min_subtotal: number | null
@@ -232,6 +316,134 @@ Deno.serve(async (req) => {
           .order('code', { ascending: true })
         if (error) throw error
         return jsonResponse({ items: data ?? [] })
+      }
+
+      if (action === 'lookup') {
+        const raw = (url.searchParams.get('q') ?? '').trim()
+        if (raw.length < 3 || raw.length > 254) {
+          return jsonResponse({ error: 'invalid_query' }, { status: 400 })
+        }
+
+        // * Email mode: every code this customer redeemed + every order in
+        // * which they entered a code (paid or not). Same email resolution as
+        // * claim_promo_for_order: guest_email, else shipping_address.email.
+        if (raw.includes('@')) {
+          const email = likeEscape(raw.toLowerCase())
+          // * Two order queries instead of one or() filter: an escaped `_`
+          // * (common in emails) is ambiguous inside PostgREST's or() syntax.
+          const ordersQuery = (column: string) =>
+            sb
+              .from('orders')
+              .select(LOOKUP_ORDER_COLS)
+              .not('promo_code_id', 'is', null)
+              .ilike(column, email)
+              .order('created_at', { ascending: false })
+              .limit(200)
+          const [usedRes, byGuestRes, byShippingRes] = await Promise.all([
+            sb
+              .from('promo_codes')
+              .select(PROMO_COLS)
+              .ilike('used_by_email', email)
+              .order('used_at', { ascending: false })
+              .limit(200),
+            ordersQuery('guest_email'),
+            ordersQuery('shipping_address->>email'),
+          ])
+          if (usedRes.error) throw usedRes.error
+          if (byGuestRes.error) throw byGuestRes.error
+          if (byShippingRes.error) throw byShippingRes.error
+
+          const orderById = new Map<string, LookupOrderRow>()
+          for (const o of [...(byGuestRes.data ?? []), ...(byShippingRes.data ?? [])] as LookupOrderRow[]) {
+            orderById.set(o.id, o)
+          }
+          const orderRows = [...orderById.values()].sort((a, b) => b.created_at.localeCompare(a.created_at))
+
+          const codes = new Map<string, unknown>()
+          for (const c of usedRes.data ?? []) codes.set((c as { id: string }).id, c)
+          // * Codes the customer tried without redeeming (abandoned, race loss…).
+          const missing = [
+            ...new Set(
+              orderRows
+                .map((o) => o.promo_code_id)
+                .filter((id): id is string => !!id && !codes.has(id)),
+            ),
+          ]
+          if (missing.length) {
+            const { data, error } = await sb.from('promo_codes').select(PROMO_COLS).in('id', missing)
+            if (error) throw error
+            for (const c of data ?? []) codes.set((c as { id: string }).id, c)
+          }
+
+          return jsonResponse({
+            mode: 'email',
+            query: raw,
+            codes: [...codes.values()],
+            orders: orderRows.map(toLookupOrder),
+          })
+        }
+
+        // * Code mode — same normalisation as validate-promo-code.
+        const code = raw.toUpperCase().replace(/\s+/g, '')
+        const { data: promo, error } = await sb
+          .from('promo_codes')
+          .select(PROMO_COLS)
+          .ilike('code', likeEscape(code))
+          .maybeSingle()
+        if (error) throw error
+
+        if (!promo) {
+          // * Near matches, for a code misread off a voucher (0/O, 1/I, a
+          // * dropped prefix or dash…). Compared against every code — the typo
+          // * can sit in the prefix too — paged past the max-rows cap.
+          const candidates: string[] = []
+          for (let from = 0; ; from += BATCH_PAGE_SIZE) {
+            const { data: page, error: sErr } = await sb
+              .from('promo_codes')
+              .select('code')
+              .order('id', { ascending: true })
+              .range(from, from + BATCH_PAGE_SIZE - 1)
+            if (sErr) throw sErr
+            for (const r of page ?? []) candidates.push((r as { code: string }).code)
+            if ((page?.length ?? 0) < BATCH_PAGE_SIZE) break
+          }
+          const suggestions = candidates
+            .map((c) => {
+              const upper = c.toUpperCase()
+              // * A typed fragment of a real code (e.g. suffix without prefix) ranks first.
+              const d = upper.includes(code) ? 0 : editDistance(code, upper, 2)
+              return { c, d }
+            })
+            .filter((x) => x.d <= 2)
+            .sort((a, b) => a.d - b.d || a.c.localeCompare(b.c))
+            .slice(0, 10)
+            .map((x) => x.c)
+          return jsonResponse({
+            mode: 'code',
+            query: code,
+            promo: null,
+            orders: [],
+            suggestions,
+          })
+        }
+
+        // * Every order that carried the code — the redeeming one plus any
+        // * abandoned / unpaid / refunded attempts.
+        const { data: orders, error: oErr } = await sb
+          .from('orders')
+          .select(LOOKUP_ORDER_COLS)
+          .eq('promo_code_id', (promo as { id: string }).id)
+          .order('created_at', { ascending: false })
+          .limit(200)
+        if (oErr) throw oErr
+
+        return jsonResponse({
+          mode: 'code',
+          query: code,
+          promo,
+          orders: ((orders ?? []) as LookupOrderRow[]).map(toLookupOrder),
+          suggestions: [],
+        })
       }
 
       // * Default list — single codes only (not part of a batch).

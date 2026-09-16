@@ -26,6 +26,19 @@ const deletingBatch = ref<PromoBatch | null>(null)
 const confirmBusy = ref(false)
 const pdfBusy = ref<string | null>(null)
 
+const lookupRef = ref<{ run: (q?: string) => Promise<void> } | null>(null)
+const viewingBatch = ref<PromoBatch | null>(null)
+const batchCodesOpen = ref(false)
+function openBatchCodes(b: PromoBatch) {
+  viewingBatch.value = b
+  batchCodesOpen.value = true
+}
+// * A code picked in the batch modal gets the full check at the top of the page.
+function checkCode(code: string) {
+  lookupRef.value?.run(code)
+  if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 await useAsyncData('admin-promo-codes-page', async () => {
   await Promise.all([promo.fetchAll(), promo.fetchBatches(), clubs.fetchAll()])
   return true
@@ -201,6 +214,8 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
       </div>
     </div>
 
+    <AdminPromoCodesCodeLookup ref="lookupRef" />
+
     <!-- * Tabs * -->
     <div class="flex gap-1 border-b border-gray-200 dark:border-sidebar">
       <button
@@ -272,9 +287,14 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
               <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="statusClass(promo.status(p))">
                 {{ t(`admin.promo.status.${promo.status(p)}`) }}
               </span>
-              <div v-if="p.used_at && p.used_by_email" class="text-xs text-gray-400 mt-1">
+              <button
+                v-if="p.used_at && p.used_by_email"
+                type="button"
+                class="block text-xs text-gray-400 mt-1 hover:text-brand-primary hover:underline"
+                @click="checkCode(p.code)"
+              >
                 {{ p.used_by_email }}
-              </div>
+              </button>
             </td>
             <td class="px-4 py-3 text-right space-x-1">
               <button
@@ -355,6 +375,14 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
             <td class="px-4 py-3 text-right space-x-1">
               <button
                 type="button"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar"
+                :title="t('admin.promo.batchCodes.open')"
+                @click="openBatchCodes(b)"
+              >
+                <UIcon name="i-lucide-list" class="w-4 h-4" />
+              </button>
+              <button
+                type="button"
                 class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-sidebar disabled:opacity-30"
                 :disabled="pdfBusy === b.batch_id"
                 :title="t('admin.promo.batch.downloadPdf')"
@@ -384,6 +412,11 @@ function batchStatusClass(s: ReturnType<typeof promo.batchStatus>) {
       v-model="showForm"
       :promo-code="editing"
       @saved="promo.fetchAll()"
+    />
+    <AdminPromoCodesBatchCodesModal
+      v-model="batchCodesOpen"
+      :batch="viewingBatch"
+      @check="checkCode"
     />
     <AdminPromoCodesBatchModal
       v-model="showBatchForm"

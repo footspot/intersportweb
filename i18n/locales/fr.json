@@ -1576,7 +1576,7 @@
     },
     "promo": {
       "title": "Codes promo",
-      "subtitle": "Codes à usage unique global. Le gagnant est déterminé au paiement (race atomique).",
+      "subtitle": "Codes à usage unique global.",
       "new": "Nouveau code",
       "empty": "Aucun code promo créé.",
       "createTitle": "Nouveau code promo",
@@ -1706,6 +1706,64 @@
         "searchProducts": "Rechercher un produit…",
         "noProducts": "Aucun produit pour ce club.",
         "packLabel": "Pack ({n}) · {club}"
+      },
+      "lookup": {
+        "title": "Vérifier un code promo",
+        "subtitle": "Un client dit que son code ne marche pas ? Saisissez le code (y compris les codes de lots) ou l'e-mail du client pour voir s'il a été utilisé, quand, par qui et sur quelle commande.",
+        "placeholder": "Code (ex. INT-K7N2X9) ou e-mail du client",
+        "submit": "Vérifier",
+        "clear": "Effacer",
+        "tooShort": "Saisissez au moins 3 caractères.",
+        "failed": "La vérification a échoué. Réessayez.",
+        "unknown": "Aucun code « {code} » n'existe.",
+        "unknownHint": "Le client a peut-être mal recopié son code (0/O, 1/I…) ou le code a été supprimé.",
+        "didYouMean": "Codes proches :",
+        "usedVerdict": "Déjà utilisé le {date} par {email}.",
+        "usedHint": "Un code est à usage unique : il ne peut plus être accepté, même si la commande a ensuite été remboursée.",
+        "orderDeleted": "La commande liée n'existe plus.",
+        "verdict": {
+          "active": "Code valide et jamais utilisé. S'il est refusé, c'est qu'une des conditions ci-dessous n'est pas remplie par le panier.",
+          "expired": "Code jamais utilisé, mais expiré : il est refusé pour cette raison.",
+          "scheduled": "Code jamais utilisé, mais pas encore actif : il est refusé jusqu'à sa date de début.",
+          "used": "Code déjà utilisé."
+        },
+        "conditions": "Conditions d'utilisation",
+        "condMin": "Minimum de {v} d'articles éligibles dans le panier",
+        "condWindow": "Valable du {from} au {until}",
+        "condSingleUse": "Usage unique : le code est consommé au paiement de la commande",
+        "scopeGlobal": "Valable sur tout le catalogue",
+        "scopeClub": "Valable uniquement sur les articles du club {club}",
+        "scopeProducts": "Valable uniquement sur un pack de {n} produit(s) du club {club}",
+        "batch": "Lot {id} — créé le {date}",
+        "single": "Code individuel — créé le {date}",
+        "ordersTitle": "Commandes ayant utilisé ce code ({n})",
+        "noOrders": "Aucune commande n'a jamais contenu ce code.",
+        "redeemedHere": "Code consommé ici",
+        "refunded": "Remboursé : {v}",
+        "emailNothing": "Aucun code utilisé ou tenté par {email}.",
+        "emailCodesTitle": "Codes utilisés ou tentés par {email} ({n})",
+        "col": {
+          "order": "Commande",
+          "date": "Date",
+          "customer": "Client",
+          "total": "Total",
+          "status": "Statut",
+          "code": "Code"
+        }
+      },
+      "batchCodes": {
+        "open": "Voir les codes du lot",
+        "title": "Codes du lot {id}",
+        "summary": "{used} utilisé(s) sur {total}",
+        "search": "Rechercher un code ou un e-mail",
+        "filterAll": "Tous",
+        "filterUsed": "Utilisés",
+        "filterUnused": "Non utilisés",
+        "empty": "Aucun code ne correspond.",
+        "usedAt": "Utilisé le",
+        "usedBy": "Utilisé par",
+        "unused": "Non utilisé",
+        "check": "Vérifier"
       }
     },
     "banner": {

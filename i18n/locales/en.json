@@ -1576,7 +1576,7 @@
     },
     "promo": {
       "title": "Promo codes",
-      "subtitle": "Single-use codes (global). Winner decided at payment via atomic race.",
+      "subtitle": "Single-use codes (global).",
       "new": "New code",
       "empty": "No promo codes yet.",
       "createTitle": "New promo code",
@@ -1706,6 +1706,64 @@
         "searchProducts": "Search a product…",
         "noProducts": "No products for this club.",
         "packLabel": "Pack ({n}) · {club}"
+      },
+      "lookup": {
+        "title": "Check a promo code",
+        "subtitle": "A customer says their code doesn't work? Enter the code (batch codes included) or the customer's email to see whether it was used, when, by whom and on which order.",
+        "placeholder": "Code (e.g. INT-K7N2X9) or customer email",
+        "submit": "Check",
+        "clear": "Clear",
+        "tooShort": "Enter at least 3 characters.",
+        "failed": "The check failed. Please try again.",
+        "unknown": "No code \"{code}\" exists.",
+        "unknownHint": "The customer may have mistyped the code (0/O, 1/I…) or the code was deleted.",
+        "didYouMean": "Similar codes:",
+        "usedVerdict": "Already used on {date} by {email}.",
+        "usedHint": "Codes are single-use: it can't be accepted again, even if the order was later refunded.",
+        "orderDeleted": "The linked order no longer exists.",
+        "verdict": {
+          "active": "Valid code, never used. If it's refused, the cart doesn't meet one of the conditions below.",
+          "expired": "Never used, but expired — that's why it's refused.",
+          "scheduled": "Never used, but not active yet — it's refused until its start date.",
+          "used": "Code already used."
+        },
+        "conditions": "Conditions",
+        "condMin": "At least {v} of eligible items in the cart",
+        "condWindow": "Valid from {from} to {until}",
+        "condSingleUse": "Single use: the code is consumed when the order is paid",
+        "scopeGlobal": "Valid on the whole catalogue",
+        "scopeClub": "Only valid on {club} club items",
+        "scopeProducts": "Only valid on a pack of {n} product(s) from {club}",
+        "batch": "Batch {id} — created {date}",
+        "single": "Single code — created {date}",
+        "ordersTitle": "Orders that used this code ({n})",
+        "noOrders": "No order has ever contained this code.",
+        "redeemedHere": "Code consumed here",
+        "refunded": "Refunded: {v}",
+        "emailNothing": "No code used or tried by {email}.",
+        "emailCodesTitle": "Codes used or tried by {email} ({n})",
+        "col": {
+          "order": "Order",
+          "date": "Date",
+          "customer": "Customer",
+          "total": "Total",
+          "status": "Status",
+          "code": "Code"
+        }
+      },
+      "batchCodes": {
+        "open": "View batch codes",
+        "title": "Codes in batch {id}",
+        "summary": "{used} used out of {total}",
+        "search": "Search a code or an email",
+        "filterAll": "All",
+        "filterUsed": "Used",
+        "filterUnused": "Unused",
+        "empty": "No matching code.",
+        "usedAt": "Used on",
+        "usedBy": "Used by",
+        "unused": "Unused",
+        "check": "Check"
       }
     },
     "banner": {
