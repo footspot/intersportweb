@@ -99,7 +99,12 @@ const PRIVACY_EMAIL = 'shop@intersportclubidf.com'
       suivants, strictement pour les finalités indiquées&nbsp;:
     </p>
     <ul>
-      <li><strong>Supabase, Inc.</strong> — base de données, authentification, stockage des fichiers.</li>
+      <li>
+        <strong>Supabase, Inc.</strong> — base de données, authentification, stockage des
+        fichiers. <strong>Vos données sont hébergées en France</strong>, sur la région
+        AWS Europe (Paris)&nbsp;: elles ne quittent pas le territoire de l'Union
+        européenne pour leur stockage.
+      </li>
       <li><strong>Cloudflare, Inc.</strong> — hébergement et diffusion du site (États-Unis).</li>
       <li><strong>Brevo</strong> (France) — envoi des e-mails transactionnels&nbsp;: confirmation de commande, facture, suivi.</li>
       <li><strong>Lyra Network / Systempay</strong> (France) — traitement des paiements. Lorsque vous choisissez PayPal comme moyen de paiement, PayPal (Europe) S.à r.l. et Cie, S.C.A. (Luxembourg) intervient également.</li>
@@ -111,10 +116,20 @@ const PRIVACY_EMAIL = 'shop@intersportclubidf.com'
       </li>
     </ul>
     <p>
-      Certains de ces prestataires peuvent traiter des données en dehors de l'Union
-      européenne. Ces transferts sont encadrés par les clauses contractuelles types
-      de la Commission européenne, complétées le cas échéant par des mesures
-      techniques (chiffrement en transit et au repos).
+      <strong>Où sont hébergées vos données&nbsp;?</strong> La base de données, les
+      comptes clients et les fichiers (factures comprises) sont stockés en France, sur
+      la région AWS Europe (Paris) opérée par Supabase, donc à l'intérieur de l'Union
+      européenne.
+    </p>
+    <p>
+      Certains prestataires restent toutefois susceptibles de traiter des données en
+      dehors de l'Union européenne&nbsp;— en particulier Cloudflare, dont le réseau
+      diffuse les pages du site depuis ses points de présence répartis dans le monde, et
+      les sociétés Supabase, Inc. et Cloudflare, Inc., constituées aux États-Unis, dont
+      les équipes techniques peuvent accéder aux systèmes à des fins de maintenance. Ces
+      transferts sont encadrés par les clauses contractuelles types de la Commission
+      européenne, complétées le cas échéant par des mesures techniques (chiffrement en
+      transit et au repos).
     </p>
 
     <h2>5 — Durées de conservation</h2>

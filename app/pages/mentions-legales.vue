@@ -53,13 +53,15 @@ useSeoMeta({ robots: 'index, follow' })
         <a href="https://www.cloudflare.com" target="_blank" rel="noopener noreferrer">cloudflare.com</a>
       </li>
       <li>
-        <strong>Supabase, Inc.</strong> — base de données, authentification et stockage des fichiers —
+        <strong>Supabase, Inc.</strong> — base de données, authentification et stockage des fichiers.
+        Données hébergées dans l'Union européenne, sur la région AWS Europe (Paris), France —
         <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">supabase.com</a>
       </li>
     </ul>
     <p>
-      Les conditions de ces hébergements et les garanties encadrant les transferts
-      de données hors Union européenne sont détaillées dans notre
+      La base de données et les fichiers sont stockés en France (région AWS Europe,
+      Paris). Les conditions de ces hébergements et les garanties encadrant les
+      transferts de données hors Union européenne sont détaillées dans notre
       <NuxtLink to="/confidentialite">politique de confidentialité</NuxtLink>.
     </p>
 
