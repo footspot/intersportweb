@@ -120,6 +120,64 @@ const tabs = [
 async function signOut() {
   await auth.signOut()
 }
+
+// ─────────────────────────── RGPD: mes données ───────────────────────────────
+// * art. 20 (portabilité) + art. 17 (effacement). Both call customer-account,
+// * which derives the identity from the JWT — nothing identifying is sent here.
+const exporting = ref(false)
+const dataError = ref<string | null>(null)
+const showDeleteModal = ref(false)
+const deleteConfirmText = ref('')
+const deleting = ref(false)
+
+// * Typed keyword rather than a plain "OK": deletion is irreversible, and the
+// * customer signed in by magic link so we cannot ask for a password again.
+const deleteKeyword = computed(() => t('account.data.deleteKeyword'))
+const canDelete = computed(
+  () => deleteConfirmText.value.trim().toUpperCase() === deleteKeyword.value.toUpperCase(),
+)
+
+async function exportData() {
+  exporting.value = true
+  dataError.value = null
+  try {
+    const { data, error: err } = await invokeEdge<unknown>('customer-account', {
+      method: 'GET',
+      query: { export: '1' },
+    })
+    if (err) throw new Error(err.message)
+    // * Build the file client-side: functions.invoke() parses the JSON body, so
+    // * the server's Content-Disposition never reaches the browser.
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'mes-donnees-intersport.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    dataError.value = e instanceof Error ? e.message : t('account.data.exportError')
+  } finally {
+    exporting.value = false
+  }
+}
+
+async function deleteAccount() {
+  if (!canDelete.value) return
+  deleting.value = true
+  dataError.value = null
+  try {
+    const { error: err } = await invokeEdge('customer-account', { method: 'DELETE' })
+    if (err) throw new Error(err.message)
+    // * The auth user no longer exists — drop the local session before leaving,
+    // * otherwise the app keeps a token pointing at a deleted account.
+    await auth.signOut()
+    await navigateTo('/')
+  } catch (e) {
+    dataError.value = e instanceof Error ? e.message : t('account.data.deleteError')
+    deleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -296,6 +354,82 @@ async function signOut() {
 
       <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <HomeProductCard v-for="p in offerProducts" :key="p.id" :product="p" />
+      </div>
+    </div>
+
+    <!-- RGPD: portabilité + effacement -->
+    <div class="bg-white dark:bg-sidebar-surface rounded-2xl shadow-card-sm border border-black/5 dark:border-white/10 p-6">
+      <h2 class="font-heading text-lg font-bold text-brand-primary">{{ t('account.data.title') }}</h2>
+      <p class="text-sm text-gray-500 mt-1.5 max-w-2xl">{{ t('account.data.intro') }}</p>
+
+      <p v-if="dataError" class="text-sm text-brand-secondary mt-3">{{ dataError }}</p>
+
+      <div class="flex flex-wrap gap-3 mt-4">
+        <button
+          type="button"
+          :disabled="exporting"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-primary text-brand-primary text-sm font-medium hover:bg-brand-primary/5 disabled:opacity-60"
+          @click="exportData"
+        >
+          <UIcon :name="exporting ? 'i-lucide-loader-2' : 'i-lucide-download'" :class="['w-4 h-4', exporting && 'animate-spin']" />
+          {{ exporting ? t('common.loading') : t('account.data.export') }}
+        </button>
+
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-secondary text-brand-secondary text-sm font-medium hover:bg-brand-secondary/5"
+          @click="showDeleteModal = true; deleteConfirmText = ''"
+        >
+          <UIcon name="i-lucide-trash-2" class="w-4 h-4" />
+          {{ t('account.data.delete') }}
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-400 mt-4">
+        {{ t('account.data.rightsHint') }}
+        <NuxtLink to="/confidentialite" class="underline hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>.
+      </p>
+    </div>
+
+    <!-- Confirmation d'effacement -->
+    <div
+      v-if="showDeleteModal"
+      class="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+      @click.self="showDeleteModal = false"
+    >
+      <div class="bg-white dark:bg-sidebar-surface rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 class="font-heading text-lg font-bold text-brand-secondary">{{ t('account.data.deleteTitle') }}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">{{ t('account.data.deleteWarning') }}</p>
+        <p class="text-xs text-gray-500 mt-2">{{ t('account.data.deleteKeepInvoices') }}</p>
+
+        <label class="block text-xs text-gray-500 mt-4 mb-1">
+          {{ t('account.data.deleteConfirmLabel', { word: deleteKeyword }) }}
+        </label>
+        <input
+          v-model="deleteConfirmText"
+          type="text"
+          autocomplete="off"
+          class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-sidebar bg-transparent text-sm"
+          :placeholder="deleteKeyword"
+        >
+
+        <div class="flex justify-end gap-2 mt-5">
+          <button
+            type="button"
+            class="px-4 py-2 rounded-lg border border-gray-200 dark:border-sidebar text-sm"
+            @click="showDeleteModal = false"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            :disabled="!canDelete || deleting"
+            class="px-4 py-2 rounded-lg bg-brand-secondary text-white text-sm font-medium disabled:opacity-50"
+            @click="deleteAccount"
+          >
+            {{ deleting ? t('common.loading') : t('account.data.confirmDelete') }}
+          </button>
+        </div>
       </div>
     </div>
   </section>

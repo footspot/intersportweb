@@ -68,6 +68,8 @@ interface CreateOrderPayload {
   promo_code_id?: string
   prepaid_code?: string
   footspot_member_id?: string
+  // * Proof that the buyer ticked the CGV + privacy box at checkout.
+  terms_accepted?: boolean
 }
 
 function orderNumber(): string {
@@ -117,6 +119,16 @@ Deno.serve(async (req) => {
     // * both need a reachable number.
     if (!body.guest.phone?.trim()) {
       return jsonResponse({ error: 'guest_phone_required' }, { status: 400 })
+    }
+
+    // ! Code de la consommation L221-14 + RGPD art. 7: acceptance of the CGV
+    // ! and privacy policy is a precondition of the sale, and we must be able
+    // ! to PROVE it. The checkbox already blocks the UI; this rejects a
+    // ! hand-crafted request that skips it.
+    // ! DEPLOY ORDER: ship the storefront (which sends terms_accepted) BEFORE
+    // ! this function, otherwise the live site can't check out.
+    if (body.terms_accepted !== true) {
+      return jsonResponse({ error: 'terms_not_accepted' }, { status: 400 })
     }
 
     // * Idempotency short-circuit. Same key → same order (regardless of body).
@@ -647,6 +659,8 @@ Deno.serve(async (req) => {
         guest_email: body.guest!.email,
         guest_first_name: body.guest!.first_name,
         guest_last_name: body.guest!.last_name,
+        // * Timestamped proof of the CGV/privacy acceptance above.
+        terms_accepted_at: new Date().toISOString(),
         idempotency_key: body.idempotency_key ?? null,
         club_id: orderClubId,
         status: 'pending',

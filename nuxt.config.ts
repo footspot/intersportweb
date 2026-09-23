@@ -113,15 +113,20 @@ export default defineNuxtConfig({
     layoutTransition: { name: 'layout', mode: 'out-in' },
     head: {
       title: 'Intersport Club IDF',
-      link: [
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        {
-          rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap',
-        },
-      ],
     },
+  },
+
+  // ! RGPD: never re-add a fonts.googleapis.com <link> here. Loading the CSS
+  // ! from Google sends the visitor's IP to Google on every page view, with no
+  // ! legal basis and no consent (CNIL / LG Munchen I, 3 O 17493/20).
+  // * @nuxt/fonts (bundled with @nuxt/ui) resolves these at BUILD time and
+  // * serves the woff2 files from our own origin under /_fonts.
+  // * Weights mirror what main.css actually uses via --font-body/--font-heading.
+  fonts: {
+    families: [
+      { name: 'Barlow', provider: 'google', weights: [400, 500, 600, 700] },
+      { name: 'Barlow Condensed', provider: 'google', weights: [500, 600, 700, 800] },
+    ],
   },
 
   // * No server-only block: every secret (Brevo, Colissimo, SystemPay merchant

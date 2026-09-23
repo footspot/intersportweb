@@ -25,7 +25,8 @@
   "legal": {
     "delivery": "Delivery & returns",
     "cgvLong": "Terms and conditions of sale",
-    "privacy": "Privacy policy"
+    "privacy": "Privacy policy",
+    "mentions": "Legal notice"
   },
   "footer": {
     "contactTitle": "Contact us",
@@ -122,7 +123,7 @@
     "country": "Country",
     "summary": "Summary",
     "placeOrder": "Pay now",
-    "securityHint": "Secure payment. Your details are not stored on our servers.",
+    "securityHint": "Secure payment. Your card details are never stored on our servers.",
     "payment": {
       "title": "Payment method",
       "card": "Card",
@@ -140,7 +141,8 @@
       "deliveryRequired": "Pick a delivery method.",
       "shopRequired": "Pick a pickup shop.",
       "generic": "Something went wrong. Please try again.",
-      "phoneRequired": "Phone number is required."
+      "phoneRequired": "Phone number is required.",
+      "termsRequired": "Please accept the terms of sale and the privacy policy to continue."
     },
     "issues": {
       "outOfStock": "Insufficient stock ({n} left).",
@@ -164,7 +166,9 @@
       "allDisabled": "No delivery method is available for this club.",
       "multiClubNote": "Your cart has items from several clubs: only home delivery and shop pickup are available."
     },
-    "customerInfo": "Customer info"
+    "customerInfo": "Customer info",
+    "acceptTerms": "I have read and accept the",
+    "acceptTermsAnd": "and the"
   },
   "orders": {
     "title": "My orders",
@@ -228,7 +232,8 @@
       "sportsRequired": "Please enter the sport(s) concerned.",
       "invalidEmail": "Invalid email address.",
       "rateLimited": "Too many messages sent. Please try again later.",
-      "error": "Something went wrong. Please try again."
+      "error": "Something went wrong. Please try again.",
+      "privacyNotice": "The details you enter are used only to answer your request. Your IP address is kept for 6 months for anti-spam purposes. To find out more or exercise your rights:"
     }
   },
   "storefront": {
@@ -510,7 +515,8 @@
       "haveAccount": "Already a member?",
       "signinLink": "Sign in",
       "terms": "By creating an account, you accept our",
-      "termsLink": "terms and conditions"
+      "termsLink": "terms and conditions",
+      "termsAnd": "and the"
     },
     "dashboard": {
       "greeting": "Hello, {name}",
@@ -535,6 +541,21 @@
       "view": "Details",
       "track": "Track",
       "error": "Couldn't load your orders."
+    },
+    "data": {
+      "title": "My personal data",
+      "intro": "You can download a copy of your data or delete your account at any time.",
+      "export": "Download my data",
+      "exportError": "The download failed. Please try again or email shop{'@'}intersportclubidf.com.",
+      "delete": "Delete my account",
+      "deleteTitle": "Permanently delete your account?",
+      "deleteWarning": "Your account, favourites and sign-in details will be deleted. This cannot be undone.",
+      "deleteKeepInvoices": "Invoices from the last 10 years are kept: French law requires it (art. L123-22 Code de commerce). Orders older than 3 years are anonymised immediately.",
+      "deleteConfirmLabel": "To confirm, type {word} below.",
+      "deleteKeyword": "DELETE",
+      "confirmDelete": "Delete my account",
+      "deleteError": "Deletion failed. Please try again or email shop{'@'}intersportclubidf.com.",
+      "rightsHint": "For any other request (rectification, objection, restriction), see our"
     }
   },
   "favorites": {

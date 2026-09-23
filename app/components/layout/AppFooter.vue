@@ -63,6 +63,12 @@ const year = new Date().getFullYear()
                 {{ t('legal.privacy') }}
               </NuxtLink>
             </li>
+            <li>
+              <NuxtLink to="/mentions-legales" class="inline-flex items-center gap-1.5 hover:text-white transition-colors">
+                <UIcon name="i-lucide-chevron-right" class="w-3.5 h-3.5 text-accent" />
+                {{ t('legal.mentions') }}
+              </NuxtLink>
+            </li>
           </ul>
         </div>
 

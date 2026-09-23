@@ -25,7 +25,8 @@
   "legal": {
     "delivery": "Livraison et retour",
     "cgvLong": "Conditions générales de vente",
-    "privacy": "Politique de confidentialité"
+    "privacy": "Politique de confidentialité",
+    "mentions": "Mentions légales"
   },
   "footer": {
     "contactTitle": "Contactez-nous",
@@ -122,7 +123,7 @@
     "country": "Pays",
     "summary": "Récapitulatif",
     "placeOrder": "Payer la commande",
-    "securityHint": "Paiement sécurisé. Vos informations ne sont pas stockées sur nos serveurs.",
+    "securityHint": "Paiement sécurisé. Vos données bancaires ne sont jamais stockées sur nos serveurs.",
     "payment": {
       "title": "Mode de paiement",
       "card": "Carte bancaire",
@@ -140,7 +141,8 @@
       "deliveryRequired": "Sélectionnez un mode de livraison.",
       "shopRequired": "Sélectionnez un magasin de retrait.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
-      "phoneRequired": "Téléphone obligatoire."
+      "phoneRequired": "Téléphone obligatoire.",
+      "termsRequired": "Veuillez accepter les conditions générales de vente et la politique de confidentialité pour continuer."
     },
     "issues": {
       "outOfStock": "Stock insuffisant ({n} restants).",
@@ -164,7 +166,9 @@
       "allDisabled": "Aucun mode de livraison n'est disponible pour ce club.",
       "multiClubNote": "Votre panier contient des articles de plusieurs clubs : seules la livraison à domicile et le retrait en magasin sont disponibles."
     },
-    "customerInfo": "Informations client"
+    "customerInfo": "Informations client",
+    "acceptTerms": "J'ai lu et j'accepte les",
+    "acceptTermsAnd": "et la"
   },
   "orders": {
     "title": "Mes commandes",
@@ -228,7 +232,8 @@
       "sportsRequired": "Veuillez indiquer le ou les sports concernés.",
       "invalidEmail": "Adresse email invalide.",
       "rateLimited": "Trop de messages envoyés. Veuillez réessayer plus tard.",
-      "error": "Une erreur est survenue. Veuillez réessayer."
+      "error": "Une erreur est survenue. Veuillez réessayer.",
+      "privacyNotice": "Les informations saisies servent uniquement à traiter votre demande. Votre adresse IP est conservée 6 mois à des fins de lutte contre le spam. Pour en savoir plus ou exercer vos droits :"
     }
   },
   "storefront": {
@@ -510,7 +515,8 @@
       "haveAccount": "Déjà membre ?",
       "signinLink": "Connectez-vous",
       "terms": "En créant un compte, vous acceptez nos",
-      "termsLink": "conditions générales"
+      "termsLink": "conditions générales",
+      "termsAnd": "et la"
     },
     "dashboard": {
       "greeting": "Bonjour, {name}",
@@ -535,6 +541,21 @@
       "view": "Détails",
       "track": "Suivre",
       "error": "Impossible de charger vos commandes."
+    },
+    "data": {
+      "title": "Mes données personnelles",
+      "intro": "Vous pouvez à tout moment télécharger une copie de vos données ou demander la suppression de votre compte.",
+      "export": "Télécharger mes données",
+      "exportError": "Le téléchargement a échoué. Réessayez ou écrivez-nous à shop{'@'}intersportclubidf.com.",
+      "delete": "Supprimer mon compte",
+      "deleteTitle": "Supprimer définitivement votre compte ?",
+      "deleteWarning": "Votre compte, vos favoris et vos informations de connexion seront supprimés. Cette action est irréversible.",
+      "deleteKeepInvoices": "Vos factures des 10 dernières années sont conservées : la loi nous l'impose (article L123-22 du Code de commerce). Les commandes de plus de 3 ans sont anonymisées immédiatement.",
+      "deleteConfirmLabel": "Pour confirmer, saisissez {word} ci-dessous.",
+      "deleteKeyword": "SUPPRIMER",
+      "confirmDelete": "Supprimer mon compte",
+      "deleteError": "La suppression a échoué. Réessayez ou écrivez-nous à shop{'@'}intersportclubidf.com.",
+      "rightsHint": "Pour toute autre demande (rectification, opposition, limitation), consultez notre"
     }
   },
   "favorites": {

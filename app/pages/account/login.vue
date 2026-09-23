@@ -354,7 +354,9 @@ const featureChips = [
               <template v-else>
                 <p>
                   {{ t('account.login.terms') }}
-                  <NuxtLink to="/cgv" class="font-semibold text-brand-primary hover:underline">{{ t('account.login.termsLink') }}</NuxtLink>.
+                  <NuxtLink to="/cgv" class="font-semibold text-brand-primary hover:underline">{{ t('account.login.termsLink') }}</NuxtLink>
+                  {{ t('account.login.termsAnd') }}
+                  <NuxtLink to="/confidentialite" class="font-semibold text-brand-primary hover:underline">{{ t('legal.privacy') }}</NuxtLink>.
                 </p>
                 <p>
                   {{ t('account.login.haveAccount') }}

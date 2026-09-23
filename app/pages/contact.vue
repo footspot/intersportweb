@@ -286,6 +286,11 @@ const hasAnyContact = computed(
             {{ formError }}
           </p>
 
+          <p class="text-xs text-gray-400 leading-relaxed">
+            {{ t('contactPage.form.privacyNotice') }}
+            <NuxtLink to="/confidentialite" class="underline hover:text-brand-primary">{{ t('legal.privacy') }}</NuxtLink>.
+          </p>
+
           <div class="flex justify-end">
             <button
               type="submit"

@@ -208,6 +208,7 @@ function validate(): string | null {
     if (deliveryMethod.value === 'shop_pickup') return t('checkout.errors.shopRequired')
     return t('checkout.errors.addressIncomplete')
   }
+  if (!acceptedTerms.value) return t('checkout.errors.termsRequired')
   return null
 }
 
@@ -216,6 +217,12 @@ function validate(): string | null {
 onMounted(() => {
   if (!siteSettings.settings) siteSettings.fetchAll()
 })
+
+// * RGPD / Code de la consommation L221-14 ("double clic"): the buyer must be
+// * able to READ the CGV + privacy policy before paying, and actively accept
+// * them. Never default this to true, and never persist it across sessions —
+// * acceptance has to be a deliberate act for each order.
+const acceptedTerms = ref(false)
 
 const idempotencyKey = useState<string>('checkout-idempotency-key', () => uuid())
 
@@ -272,6 +279,8 @@ async function onSubmit() {
       method: 'POST',
       body: {
         idempotency_key: idempotencyKey.value,
+        // * Proof of acceptance, stored as orders.terms_accepted_at server-side.
+        terms_accepted: acceptedTerms.value,
         lines: cart.lines.map((l) => ({
           product_id: l.product_id,
           variant_id: l.variant_id,
@@ -512,9 +521,27 @@ const sectionNum = { address: 1, delivery: 2, payment: 3 } as const
               {{ t('checkout.errors.belowMinimum', { amount: fmt(minOrder), missing: fmt(missingForMinimum) }) }}
             </p>
 
+            <label class="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer">
+              <input
+                v-model="acceptedTerms"
+                type="checkbox"
+                class="mt-0.5 shrink-0 accent-brand-primary w-4 h-4 cursor-pointer"
+              >
+              <span>
+                {{ t('checkout.acceptTerms') }}
+                <NuxtLink to="/cgv" target="_blank" rel="noopener" class="underline hover:text-brand-primary">
+                  {{ t('legal.cgvLong') }}
+                </NuxtLink>
+                {{ t('checkout.acceptTermsAnd') }}
+                <NuxtLink to="/confidentialite" target="_blank" rel="noopener" class="underline hover:text-brand-primary">
+                  {{ t('legal.privacy') }}
+                </NuxtLink>.
+              </span>
+            </label>
+
             <button
               type="submit"
-              :disabled="submitting || belowMinimum"
+              :disabled="submitting || belowMinimum || !acceptedTerms"
               class="w-full py-3 rounded-card bg-brand-primary text-white font-medium hover:bg-brand-primary-dark disabled:opacity-60 inline-flex items-center justify-center gap-2"
             >
               <UIcon v-if="!submitting" name="i-lucide-lock" class="w-4 h-4" />
