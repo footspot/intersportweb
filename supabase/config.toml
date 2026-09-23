@@ -121,3 +121,16 @@ verify_jwt = false
 # * check here or the cron POST gets rejected before the function runs.
 [functions.instagram-sync]
 verify_jwt = false
+
+# * rgpd-purge-worker — pg_cron weekly (Sun 04:00). Self-gated via X-Internal-Call
+# * with the service-role key, which is not a JWT, so the gateway check MUST stay
+# * off or the weekly account purge is rejected before the function runs.
+[functions.rgpd-purge-worker]
+verify_jwt = false
+
+# * customer-account — called from the browser by a signed-in storefront customer
+# * (RGPD art. 20 export / art. 17 erasure). Keep the gateway JWT check ON: the
+# * function re-verifies the caller itself, and this is defence in depth over an
+# * endpoint that deletes accounts.
+[functions.customer-account]
+verify_jwt = true
