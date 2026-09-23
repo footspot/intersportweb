@@ -100,10 +100,9 @@ const PRIVACY_EMAIL = 'shop@intersportclubidf.com'
     </p>
     <ul>
       <li>
-        <strong>Supabase, Inc.</strong> — base de données, authentification, stockage des
-        fichiers. <strong>Vos données sont hébergées en France</strong>, sur la région
-        AWS Europe (Paris)&nbsp;: elles ne quittent pas le territoire de l'Union
-        européenne pour leur stockage.
+        <strong>Supabase Pte. Ltd.</strong> (Singapour) — base de données, authentification,
+        stockage des fichiers. <strong>Vos données sont stockées en France</strong>, sur la
+        région AWS Europe (Paris), la région que nous avons choisie pour ce traitement.
       </li>
       <li><strong>Cloudflare, Inc.</strong> — hébergement et diffusion du site (États-Unis).</li>
       <li><strong>Brevo</strong> (France) — envoi des e-mails transactionnels&nbsp;: confirmation de commande, facture, suivi.</li>
@@ -118,18 +117,32 @@ const PRIVACY_EMAIL = 'shop@intersportclubidf.com'
     <p>
       <strong>Où sont hébergées vos données&nbsp;?</strong> La base de données, les
       comptes clients et les fichiers (factures comprises) sont stockés en France, sur
-      la région AWS Europe (Paris) opérée par Supabase, donc à l'intérieur de l'Union
-      européenne.
+      la région AWS Europe (Paris), donc à l'intérieur de l'Union européenne.
     </p>
     <p>
-      Certains prestataires restent toutefois susceptibles de traiter des données en
-      dehors de l'Union européenne&nbsp;— en particulier Cloudflare, dont le réseau
-      diffuse les pages du site depuis ses points de présence répartis dans le monde, et
-      les sociétés Supabase, Inc. et Cloudflare, Inc., constituées aux États-Unis, dont
-      les équipes techniques peuvent accéder aux systèmes à des fins de maintenance. Ces
-      transferts sont encadrés par les clauses contractuelles types de la Commission
-      européenne, complétées le cas échéant par des mesures techniques (chiffrement en
-      transit et au repos).
+      Deux de nos prestataires sont toutefois établis hors de l'Union européenne. Les
+      garanties applicables diffèrent selon leur pays d'établissement&nbsp;:
+    </p>
+    <ul>
+      <li>
+        <strong>Supabase Pte. Ltd.</strong> est établie à <strong>Singapour</strong>, pays
+        qui ne bénéficie d'<strong>aucune décision d'adéquation</strong> de la Commission
+        européenne. Les transferts sont donc encadrés par les <strong>clauses
+        contractuelles types</strong> de la Commission européenne (article 46 du RGPD),
+        intégrées à l'accord de traitement des données signé avec elle. Le stockage, lui,
+        reste en France.
+      </li>
+      <li>
+        <strong>Cloudflare, Inc.</strong> est établie aux <strong>États-Unis</strong> et
+        adhère au <strong>Data Privacy Framework UE–États-Unis</strong>, complété par les
+        clauses contractuelles types. Son réseau diffuse les pages du site depuis des
+        points de présence répartis dans le monde.
+      </li>
+    </ul>
+    <p>
+      Dans les deux cas, les équipes techniques de ces prestataires peuvent accéder aux
+      systèmes à des fins de maintenance. Ces transferts sont complétés, le cas échéant,
+      par des mesures techniques (chiffrement en transit et au repos).
     </p>
 
     <h2>5 — Durées de conservation</h2>

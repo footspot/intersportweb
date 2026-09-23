@@ -49,19 +49,28 @@ useSeoMeta({ robots: 'index, follow' })
     <ul>
       <li>
         <strong>Cloudflare, Inc.</strong> — hébergement du site et diffusion des pages.
-        101 Townsend Street, San Francisco, CA 94107, États-Unis —
+        101 Townsend Street, San Francisco, CA 94107, États-Unis.
+        Téléphone&nbsp;: +1 650 319-8930 —
         <a href="https://www.cloudflare.com" target="_blank" rel="noopener noreferrer">cloudflare.com</a>
       </li>
       <li>
-        <strong>Supabase, Inc.</strong> — base de données, authentification et stockage des fichiers.
-        Données hébergées dans l'Union européenne, sur la région AWS Europe (Paris), France —
+        <!-- ! TODO (LCEN art. 6 III) : Supabase ne publie aucun numéro de téléphone
+             (ni sur supabase.com/privacy ni dans le DPA signé). Le seul canal publié
+             est privacy@supabase.com. Obtenir un numéro auprès de Supabase et le
+             renseigner ici — ne pas en inventer un. -->
+        <strong>Supabase Pte. Ltd.</strong> — base de données, authentification et stockage
+        des fichiers. 65 Chulia Street #38-02/03, OCBC Centre, Singapour 049513.
+        Téléphone&nbsp;: non publié par l'hébergeur — contact&nbsp;:
+        <a href="mailto:privacy@supabase.com">privacy@supabase.com</a> —
         <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">supabase.com</a>
       </li>
     </ul>
     <p>
-      La base de données et les fichiers sont stockés en France (région AWS Europe,
-      Paris). Les conditions de ces hébergements et les garanties encadrant les
-      transferts de données hors Union européenne sont détaillées dans notre
+      Les données (base de données, comptes clients et fichiers) sont stockées dans
+      l'Union européenne, sur la région AWS Europe (Paris), en France. Les conditions de
+      ces hébergements et les garanties encadrant les transferts de données hors Union
+      européenne — Supabase Pte. Ltd. étant établie à Singapour et Cloudflare, Inc. aux
+      États-Unis — sont détaillées dans notre
       <NuxtLink to="/confidentialite">politique de confidentialité</NuxtLink>.
     </p>
 
