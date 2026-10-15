@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
-import { useSiteSettingsStore } from '~/stores/siteSettings'
+import { useMinOrder } from '~/composables/useMinOrder'
 
 interface Props {
   modelValue: boolean
@@ -10,17 +10,15 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 
 const { t } = useI18n()
 const cart = useCartStore()
-const siteSettings = useSiteSettingsStore()
 
 function fmt(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v)
 }
 
-// * Shop-wide minimum order amount — checked against the goods subtotal, the
-// * same basis create-order enforces. 0 (or a not-yet-loaded row) = no floor.
-const minOrder = computed(() => siteSettings.minOrderSubtotal)
-const belowMinimum = computed(() => minOrder.value > 0 && cart.subtotal < minOrder.value)
-const missingForMinimum = computed(() => Math.max(0, minOrder.value - cart.subtotal))
+// * Minimum order amount — the shop-wide floor, or this club's own exception
+// * when the cart is single-club. Checked against the goods subtotal, the same
+// * basis create-order enforces. See useMinOrder for the full rule.
+const { minOrder, belowMinimum, missingForMinimum } = useMinOrder()
 
 function close() {
   emit('update:modelValue', false)

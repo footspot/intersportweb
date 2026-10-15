@@ -804,7 +804,12 @@
         "passwordTooShort": "Password must be at least 4 characters.",
         "deliveryRequired": "Enable at least one delivery method.",
         "hasProducts": "Cannot delete: this club still has products."
-      }
+      },
+      "minOrder": "Minimum order amount (club exception)",
+      "minOrderClear": "Restore the shop-wide minimum",
+      "minOrderHintDefault": "Empty: this club follows the shop-wide minimum ({amount}).",
+      "minOrderHintNone": "0 €: no minimum order for this club.",
+      "minOrderHintOverride": "This club gets its own {amount} minimum, applied only when the cart contains nothing but its products."
     },
     "products": {
       "title": "Products",

@@ -456,11 +456,21 @@ Deno.serve(async (req) => {
       clubIdSet.add(product.club_id)
     }
 
-    // * Shop-wide minimum order amount. Measured against the GOODS SUBTOTAL —
-    // * articles only, before shipping, promo code and prepaid credit — so a
-    // * discount can't drop a compliant cart back under the floor. 0 (or a row
-    // * predating the column) disables the check. The cart drawer and /checkout
-    // * mirror this, but a tampered client still lands here.
+    // * Minimum order amount. Measured against the GOODS SUBTOTAL — articles
+    // * only, before shipping, promo code and prepaid credit — so a discount
+    // * can't drop a compliant cart back under the floor. 0 (or a row predating
+    // * the column) disables the check. The cart drawer and /checkout mirror
+    // * this, but a tampered client still lands here.
+    // *
+    // * A club may carry its own floor (clubs.min_order_subtotal) as a
+    // * commercial exception: NULL follows the shop-wide value, 0 removes the
+    // * floor for that club, a number overrides it either way.
+    // *
+    // ! The exception applies ONLY when the whole cart belongs to that single
+    // ! club. A mixed cart falls back to the shop-wide floor — otherwise one
+    // ! cheap line from an exempted club would lower the floor for a basket
+    // ! that is otherwise someone else's products (client decision 2026-10-15).
+    // ! Mirrored client-side by app/composables/useMinOrder.ts — change both.
     {
       const { data: shopSettings } = await sb
         .from('site_settings')
@@ -468,7 +478,22 @@ Deno.serve(async (req) => {
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      const minSubtotal = Number(shopSettings?.min_order_subtotal ?? 0)
+      let minSubtotal = Number(shopSettings?.min_order_subtotal ?? 0)
+
+      // * clubIdSet is already populated by the pricing loop above; clubIds
+      // * itself is only derived further down.
+      if (clubIdSet.size === 1) {
+        const onlyClubId = Array.from(clubIdSet)[0]
+        const { data: clubMin } = await sb
+          .from('clubs')
+          .select('min_order_subtotal')
+          .eq('id', onlyClubId)
+          .maybeSingle()
+        if (clubMin?.min_order_subtotal !== null && clubMin?.min_order_subtotal !== undefined) {
+          minSubtotal = Number(clubMin.min_order_subtotal)
+        }
+      }
+
       const goodsSubtotal = Number(subtotal.toFixed(2))
       if (minSubtotal > 0 && goodsSubtotal < minSubtotal) {
         return jsonResponse(

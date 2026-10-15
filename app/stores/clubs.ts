@@ -22,6 +22,8 @@ export interface Club {
   delivery_shop_pickup_enabled: boolean
   club_pickup_delay_days: number | null
   shop_pickup_delay_days: number | null
+  // * Per-club override of the shop-wide floor. NULL = follow site settings.
+  min_order_subtotal: number | null
   product_count?: number
   order_count?: number
 }
@@ -49,6 +51,7 @@ export interface ClubInput {
   delivery_shop_pickup_enabled?: boolean
   club_pickup_delay_days?: number | null
   shop_pickup_delay_days?: number | null
+  min_order_subtotal?: number | null
 }
 
 function buildBody(payload: ClubInput) {
@@ -80,7 +83,7 @@ export const useClubsStore = defineStore('clubs', () => {
       const { data: clubs, error: err } = await client
         .from('clubs')
         .select(
-          'id, sport_id, name, logo_path, is_password_protected, fund_balance, sort_order, created_at, accent_color, slogan, footspot_linked, shop_status, delivery_colissimo_enabled, delivery_colissimo_free, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, club_pickup_delay_days, shop_pickup_delay_days',
+          'id, sport_id, name, logo_path, is_password_protected, fund_balance, sort_order, created_at, accent_color, slogan, footspot_linked, shop_status, delivery_colissimo_enabled, delivery_colissimo_free, delivery_club_pickup_enabled, delivery_shop_pickup_enabled, club_pickup_delay_days, shop_pickup_delay_days, min_order_subtotal',
         )
         .order('sort_order', { ascending: true })
       if (err) throw err

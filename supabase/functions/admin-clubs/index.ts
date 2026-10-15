@@ -29,6 +29,18 @@ interface ClubData {
   delivery_shop_pickup_enabled?: boolean
   club_pickup_delay_days?: number | null
   shop_pickup_delay_days?: number | null
+  // * Per-club minimum order override. null = follow the shop-wide setting.
+  min_order_subtotal?: number | null
+}
+
+// * null / undefined / '' → NULL (follow the shop-wide minimum). Anything else
+// * is clamped to >= 0 and rounded to cents, matching the column's CHECK.
+// * 0 is meaningful: it removes the floor for that club.
+function normaliseMinOrder(v: number | null | undefined): number | null {
+  if (v === null || v === undefined || (v as unknown as string) === '') return null
+  const n = Number(v)
+  if (!Number.isFinite(n)) return null
+  return Math.round(Math.max(0, n) * 100) / 100
 }
 
 interface ResetPasswordPayload {
@@ -111,6 +123,8 @@ Deno.serve(async (req) => {
           data.shop_pickup_delay_days === null || data.shop_pickup_delay_days === undefined
             ? null
             : Math.max(0, Math.trunc(Number(data.shop_pickup_delay_days))),
+        // * Money, so keep the cents rather than truncating like the delays.
+        min_order_subtotal: normaliseMinOrder(data.min_order_subtotal),
       }
       if (data.is_password_protected) {
         if (!data.password) {
@@ -181,6 +195,9 @@ Deno.serve(async (req) => {
           data.shop_pickup_delay_days === null || data.shop_pickup_delay_days === undefined
             ? null
             : Math.max(0, Math.trunc(Number(data.shop_pickup_delay_days)))
+      }
+      if ('min_order_subtotal' in data) {
+        patch.min_order_subtotal = normaliseMinOrder(data.min_order_subtotal)
       }
 
       const { data: club, error } = await sb

@@ -804,7 +804,12 @@
         "passwordTooShort": "Le mot de passe doit contenir au moins 4 caractères.",
         "deliveryRequired": "Activez au moins un mode de livraison.",
         "hasProducts": "Impossible de supprimer : ce club possède encore des produits."
-      }
+      },
+      "minOrder": "Montant minimum de commande (exception club)",
+      "minOrderClear": "Rétablir le minimum de la boutique",
+      "minOrderHintDefault": "Vide : ce club suit le minimum de la boutique ({amount}).",
+      "minOrderHintNone": "0 € : aucun minimum de commande pour ce club.",
+      "minOrderHintOverride": "Ce club aura son propre minimum de {amount}, appliqué uniquement si le panier ne contient que ses produits."
     },
     "products": {
       "title": "Produits",

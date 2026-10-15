@@ -9,6 +9,7 @@
 // * create-form-token → Smartform takes over the page.
 import { useCartStore } from '~/stores/cart'
 import { useSiteSettingsStore } from '~/stores/siteSettings'
+import { useMinOrder } from '~/composables/useMinOrder'
 import { invokeEdge } from '~/composables/useEdgeFunction'
 import type { ShippingAddress } from '~/components/checkout/ShippingForm.vue'
 import type { DeliveryMethod } from '~/components/checkout/DeliveryMethodSelector.vue'
@@ -188,9 +189,9 @@ function deliveryOk(): boolean {
 
 // * Shop-wide minimum order amount, measured against the goods subtotal (before
 // * shipping, promo and prepaid credit) exactly like the create-order check.
-const minOrder = computed(() => siteSettings.minOrderSubtotal)
-const belowMinimum = computed(() => minOrder.value > 0 && cart.subtotal < minOrder.value)
-const missingForMinimum = computed(() => Math.max(0, minOrder.value - cart.subtotal))
+// * Shop-wide floor, or this club's exception on a single-club cart. Mirrors
+// * create-order; see useMinOrder for the rule.
+const { minOrder, belowMinimum, missingForMinimum } = useMinOrder()
 
 function validate(): string | null {
   if (cart.isEmpty) return t('checkout.errors.cartEmpty')

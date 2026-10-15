@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useClubsStore, type Club } from '~/stores/clubs'
 import { useSportsStore } from '~/stores/sports'
+import { useSiteSettingsStore } from '~/stores/siteSettings'
 
 interface Props {
   modelValue: boolean
@@ -16,6 +17,7 @@ const { t, locale } = useI18n()
 const { edgeErrorMessage } = useEdgeError()
 const clubs = useClubsStore()
 const sports = useSportsStore()
+const siteSettings = useSiteSettingsStore()
 const client = useSupabaseClient()
 
 const name = ref('')
@@ -27,6 +29,29 @@ const password = ref('')
 const useAccent = ref(false)
 const accentColorValue = ref('#3B82F6')
 const slogan = ref('')
+// * Per-club override of the shop-wide minimum order amount. Empty string in the
+// * input means "follow the shop-wide value" and is sent as null; 0 is a real
+// * value meaning "no minimum for this club".
+const minOrderSubtotal = ref<number | string | null>(null)
+
+function fmtEur(v: number) {
+  return new Intl.NumberFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(v)
+}
+
+// * Surface the shop-wide value in the placeholder so an empty field reads as
+// * "inherits 30 €" rather than "no minimum".
+const minOrderPlaceholder = computed(() => fmtEur(siteSettings.minOrderSubtotal))
+const minOrderHint = computed(() => {
+  const v = minOrderSubtotal.value
+  if (v === null || (v as unknown as string) === '') {
+    return t('admin.clubs.minOrderHintDefault', { amount: fmtEur(siteSettings.minOrderSubtotal) })
+  }
+  if (Number(v) === 0) return t('admin.clubs.minOrderHintNone')
+  return t('admin.clubs.minOrderHintOverride', { amount: fmtEur(Number(v)) })
+})
 // * Per-club delivery toggles. Colissimo defaults on (matches DB default);
 // * the two pickup methods are opt-in. The DB enforces ≥1 enabled.
 const deliveryColissimo = ref(true)
@@ -73,6 +98,7 @@ watch(
     useAccent.value = !!props.club?.accent_color
     accentColorValue.value = props.club?.accent_color ?? '#3B82F6'
     slogan.value = props.club?.slogan ?? ''
+    minOrderSubtotal.value = props.club?.min_order_subtotal ?? null
     deliveryColissimo.value = props.club?.delivery_colissimo_enabled ?? true
     deliveryColissimoFree.value = props.club?.delivery_colissimo_free ?? false
     deliveryClubPickup.value = props.club?.delivery_club_pickup_enabled ?? false
@@ -134,6 +160,10 @@ async function save() {
         shopPickupDelayDays.value === null || (shopPickupDelayDays.value as any) === ''
           ? null
           : Math.max(0, Number(shopPickupDelayDays.value)),
+      min_order_subtotal:
+        minOrderSubtotal.value === null || (minOrderSubtotal.value as any) === ''
+          ? null
+          : Math.max(0, Number(minOrderSubtotal.value)),
     }
     if (props.club) {
       await clubs.update({ id: props.club.id, ...base })
@@ -223,6 +253,32 @@ async function save() {
             class="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none text-sm"
           />
           <p class="text-xs text-gray-400 mt-1">{{ slogan.length }}/80</p>
+        </label>
+
+        <!-- * Commercial exception: this club's own minimum order amount.
+             Left empty, the club simply follows the shop-wide setting. -->
+        <label class="block">
+          <span class="text-sm font-medium">{{ t('admin.clubs.minOrder') }}</span>
+          <div class="mt-1 flex items-center gap-2">
+            <input
+              v-model="minOrderSubtotal"
+              type="number"
+              min="0"
+              step="0.01"
+              :placeholder="minOrderPlaceholder"
+              class="w-40 px-3 py-2 rounded-lg border border-gray-300 dark:border-sidebar bg-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none text-sm"
+            >
+            <span class="text-sm text-gray-500">€</span>
+            <button
+              v-if="minOrderSubtotal !== null && (minOrderSubtotal as any) !== ''"
+              type="button"
+              class="text-xs text-brand-primary hover:underline"
+              @click="minOrderSubtotal = null"
+            >
+              {{ t('admin.clubs.minOrderClear') }}
+            </button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">{{ minOrderHint }}</p>
         </label>
 
         <!-- * Delivery methods offered on this club's shop page -->
