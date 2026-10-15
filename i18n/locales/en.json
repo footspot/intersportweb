@@ -1785,6 +1785,29 @@
         "usedBy": "Used by",
         "unused": "Unused",
         "check": "Check"
+      },
+      "usagePdf": {
+        "download": "Download PDF",
+        "building": "Generating…",
+        "includeEmails": "Include customer e-mails (personal data)",
+        "title": "Promo codes — usage report",
+        "allClubs": "All clubs",
+        "batch": "Batch",
+        "createdAt": "Batch created on",
+        "generatedAt": "Document generated on",
+        "filter": "Applied filter",
+        "none": "None",
+        "cardIssued": "Codes issued",
+        "cardUsed": "Codes used",
+        "cardRemaining": "Codes remaining",
+        "cardValueIssued": "Value issued",
+        "cardValueUsed": "Value redeemed",
+        "cardValueRemaining": "Value remaining",
+        "tableTitle": "Code details",
+        "statusUsed": "Used",
+        "emailsOmitted": "Customer e-mails have been deliberately omitted from this document.",
+        "page": "Page {n}/{total}",
+        "confidential": "Internal document — INTER SPORT CLUBS IDF"
       }
     },
     "banner": {

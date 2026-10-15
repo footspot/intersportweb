@@ -1785,6 +1785,29 @@
         "usedBy": "Utilisé par",
         "unused": "Non utilisé",
         "check": "Vérifier"
+      },
+      "usagePdf": {
+        "download": "Télécharger le PDF",
+        "building": "Génération…",
+        "includeEmails": "Inclure les e-mails des clients (données personnelles)",
+        "title": "Codes promo — rapport d'utilisation",
+        "allClubs": "Tous les clubs",
+        "batch": "Lot",
+        "createdAt": "Lot créé le",
+        "generatedAt": "Document généré le",
+        "filter": "Filtre appliqué",
+        "none": "Aucun",
+        "cardIssued": "Codes émis",
+        "cardUsed": "Codes utilisés",
+        "cardRemaining": "Codes restants",
+        "cardValueIssued": "Valeur émise",
+        "cardValueUsed": "Valeur consommée",
+        "cardValueRemaining": "Valeur restante",
+        "tableTitle": "Détail des codes",
+        "statusUsed": "Utilisé",
+        "emailsOmitted": "Les e-mails des clients ont volontairement été omis de ce document.",
+        "page": "Page {n}/{total}",
+        "confidential": "Document interne — INTER SPORT CLUBS IDF"
       }
     },
     "banner": {

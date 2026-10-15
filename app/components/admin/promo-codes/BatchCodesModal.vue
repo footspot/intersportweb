@@ -2,6 +2,9 @@
 // * Codes inside one batch with who used each one. Clicking a code hands it
 // * to the page's CodeLookup for the full order history.
 import { usePromoCodesStore, type PromoBatch, type PromoCode } from '~/stores/promoCodes'
+import { useClubsStore } from '~/stores/clubs'
+import { buildPromoUsagePdf, downloadPromoUsagePdf } from '~/composables/usePromoUsagePdf'
+import { fileSlug } from '~/composables/usePdfDoc'
 
 interface Props {
   modelValue: boolean
@@ -15,6 +18,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const promo = usePromoCodesStore()
+const clubs = useClubsStore()
+const supabase = useSupabaseClient()
 
 const codes = ref<PromoCode[]>([])
 const loading = ref(false)
@@ -65,6 +70,131 @@ function fmtDateTime(v: string | null) {
   if (!v) return '—'
   return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(v))
 }
+function fmtDate(v: string | null): string | null {
+  if (!v) return null
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(v))
+}
+
+// ────────────────────────────── PDF export ──────────────────────────────────
+// * Clubs ask which of their codes have been redeemed. The report is built from
+// * the codes already fetched for this modal, so it can never disagree with the
+// * table on screen.
+// *
+// * ! Customer e-mails are personal data; handing them to a club is a disclosure
+// * ! to a third party. The column is therefore opt-in per export and omitted
+// * ! entirely — not masked — when the box is unticked.
+const includeEmails = ref(true)
+const pdfBusy = ref(false)
+
+function clubName(id: string | null): string | null {
+  if (!id) return null
+  return clubs.items.find((c) => c.id === id)?.name ?? null
+}
+function clubLogoUrl(id: string | null): string | null {
+  const c = clubs.items.find((x) => x.id === id)
+  if (!c?.logo_path) return null
+  const { data } = supabase.storage.from('club-logos').getPublicUrl(c.logo_path)
+  return data?.publicUrl ?? null
+}
+function scopeLabel(b: PromoBatch): string {
+  if (b.scope === 'club') return t('admin.promo.scope.club') + ' - ' + (clubName(b.club_id) ?? '—')
+  if (b.scope === 'products') {
+    return t('admin.promo.scope.packLabel', {
+      n: b.scope_product_ids?.length ?? 0,
+      club: clubName(b.club_id) ?? '—',
+    })
+  }
+  return t('admin.promo.scope.global')
+}
+
+// * Printed in the report so a filtered export is never mistaken for the batch.
+const filterLabel = computed<string | null>(() => {
+  const parts: string[] = []
+  if (filter.value !== 'all') {
+    parts.push(filter.value === 'used'
+      ? t('admin.promo.batchCodes.filterUsed')
+      : t('admin.promo.batchCodes.filterUnused'))
+  }
+  if (search.value.trim()) parts.push(`"${search.value.trim()}"`)
+  return parts.length ? parts.join(' - ') : null
+})
+
+async function exportPdf() {
+  const b = props.batch
+  if (!b) return
+  pdfBusy.value = true
+  errorMsg.value = null
+  try {
+    const blob = await buildPromoUsagePdf({
+      intersportLogoUrl: '/logo_horizontal.svg',
+      clubLogoUrl: clubLogoUrl(b.club_id),
+      clubName: clubName(b.club_id),
+      batchLabel: b.batch_id.slice(0, 8),
+      scopeLabel: scopeLabel(b),
+      amount: Number(b.amount),
+      minSubtotal: b.min_subtotal != null ? Number(b.min_subtotal) : null,
+      validFromLabel: fmtDate(b.valid_from),
+      validUntilLabel: fmtDate(b.valid_until),
+      absorbsLabel: t(`admin.promo.absorbs.${b.absorbs_by}`),
+      note: b.note,
+      createdAtLabel: fmtDate(b.created_at) ?? '—',
+      generatedAtLabel: new Intl.DateTimeFormat('fr-FR', {
+        dateStyle: 'long',
+        timeStyle: 'short',
+      }).format(new Date()),
+      filterLabel: filterLabel.value,
+      includeEmails: includeEmails.value,
+      // * Rows follow what is on screen; totals below stay batch-wide.
+      codes: visible.value.map((c) => ({
+        code: c.code,
+        usedAtLabel: c.used_at ? fmtDateTime(c.used_at) : null,
+        email: c.used_by_email,
+      })),
+      totals: { issued: codes.value.length, used: usedCount.value },
+      i18n: {
+        title: t('admin.promo.usagePdf.title'),
+        allClubs: t('admin.promo.usagePdf.allClubs'),
+        batch: t('admin.promo.usagePdf.batch'),
+        scope: t('admin.promo.col.scope'),
+        value: t('admin.promo.pdf.coverAmount'),
+        minSubtotal: t('admin.promo.pdf.coverMin'),
+        validity: t('admin.promo.col.window'),
+        absorbs: t('admin.promo.col.absorbs'),
+        note: t('admin.promo.pdf.coverNote'),
+        createdAt: t('admin.promo.usagePdf.createdAt'),
+        generatedAt: t('admin.promo.usagePdf.generatedAt'),
+        filter: t('admin.promo.usagePdf.filter'),
+        unlimited: t('admin.promo.pdf.coverUnlimited'),
+        none: t('admin.promo.usagePdf.none'),
+        cardIssued: t('admin.promo.usagePdf.cardIssued'),
+        cardUsed: t('admin.promo.usagePdf.cardUsed'),
+        cardRemaining: t('admin.promo.usagePdf.cardRemaining'),
+        cardValueIssued: t('admin.promo.usagePdf.cardValueIssued'),
+        cardValueUsed: t('admin.promo.usagePdf.cardValueUsed'),
+        cardValueRemaining: t('admin.promo.usagePdf.cardValueRemaining'),
+        tableTitle: t('admin.promo.usagePdf.tableTitle'),
+        colCode: t('admin.promo.col.code'),
+        colStatus: t('admin.promo.col.status'),
+        colUsedAt: t('admin.promo.batchCodes.usedAt'),
+        colUsedBy: t('admin.promo.batchCodes.usedBy'),
+        statusUsed: t('admin.promo.usagePdf.statusUsed'),
+        statusUnused: t('admin.promo.batchCodes.unused'),
+        emailsOmitted: t('admin.promo.usagePdf.emailsOmitted'),
+        noData: t('admin.promo.batchCodes.empty'),
+        page: t('admin.promo.usagePdf.page'),
+        confidential: t('admin.promo.usagePdf.confidential'),
+      },
+    })
+    downloadPromoUsagePdf(
+      blob,
+      `codes-promo-${fileSlug(clubName(b.club_id) ?? 'global')}-${b.batch_id.slice(0, 8)}.pdf`,
+    )
+  } catch {
+    errorMsg.value = t('admin.promo.lookup.failed')
+  } finally {
+    pdfBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -103,7 +233,23 @@ function fmtDateTime(v: string | null) {
           <option value="used">{{ t('admin.promo.batchCodes.filterUsed') }}</option>
           <option value="unused">{{ t('admin.promo.batchCodes.filterUnused') }}</option>
         </select>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary-dark disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="loading || pdfBusy || codes.length === 0"
+          @click="exportPdf"
+        >
+          <UIcon name="i-lucide-file-down" class="w-4 h-4" />
+          {{ pdfBusy ? t('admin.promo.usagePdf.building') : t('admin.promo.usagePdf.download') }}
+        </button>
       </div>
+
+      <!-- ! Customer e-mails are personal data: handing them to a club is a
+           disclosure to a third party, so make it a deliberate per-export choice. -->
+      <label class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+        <input v-model="includeEmails" type="checkbox" class="rounded border-gray-300">
+        {{ t('admin.promo.usagePdf.includeEmails') }}
+      </label>
 
       <div class="overflow-auto flex-1 -mx-6 px-6">
         <p v-if="loading" class="py-8 text-center text-gray-500">{{ t('common.loading') }}</p>
