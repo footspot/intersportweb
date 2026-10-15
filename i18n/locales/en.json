@@ -2002,6 +2002,20 @@
         "qty": "Qty",
         "revenue": "Revenue",
         "margin": "Fund"
+      },
+      "pdf": {
+        "download": "Download PDF",
+        "building": "Generating…",
+        "hint": "Exports the statistics on screen, within the scope of the active filters.",
+        "allClubs": "All clubs",
+        "range": "Range",
+        "filters": "Active filters",
+        "generatedAt": "Document generated on",
+        "colReference": "Reference",
+        "colSport": "Sport",
+        "colSize": "Size",
+        "page": "Page {n}/{total}",
+        "confidential": "Internal document — INTER SPORT CLUBS IDF"
       }
     },
     "shops": {

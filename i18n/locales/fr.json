@@ -2002,6 +2002,20 @@
         "qty": "Qté",
         "revenue": "CA",
         "margin": "Cagnotte"
+      },
+      "pdf": {
+        "download": "Télécharger le PDF",
+        "building": "Génération…",
+        "hint": "Exporte les statistiques affichées, dans le périmètre des filtres actifs.",
+        "allClubs": "Tous les clubs",
+        "range": "Intervalle",
+        "filters": "Filtres actifs",
+        "generatedAt": "Document généré le",
+        "colReference": "Référence",
+        "colSport": "Sport",
+        "colSize": "Taille",
+        "page": "Page {n}/{total}",
+        "confidential": "Document interne — INTER SPORT CLUBS IDF"
       }
     },
     "shops": {

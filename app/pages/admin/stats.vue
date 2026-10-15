@@ -4,14 +4,16 @@
 import { useClubsStore } from '~/stores/clubs'
 import { useProductsStore } from '~/stores/products'
 import { invokeEdge } from '~/composables/useEdgeFunction'
+import { buildClubStatsPdf, downloadClubStatsPdf } from '~/composables/useClubStatsPdf'
 import type { Period } from '~/components/admin/FiltersBar.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin'] })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { edgeErrorMessage } = useEdgeError()
 const clubs = useClubsStore()
 const products = useProductsStore()
+const supabase = useSupabaseClient()
 
 const period = ref<Period>('7d')
 
@@ -117,6 +119,130 @@ function fmt(v: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v)
 }
 
+// ────────────────────────────── PDF export ──────────────────────────────────
+// * Clubs periodically ask for their figures as a file. The PDF is built from
+// * `stats` — exactly what admin-stats returned for the filters on screen — so
+// * the document can never disagree with the dashboard.
+const pdfBusy = ref(false)
+
+function clubLogoUrl(id: string | null): string | null {
+  const c = clubs.items.find((x) => x.id === id)
+  if (!c?.logo_path) return null
+  const { data } = supabase.storage.from('club-logos').getPublicUrl(c.logo_path)
+  return data?.publicUrl ?? null
+}
+
+function fmtDay(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+function localised(n: { fr: string; en: string } | null | undefined): string {
+  if (!n) return ''
+  return (locale.value === 'en' ? n.en : n.fr) || n.fr || n.en || ''
+}
+
+// ! A report narrowed to one category / product / size would otherwise look
+// ! like the club's full figures. Print the active filters so the scope of the
+// ! document is always explicit on the page.
+const activeFiltersLabel = computed<string | null>(() => {
+  const parts: string[] = []
+  if (category.value) parts.push(`${t('admin.filters.category')}: ${category.value}`)
+  if (productId.value) {
+    const p = products.byId(productId.value)
+    parts.push(`${t('admin.filters.product')}: ${p ? localised(p.name) || p.reference : productId.value}`)
+  }
+  if (size.value) parts.push(`${t('admin.filters.size')}: ${size.value}`)
+  if (reference.value.trim()) parts.push(`${t('admin.filters.reference')}: ${reference.value.trim()}`)
+  return parts.length ? parts.join(' - ') : null
+})
+
+function fileSlug(label: string): string {
+  return label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'export'
+}
+
+async function exportPdf() {
+  if (!stats.value) return
+  pdfBusy.value = true
+  errorMsg.value = null
+  try {
+    const club = clubId.value ? clubs.items.find((c) => c.id === clubId.value) ?? null : null
+    const dtf = new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    })
+    const blob = await buildClubStatsPdf({
+      intersportLogoUrl: '/logo_horizontal.svg',
+      clubLogoUrl: clubLogoUrl(clubId.value),
+      clubName: club?.name ?? null,
+      periodLabel: t(`admin.filters.${period.value}`),
+      rangeLabel:
+        period.value === 'custom' ? `${fmtDay(dateFrom.value)} - ${fmtDay(dateTo.value)}` : null,
+      generatedAtLabel: dtf.format(new Date()),
+      activeFiltersLabel: activeFiltersLabel.value,
+      kpis: stats.value.kpis,
+      revenueSeries: stats.value.revenue_series,
+      revenueBySport: stats.value.revenue_by_sport,
+      sizeBreakdown: stats.value.size_breakdown,
+      bestSellers: stats.value.best_sellers.map((b) => ({
+        name: localised(b.name),
+        reference: b.reference,
+        clubName: b.club_name,
+        qty: b.qty,
+        revenue: b.revenue,
+        margin: b.margin,
+      })),
+      i18n: {
+        title: t('admin.stats.title'),
+        allClubs: t('admin.stats.pdf.allClubs'),
+        period: t('admin.filters.period'),
+        range: t('admin.stats.pdf.range'),
+        filters: t('admin.stats.pdf.filters'),
+        generatedAt: t('admin.stats.pdf.generatedAt'),
+        kpiRevenue: t('admin.stats.kpi.revenue'),
+        kpiMargin: t('admin.stats.kpi.margin'),
+        kpiOrders: t('admin.stats.kpi.orders'),
+        kpiAverageBasket: t('admin.stats.kpi.averageBasket'),
+        kpiActiveProducts: t('admin.stats.kpi.activeProducts'),
+        kpiTotalFund: t('admin.stats.kpi.totalFund'),
+        chartTitle: t('admin.stats.revenueChart'),
+        legendRevenue: t('admin.stats.revenue'),
+        legendMargin: t('admin.stats.margin'),
+        bestSellers: t('admin.stats.bestSellers'),
+        colProduct: t('admin.stats.col.product'),
+        colReference: t('admin.stats.pdf.colReference'),
+        colClub: t('admin.stats.col.club'),
+        colQty: t('admin.stats.col.qty'),
+        colRevenue: t('admin.stats.col.revenue'),
+        colMargin: t('admin.stats.col.margin'),
+        sportTitle: t('admin.stats.sportDonut'),
+        colSport: t('admin.stats.pdf.colSport'),
+        sizeTitle: t('admin.stats.sizeBreakdown'),
+        colSize: t('admin.stats.pdf.colSize'),
+        uniqueSize: t('admin.stats.uniqueSize'),
+        total: t('admin.stats.total'),
+        noData: t('admin.stats.noData'),
+        page: t('admin.stats.pdf.page'),
+        confidential: t('admin.stats.pdf.confidential'),
+      },
+    })
+    const name = club?.name ?? t('admin.stats.pdf.allClubs')
+    downloadClubStatsPdf(
+      blob,
+      `statistiques-${fileSlug(name)}-${new Date().toISOString().slice(0, 10)}.pdf`,
+    )
+  } catch (err) {
+    errorMsg.value = edgeErrorMessage(err)
+  } finally {
+    pdfBusy.value = false
+  }
+}
+
 const kpis = computed(() => {
   const k = stats.value?.kpis
   return [
@@ -131,9 +257,20 @@ const kpis = computed(() => {
 
 <template>
   <div class="space-y-6">
-    <div>
-      <h1 class="font-heading text-2xl font-bold">{{ t('admin.stats.title') }}</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.stats.subtitle') }}</p>
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="font-heading text-2xl font-bold">{{ t('admin.stats.title') }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.stats.subtitle') }}</p>
+      </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary-dark disabled:opacity-40 disabled:cursor-not-allowed"
+        :disabled="!stats || loading || pdfBusy"
+        :title="t('admin.stats.pdf.hint')"
+        @click="exportPdf"
+      >
+        {{ pdfBusy ? t('admin.stats.pdf.building') : t('admin.stats.pdf.download') }}
+      </button>
     </div>
 
     <ClientOnly>
