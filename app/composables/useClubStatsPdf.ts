@@ -26,13 +26,16 @@ import {
   downloadPdfBlob, ensureSpace, fmtInt, fmtMoney, sectionTitle, stampFooters,
 } from '~/composables/usePdfDoc'
 
+// ! `total_fund` is deliberately absent. admin-stats computes it filter-free
+// ! (a "global KPI"): it sums EVERY club's fund_balance, so on a document handed
+// ! to one club it is the shop's total, not theirs — a disclosure of other
+// ! clubs' money rather than a statistic. Do not add it back.
 export interface ClubStatsPdfKpis {
   revenue: number
   margin: number
   orders: number
   average_basket: number
   active_products: number
-  total_fund: number
 }
 
 export interface ClubStatsPdfInput {
@@ -72,7 +75,6 @@ export interface ClubStatsPdfInput {
     kpiOrders: string
     kpiAverageBasket: string
     kpiActiveProducts: string
-    kpiTotalFund: string
     chartTitle: string
     legendRevenue: string
     legendMargin: string
@@ -190,7 +192,6 @@ export async function buildClubStatsPdf(input: ClubStatsPdfInput): Promise<Blob>
     { label: input.i18n.kpiOrders, value: fmtInt(input.kpis.orders) },
     { label: input.i18n.kpiAverageBasket, value: fmtMoney(input.kpis.average_basket) },
     { label: input.i18n.kpiActiveProducts, value: fmtInt(input.kpis.active_products) },
-    { label: input.i18n.kpiTotalFund, value: fmtMoney(input.kpis.total_fund), accent: GREEN },
   ])
 
   drawRevenueChart(ctx, input)

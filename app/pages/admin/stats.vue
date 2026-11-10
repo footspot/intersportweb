@@ -209,7 +209,6 @@ async function exportPdf() {
         kpiOrders: t('admin.stats.kpi.orders'),
         kpiAverageBasket: t('admin.stats.kpi.averageBasket'),
         kpiActiveProducts: t('admin.stats.kpi.activeProducts'),
-        kpiTotalFund: t('admin.stats.kpi.totalFund'),
         chartTitle: t('admin.stats.revenueChart'),
         legendRevenue: t('admin.stats.revenue'),
         legendMargin: t('admin.stats.margin'),

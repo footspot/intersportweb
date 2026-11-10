@@ -1811,7 +1811,7 @@
         "tableTitle": "Code details",
         "statusUsed": "Used",
         "emailsOmitted": "Customer e-mails have been deliberately omitted from this document.",
-        "page": "Page {n}/{total}",
+        "page": "Page",
         "confidential": "Internal document — INTER SPORT CLUBS IDF"
       }
     },
@@ -2042,7 +2042,7 @@
         "colReference": "Reference",
         "colSport": "Sport",
         "colSize": "Size",
-        "page": "Page {n}/{total}",
+        "page": "Page",
         "confidential": "Internal document — INTER SPORT CLUBS IDF"
       }
     },

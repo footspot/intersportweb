@@ -305,6 +305,11 @@ export function drawTable(
 
 // * Page count is only known once everything is drawn, so footers are stamped
 // * last, across every page.
+// ! `pageLabel` is a plain word ("Page"), never a "{n}/{total}" template. Such a
+// ! template is destroyed before it arrives: the caller resolves it through
+// ! vue-i18n's t(), which substitutes unsupplied named placeholders with empty
+// ! strings, so the footer printed a bare "Page /". The numbers are composed
+// ! here instead, where nothing can interpolate them away.
 export function stampFooters(doc: jsPDF, opts: { confidential: string; pageLabel: string }) {
   const total = doc.getNumberOfPages()
   for (let p = 1; p <= total; p++) {
@@ -317,7 +322,7 @@ export function stampFooters(doc: jsPDF, opts: { confidential: string; pageLabel
     doc.setTextColor(150, 150, 150)
     doc.text(opts.confidential, MARGIN, PAGE_H - 9)
     doc.text(
-      opts.pageLabel.replace('{n}', String(p)).replace('{total}', String(total)),
+      `${opts.pageLabel} ${p}/${total}`,
       PAGE_W - MARGIN,
       PAGE_H - 9,
       { align: 'right' },
